@@ -1,0 +1,31 @@
+name: Release Firefox
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-firefox:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Firefox package
+        run: pnpm build:firefox
+
+      - name: AMO publish placeholder
+        run: echo "Firefox AMO upload requires JWT credentials and packaging script."

@@ -1,0 +1,34 @@
+# Node
+node_modules
+dist
+.npm
+.eslintcache
+
+# Next.js
+.next/
+out/
+build
+
+# Turbo
+.turbo/
+
+# Vite / Extensions
+build/
+*.zip
+*.crx
+*.xpi
+
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+*.vsix
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env*
+!.env.example

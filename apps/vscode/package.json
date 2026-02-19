@@ -1,0 +1,33 @@
+{
+	"name": "promptlens-vscode",
+	"displayName": "PromptLens",
+	"description": "AI Prompt Refinement for VS Code",
+	"version": "0.0.1",
+	"icon": "icon.svg",
+	"engines": {
+		"vscode": "^1.80.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"scripts": {
+		"vscode:prepublish": "pnpm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"pretest": "pnpm run compile && pnpm run lint",
+		"lint": "eslint src --ext ts",
+		"test": "node ./out/test/runTest.js"
+	},
+	"activationEvents": [],
+	"main": "./dist/extension.js",
+	"dependencies": {
+		"@promptlens/core": "workspace:*",
+		"@promptlens/providers": "workspace:*",
+		"@promptlens/types": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.80.0",
+		"@types/node": "18.x",
+		"typescript": "^5.1.3"
+	}
+}

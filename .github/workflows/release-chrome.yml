@@ -1,0 +1,36 @@
+name: Release Chrome
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release-chrome:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run quality checks
+        run: pnpm type-check
+
+      - name: Build Chrome package
+        run: pnpm build:chrome
+
+      - name: Create release artifact placeholder
+        run: echo "Chrome Web Store upload step requires API credentials and packaging script."

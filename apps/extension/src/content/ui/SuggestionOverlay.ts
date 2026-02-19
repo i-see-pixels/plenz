@@ -1,0 +1,195 @@
+import { Suggestion } from "@promptlens/types"
+import styles from "./styles.css?inline"
+
+export class SuggestionOverlay {
+	private shadowHost: HTMLDivElement
+	private shadowRoot: ShadowRoot
+	private container: HTMLDivElement
+	private anchorElement: HTMLElement
+	private visible: boolean = false
+	private suggestions: Suggestion[] = []
+	private activeIndex: number = 0
+	private onSelect: ((suggestion: Suggestion) => void) | null = null
+
+	constructor(anchorElement: HTMLElement) {
+		this.anchorElement = anchorElement
+		this.shadowHost = document.createElement("div")
+		this.shadowHost.id = "promptlens-overlay"
+		this.shadowRoot = this.shadowHost.attachShadow({ mode: "closed" })
+
+		// Inject styles
+		const styleEl = document.createElement("style")
+		styleEl.textContent = styles
+		this.shadowRoot.appendChild(styleEl)
+
+		this.container = document.createElement("div")
+		this.container.className = "pl-container pl-overlay"
+		this.shadowRoot.appendChild(this.container)
+
+		document.body.appendChild(this.shadowHost)
+		this.container.style.position = "fixed"
+		this.container.style.zIndex = "2147483647"
+
+		this.bindEvents()
+	}
+
+	private bindEvents() {
+		window.addEventListener("resize", () => this.positionOverlay())
+		window.addEventListener("scroll", () => this.positionOverlay(), true)
+	}
+
+	public show(
+		suggestions: Suggestion[],
+		mode: "popover" | "ghost" = "popover",
+	) {
+		if (suggestions.length === 0) {
+			this.hide()
+			return
+		}
+
+		this.suggestions = suggestions
+		this.activeIndex = 0
+
+		if (mode === "ghost") {
+			this.renderGhostText()
+		} else {
+			this.render()
+		}
+
+		this.container.classList.add("visible")
+		this.visible = true
+		this.positionOverlay()
+		requestAnimationFrame(() => this.positionOverlay())
+	}
+
+	public hide() {
+		this.container.classList.remove("visible")
+		// Clear ghost text if present
+		const ghost = this.shadowRoot.querySelector(".pl-ghost-overlay")
+		if (ghost) ghost.remove()
+
+		this.visible = false
+	}
+
+	private renderGhostText() {
+		// Remove existing ghost if any
+		const existing = this.shadowRoot.querySelector(".pl-ghost-overlay")
+		if (existing) existing.remove()
+
+		if (this.suggestions.length === 0) return
+
+		const suggestion = this.suggestions[0] // Only show top suggestion
+		const ghost = document.createElement("div")
+		ghost.className = "pl-ghost-overlay"
+		ghost.textContent = suggestion.suggested
+
+		// This needs complex positioning logic to match input text exactly
+		// For now, we append it to container. Real generic implementation is hard without specific platform input coordinates.
+		// We'll trust the consumer (styles.css) to position it absolutely over the input.
+		this.container.innerHTML = "" // Clear popover content
+		this.container.appendChild(ghost)
+	}
+
+	private render() {
+		this.container.innerHTML = `
+            <div class="pl-header">
+                <span>⚡ PromptLens Suggestions</span>
+                <span class="pl-close-btn" id="pl-close">✕</span>
+            </div>
+            <div class="pl-suggestion-list">
+                ${this.suggestions
+									.map(
+										(s, idx) => `
+                    <div class="pl-suggestion-item ${idx === this.activeIndex ? "active" : ""}" data-index="${idx}">
+                        <div class="pl-suggestion-text">${this.escapeHtml(s.suggested)}</div>
+                        <div class="pl-suggestion-rationale">
+                             💡 ${this.escapeHtml(s.rationale)}
+                        </div>
+                    </div>
+                `,
+									)
+									.join("")}
+            </div>
+            <div class="pl-footer">
+                <span>[Tab] Accept</span>
+                <span>[Esc] Dismiss</span>
+                <span>[↑↓] Navigate</span>
+            </div>
+        `
+
+		// Re-bind click events
+		const items = this.container.querySelectorAll(".pl-suggestion-item")
+		items.forEach((item) => {
+			item.addEventListener("click", () => {
+				const idx = parseInt(item.getAttribute("data-index") || "0", 10)
+				this.activeIndex = idx
+				this.render()
+				const suggestion = this.suggestions[this.activeIndex]
+				if (suggestion) {
+					this.onSelect?.(suggestion)
+				}
+			})
+		})
+
+		this.container
+			.querySelector("#pl-close")
+			?.addEventListener("click", () => this.hide())
+	}
+
+	public navigate(direction: "up" | "down") {
+		if (!this.visible) return
+
+		if (direction === "down") {
+			this.activeIndex = (this.activeIndex + 1) % this.suggestions.length
+		} else {
+			this.activeIndex =
+				(this.activeIndex - 1 + this.suggestions.length) %
+				this.suggestions.length
+		}
+		this.render()
+		this.positionOverlay()
+	}
+
+	public getActiveSuggestion(): Suggestion | null {
+		if (!this.visible || this.suggestions.length === 0) return null
+		return this.suggestions[this.activeIndex]
+	}
+
+	public isVisible(): boolean {
+		return this.visible
+	}
+
+	public setOnSelect(handler: (suggestion: Suggestion) => void) {
+		this.onSelect = handler
+	}
+
+	private positionOverlay() {
+		if (!this.visible) return
+
+		const rect = this.anchorElement.getBoundingClientRect()
+		if (rect.width <= 0 || rect.height <= 0) return
+
+		const viewportPadding = 8
+		const width = Math.min(600, Math.max(320, rect.width))
+		const maxLeft = window.innerWidth - width - viewportPadding
+		const left = Math.max(viewportPadding, Math.min(rect.left, maxLeft))
+
+		this.container.style.width = `${width}px`
+		this.container.style.maxWidth = `${width}px`
+		this.container.style.minWidth = `${width}px`
+		this.container.style.left = `${left}px`
+
+		const overlayHeight = this.container.getBoundingClientRect().height || 220
+		let top = rect.top - overlayHeight - 8
+		if (top < viewportPadding) {
+			top = rect.bottom + 8
+		}
+		this.container.style.top = `${top}px`
+	}
+
+	private escapeHtml(str: string) {
+		const div = document.createElement("div")
+		div.textContent = str
+		return div.innerHTML
+	}
+}
