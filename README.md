@@ -5,9 +5,9 @@ Open-source browser extension for real-time AI prompt refinement. Like Grammarly
 ![PromptLens Logo](assets/PromptLensLogo.svg)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![CI](https://github.com/promptlens/promptlens/actions/workflows/ci.yml/badge.svg)](https://github.com/promptlens/promptlens/actions/workflows/ci.yml)
-[![E2E](https://github.com/promptlens/promptlens/actions/workflows/e2e.yml/badge.svg)](https://github.com/promptlens/promptlens/actions/workflows/e2e.yml)
-[![CodeQL](https://github.com/promptlens/promptlens/actions/workflows/codeql.yml/badge.svg)](https://github.com/promptlens/promptlens/actions/workflows/codeql.yml)
+[![CI](https://github.com/i-see-pixels/promptlens/actions/workflows/ci.yml/badge.svg)](https://github.com/i-see-pixels/promptlens/actions/workflows/ci.yml)
+[![E2E](https://github.com/i-see-pixels/promptlens/actions/workflows/e2e.yml/badge.svg)](https://github.com/i-see-pixels/promptlens/actions/workflows/e2e.yml)
+[![CodeQL](https://github.com/i-see-pixels/promptlens/actions/workflows/codeql.yml/badge.svg)](https://github.com/i-see-pixels/promptlens/actions/workflows/codeql.yml)
 
 ## Features
 
@@ -51,25 +51,25 @@ Open-source browser extension for real-time AI prompt refinement. Like Grammarly
 
 ## Supported Platforms
 
-| Platform | Status |
-| --- | --- |
-| ChatGPT | Supported |
-| Claude | Supported |
-| Gemini | Supported |
+| Platform   | Status    |
+| ---------- | --------- |
+| ChatGPT    | Supported |
+| Claude     | Supported |
+| Gemini     | Supported |
 | Perplexity | Supported |
-| Copilot | Planned |
+| Copilot    | Planned   |
 
 ## Supported Providers
 
-| Provider | Status |
-| --- | --- |
-| OpenAI | Supported |
-| Google | Supported |
-| Anthropic | Planned |
-| Mistral | Planned |
-| Groq | Planned |
-| OpenRouter | Planned |
-| Custom Adapter | Planned |
+| Provider       | Status    |
+| -------------- | --------- |
+| OpenAI         | Supported |
+| Google         | Supported |
+| Anthropic      | Planned   |
+| Mistral        | Planned   |
+| Groq           | Planned   |
+| OpenRouter     | Planned   |
+| Custom Adapter | Planned   |
 
 ## Privacy and Security
 
@@ -88,7 +88,7 @@ Detailed setup: `DEVELOPMENT.md`
 
 ## Contributing
 
-[![Good First Issues](https://img.shields.io/github/issues/promptlens/promptlens/good%20first%20issue)](https://github.com/promptlens/promptlens/labels/good%20first%20issue)
+[![Good First Issues](https://img.shields.io/github/issues/i-see-pixels/promptlens/good%20first%20issue)](https://github.com/i-see-pixels/promptlens/labels/good%20first%20issue)
 
 Please read `docs/CONTRIBUTING.md`.
 
