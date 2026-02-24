@@ -27,7 +27,7 @@ jobs:
         run: pnpm -C apps/web run lint
 
       - name: Type check
-        run: pnpm type-check
+        run: pnpm turbo type-check
 
       - name: Unit tests
         run: pnpm test:unit

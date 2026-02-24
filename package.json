@@ -13,7 +13,7 @@
     "format": "turbo format",
     "test": "turbo test",
     "test:unit": "echo \"No unit tests are configured yet.\"",
-    "type-check": "pnpm -C apps/extension exec tsc --noEmit && pnpm -C apps/web exec tsc --noEmit"
+    "type-check": "turbo type-check"
   },
   "repository": {
     "type": "git",
