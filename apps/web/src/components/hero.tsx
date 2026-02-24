@@ -86,7 +86,7 @@ export function Hero() {
             className="h-12 gap-2.5 rounded-full border-border/50 px-7 text-base hover:border-border hover:bg-white/5"
           >
             <Link
-              href="https://github.com/promptlens/promptlens"
+              href="https://github.com/i-see-pixels/promptlens"
               target="_blank"
               rel="noopener noreferrer"
             >

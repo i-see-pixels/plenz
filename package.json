@@ -17,12 +17,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/promptlens/promptlens.git"
+    "url": "https://github.com/i-see-pixels/promptlens.git"
   },
   "bugs": {
-    "url": "https://github.com/promptlens/promptlens/issues"
+    "url": "https://github.com/i-see-pixels/promptlens/issues"
   },
-  "homepage": "https://github.com/promptlens/promptlens",
+  "homepage": "https://github.com/i-see-pixels/promptlens",
   "devDependencies": {
     "turbo": "latest"
   },

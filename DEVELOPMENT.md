@@ -11,7 +11,7 @@
 Clone the repository and install dependencies from the root of the monorepo:
 
 ```bash
-git clone https://github.com/promptlens/promptlens.git
+git clone https://github.com/i-see-pixels/promptlens.git
 cd promptlens
 pnpm install
 ```

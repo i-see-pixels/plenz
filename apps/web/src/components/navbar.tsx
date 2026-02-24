@@ -57,7 +57,7 @@ export function Navbar() {
         <div className="hidden items-center gap-3 md:flex">
           <Button variant="ghost" size="sm" asChild>
             <Link
-              href="https://github.com/promptlens/promptlens"
+              href="https://github.com/i-see-pixels/promptlens"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -97,7 +97,7 @@ export function Navbar() {
             <div className="mt-3 flex flex-col gap-2">
               <Button variant="outline" size="sm" asChild>
                 <Link
-                  href="https://github.com/promptlens/promptlens"
+                  href="https://github.com/i-see-pixels/promptlens"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
