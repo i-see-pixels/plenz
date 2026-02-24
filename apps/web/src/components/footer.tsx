@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { Github } from "lucide-react";
-import PromptLensLogo from "@/assets/PromptLensLogo.svg";
+import logo from "@/public/logo.svg";
 
 interface FooterLink {
   label: string;
@@ -69,12 +69,7 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2.5">
-              <Image
-                src={PromptLensLogo}
-                alt="PromptLens"
-                width={24}
-                height={24}
-              />
+              <Image src={logo} alt="PromptLens" width={24} height={24} />
               <span className="text-base font-semibold tracking-tight">
                 PromptLens
               </span>

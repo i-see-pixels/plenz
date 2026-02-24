@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Github, Menu, X } from "lucide-react";
-import PromptLensLogo from "@/assets/PromptLensLogo.svg";
+import logo from "@/public/logo.svg";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -34,7 +34,7 @@ export function Navbar() {
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5">
-          <Image src={PromptLensLogo} alt="PromptLens" width={28} height={28} />
+          <Image src={logo} alt="PromptLens" width={28} height={28} />
           <span className="text-lg font-semibold tracking-tight">
             PromptLens
           </span>
