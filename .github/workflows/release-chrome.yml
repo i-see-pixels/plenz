@@ -28,6 +28,8 @@ jobs:
         run: pnpm type-check
 
       - name: Build Chrome package
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: pnpm build:chrome
 
       - name: Create release artifact placeholder
