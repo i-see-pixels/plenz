@@ -1,0 +1,167 @@
+import {
+  ProviderAdapter,
+  ProviderConfig,
+  ConnectionTestResult,
+  AnalysisResult,
+  Suggestion,
+} from "@promptlens/types";
+
+export class GroqAdapter implements ProviderAdapter {
+  id = "groq";
+  name = "Groq";
+  models = [
+    {
+      id: "llama-3.1-70b-versatile",
+      name: "Llama 3.1 70B",
+      tier: "premium" as const,
+    },
+    {
+      id: "llama-3.1-8b-instant",
+      name: "Llama 3.1 8B",
+      tier: "standard" as const,
+    },
+    {
+      id: "mixtral-8x7b-32768",
+      name: "Mixtral 8x7B",
+      tier: "standard" as const,
+    },
+    { id: "gemma2-9b-it", name: "Gemma 2 9B", tier: "standard" as const },
+  ];
+
+  private normalizeSuggestions(raw: unknown): Suggestion[] {
+    const validTypes: Suggestion["type"][] = [
+      "rewrite",
+      "add_context",
+      "add_constraints",
+      "add_role",
+      "add_format",
+      "clarify",
+    ];
+
+    if (!Array.isArray(raw)) return [];
+
+    return raw
+      .map((item, idx) => {
+        const value = item as Record<string, unknown>;
+
+        const suggested =
+          (typeof value.suggested === "string" && value.suggested) ||
+          (typeof value.suggested_text === "string" && value.suggested_text) ||
+          "";
+        if (!suggested) return null;
+
+        const original =
+          (typeof value.original === "string" && value.original) ||
+          (typeof value.original_text === "string" && value.original_text) ||
+          "";
+
+        const type = validTypes.includes(value.type as Suggestion["type"])
+          ? (value.type as Suggestion["type"])
+          : "clarify";
+
+        const confidenceValue =
+          typeof value.confidence === "number" ? value.confidence : 0.7;
+        const confidence = Math.max(0, Math.min(1, confidenceValue));
+
+        return {
+          id:
+            (typeof value.id === "string" && value.id) ||
+            `suggestion-${idx + 1}`,
+          type,
+          original,
+          suggested,
+          rationale:
+            (typeof value.rationale === "string" && value.rationale) ||
+            "Improves prompt clarity.",
+          confidence,
+        };
+      })
+      .filter((item): item is Suggestion => item !== null);
+  }
+
+  async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
+    const start = performance.now();
+    try {
+      const res = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${config.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: config.model,
+            messages: [{ role: "user", content: "ping" }],
+            max_tokens: 5,
+          }),
+        },
+      );
+      const latency = Math.round(performance.now() - start);
+      if (!res.ok) {
+        const err = await res.json();
+        return {
+          success: false,
+          latencyMs: latency,
+          error: err.error?.message,
+        };
+      }
+      return { success: true, latencyMs: latency };
+    } catch (e) {
+      return { success: false, latencyMs: 0, error: (e as Error).message };
+    }
+  }
+
+  async analyze(
+    prompt: string,
+    systemPrompt: string,
+    config: ProviderConfig,
+  ): Promise<AnalysisResult> {
+    const start = performance.now();
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: config.maxTokens ?? 1024,
+        temperature: config.temperature ?? 0.3,
+        response_format: { type: "json_object" },
+      }),
+    });
+    const data = await res.json();
+    const latency = Math.round(performance.now() - start);
+
+    if (!res.ok) {
+      throw new Error(data.error?.message || "Groq API error");
+    }
+
+    const content = data.choices?.[0]?.message?.content;
+    let parsed: Record<string, unknown> = {};
+    if (typeof content === "string" && content.trim()) {
+      try {
+        parsed = JSON.parse(content) as Record<string, unknown>;
+      } catch {
+        throw new Error("Invalid JSON response from Groq");
+      }
+    }
+
+    const suggestions = this.normalizeSuggestions(parsed.suggestions);
+
+    return {
+      suggestions,
+      rawResponse: JSON.stringify(data),
+      tokensUsed: {
+        prompt: data.usage?.prompt_tokens ?? 0,
+        completion: data.usage?.completion_tokens ?? 0,
+      },
+      latencyMs: latency,
+    };
+  }
+}
