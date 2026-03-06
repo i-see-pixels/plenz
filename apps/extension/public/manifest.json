@@ -35,10 +35,11 @@
       ]
     }
   ],
-  "permissions": ["storage", "identity", "activeTab", "scripting"],
+  "permissions": ["storage", "identity"],
   "host_permissions": [
     "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*",
+    "https://www.googleapis.com/*",
     "https://api.anthropic.com/*",
     "https://api.mistral.ai/*",
     "https://api.groq.com/*",
@@ -51,11 +52,10 @@
     "scopes": [
       "openid",
       "email",
-      "profile",
-      "https://www.googleapis.com/auth/contacts.readonly"
+      "profile"
     ]
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.openai.com https://generativelanguage.googleapis.com https://api.anthropic.com https://api.mistral.ai https://api.groq.com https://openrouter.ai http://localhost:* http://127.0.0.1:*"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.openai.com https://generativelanguage.googleapis.com https://www.googleapis.com https://api.anthropic.com https://api.mistral.ai https://api.groq.com https://openrouter.ai http://localhost:* http://127.0.0.1:*"
   }
 }
