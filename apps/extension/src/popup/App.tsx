@@ -2,6 +2,7 @@ import { useState, useEffect } from "preact/hooks";
 import logo from "../assets/logo.svg";
 import { providers } from "@promptlens/providers";
 import { AuthStatus } from "../components/AuthStatus";
+import { BarChart, Users } from "lucide-preact";
 
 export function App() {
   const [modelStatus, setModelStatus] = useState<{
@@ -66,20 +67,22 @@ export function App() {
   };
 
   return (
-    <div className="w-80 p-4 bg-white shadow-xl flex flex-col gap-4">
-      <header className="flex items-center justify-between border-b pb-2">
+    <div className="w-80 p-0 bg-white border border-gray-200 flex flex-col font-sans">
+      <header className="flex items-center justify-between border-b border-gray-200 p-4">
         <div className="flex items-center gap-2">
-          <img src={logo} alt="PromptLens" className="w-6 h-6" />
-          <h1 className="font-bold text-lg text-gray-800">PromptLens</h1>
+          <img src={logo} alt="PromptLens" className="w-5 h-5 grayscale" />
+          <h1 className="font-bold text-base tracking-tight text-black">
+            PromptLens
+          </h1>
         </div>
         <button
           onClick={openSettings}
-          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-1.5 hover:bg-gray-100 rounded-md transition-colors"
           title="Settings"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="w-5 h-5 text-gray-600"
+            className="w-4 h-4 text-black"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -100,22 +103,22 @@ export function App() {
         </button>
       </header>
 
-      <div className="border-b pb-4 px-1">
+      <div className="border-b border-gray-200 px-4 py-3">
         <AuthStatus />
       </div>
 
-      <main className="space-y-4">
-        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+      <main className="flex flex-col">
+        <div className="p-4 border-b border-gray-200 bg-white">
+          <h2 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-3">
             Active Model
           </h2>
           {modelStatus ? (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <select
                   value={modelStatus.modelId || ""}
                   onChange={handleModelChange}
-                  className="text-sm font-medium text-gray-700 bg-transparent border-none focus:ring-0 cursor-pointer w-full p-0"
+                  className="text-sm font-semibold text-black bg-transparent border-none focus:ring-0 cursor-pointer w-full p-0"
                   disabled={!modelStatus.configured}
                 >
                   <option value="" disabled>
@@ -131,48 +134,47 @@ export function App() {
                     </optgroup>
                   ))}
                 </select>
-                <span
-                  className={`w-2 h-2 rounded-full shrink-0 ml-2 ${modelStatus.configured ? "bg-green-500" : "bg-red-500"}`}
-                  title={
-                    modelStatus.configured ? "Configured" : "Missing API Key"
-                  }
-                />
+                {modelStatus.configured && (
+                  <span className="px-2 py-0.5 rounded-full bg-orange-600 text-white font-mono text-[9px] uppercase tracking-wider whitespace-nowrap">
+                    Active
+                  </span>
+                )}
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-sm text-gray-400">
-              <div className="animate-pulse w-full h-4 bg-gray-200 rounded" />
+              <div className="animate-pulse w-full h-4 bg-gray-200" />
             </div>
           )}
         </div>
 
         {!modelStatus?.configured && (
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex flex-col gap-2">
-            <p className="text-xs text-blue-700 font-medium">
-              ✨ Setup your model to enable real-time prompt enhancement.
+          <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-col gap-3">
+            <p className="text-xs text-black font-medium tracking-tight">
+              Setup your model to enable real-time prompt enhancement.
             </p>
             <button
               onClick={openSettings}
-              className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-md transition-colors shadow-sm"
+              className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-full transition-colors"
             >
               Configure Now
             </button>
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          <button className="flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg transition-colors text-sm text-gray-700">
-            <span className="text-lg">📊</span>
+        <div className="flex flex-col p-2">
+          <button className="flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-md transition-colors text-sm font-medium text-black">
+            <BarChart className="w-4 h-4 text-gray-400" />
             <span>Dashboard</span>
           </button>
-          <button className="flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg transition-colors text-sm text-gray-700">
-            <span className="text-lg">🤝</span>
+          <button className="flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-md transition-colors text-sm font-medium text-black">
+            <Users className="w-4 h-4 text-gray-400" />
             <span>Community</span>
           </button>
         </div>
       </main>
 
-      <footer className="text-[10px] text-center text-gray-400 pt-2 border-t font-medium uppercase tracking-widest">
+      <footer className="text-[10px] text-center text-gray-400 py-3 border-t border-gray-200 font-mono font-bold uppercase tracking-widest bg-gray-50">
         PromptLens · v1.0.0
       </footer>
     </div>

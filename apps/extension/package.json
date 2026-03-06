@@ -13,6 +13,7 @@
     "@promptlens/core": "workspace:*",
     "@promptlens/providers": "workspace:*",
     "@promptlens/types": "workspace:*",
+    "lucide-preact": "^0.577.0",
     "preact": "^10.28.4"
   },
   "devDependencies": {

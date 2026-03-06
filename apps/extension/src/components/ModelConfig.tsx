@@ -91,7 +91,7 @@ export function ModelConfig() {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-xs font-mono font-bold text-gray-700 uppercase tracking-wider mb-2">
           Provider
         </label>
         <select
@@ -102,7 +102,7 @@ export function ModelConfig() {
             const p = providers.find((prov) => prov.id === val);
             if (p) setSelectedModel(p.models[0].id);
           }}
-          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+          className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-black focus:border-black rounded-none transition-colors duration-200"
         >
           {providers.map((p) => (
             <option key={p.id} value={p.id}>
@@ -113,7 +113,9 @@ export function ModelConfig() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Model</label>
+        <label className="block text-xs font-mono font-bold text-gray-700 uppercase tracking-wider mb-2">
+          Model
+        </label>
         {selectedProvider === "custom" || selectedProvider === "openrouter" ? (
           <input
             type="text"
@@ -121,7 +123,7 @@ export function ModelConfig() {
             onChange={(e) =>
               setSelectedModel((e.target as HTMLInputElement).value)
             }
-            className="mt-1 px-3 py-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 px-3 py-2 block w-full border border-gray-300 rounded-none focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors duration-200"
             placeholder={
               selectedProvider === "openrouter"
                 ? "e.g., anthropic/claude-3-opus"
@@ -135,7 +137,7 @@ export function ModelConfig() {
             onChange={(e) =>
               setSelectedModel((e.target as HTMLSelectElement).value)
             }
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+            className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-black focus:border-black rounded-none transition-colors duration-200"
           >
             {provider.models.map((m) => (
               <option key={m.id} value={m.id}>
@@ -158,43 +160,43 @@ export function ModelConfig() {
 
       {selectedProvider === "custom" && (
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-xs font-mono font-bold text-gray-700 uppercase tracking-wider mb-2">
             Base URL
           </label>
           <input
             type="text"
             value={baseUrl}
             onChange={(e) => setBaseUrl((e.target as HTMLInputElement).value)}
-            className="mt-1 px-3 py-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 px-3 py-2 block w-full border border-gray-300 rounded-none focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors duration-200"
             placeholder="http://localhost:11434/v1"
           />
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-xs font-mono font-bold text-gray-700 uppercase tracking-wider mb-2">
           API Key
         </label>
         <input
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey((e.target as HTMLInputElement).value)}
-          className="mt-1 px-3 py-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          className="mt-1 px-3 py-2 block w-full border border-gray-300 rounded-none focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors duration-200"
           placeholder="sk-..."
         />
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-4 pt-2">
         <button
           onClick={handleTest}
           disabled={testStatus.loading}
-          className="inline-flex items-center px-4 py-2 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-bold rounded-md text-black bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors"
         >
           {testStatus.loading ? "Testing..." : "Test Connection"}
         </button>
         <button
           onClick={handleSave}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-bold rounded-full text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors"
         >
           Save Configuration
         </button>
