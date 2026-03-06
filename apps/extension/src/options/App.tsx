@@ -1,5 +1,6 @@
 import { ModelConfig } from "../components/ModelConfig";
 import { AuthStatus } from "../components/AuthStatus";
+import logo from "../assets/logo.svg";
 
 export function App() {
   return (
@@ -7,7 +8,7 @@ export function App() {
       <div className="max-w-3xl mx-auto">
         <header className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src="/icon.svg" alt="PromptLens" className="w-10 h-10" />
+            <img src={logo} alt="PromptLens" className="w-10 h-10" />
             <h1 className="text-3xl font-bold text-gray-900">
               PromptLens Settings
             </h1>
