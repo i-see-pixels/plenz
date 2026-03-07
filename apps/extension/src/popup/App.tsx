@@ -1,4 +1,4 @@
-import { useState, useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import logo from "../assets/logo.svg";
 import { providers } from "@promptlens/providers";
 import { AuthStatus } from "../components/AuthStatus";
@@ -68,113 +68,129 @@ export function App() {
       },
       (response) => {
         if (response?.success) {
-          setModelStatus((prev) =>
-            prev ? { ...prev, modelId: newModelId } : null,
-          );
+          setModelStatus((prev) => (prev ? { ...prev, modelId: newModelId } : null));
         }
       },
     );
   };
 
   return (
-    <div className="w-80">
-      <Card className="gap-0 rounded-none border-none py-0 shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between border-b px-4 py-3">
-          <div className="flex items-center gap-2">
+    <div className="w-80 border border-border bg-background">
+      <Card className="gap-0 rounded-none border-0 bg-transparent py-0 shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-border px-4 py-3">
+          <div className="flex items-center gap-3">
             <img src={logo} alt="PromptLens" className="size-5 grayscale" />
-            <h1 className="text-base font-semibold tracking-tight">PromptLens</h1>
+            <div className="flex flex-col gap-0.5 leading-none">
+              <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                PromptLens
+              </p>
+              <h1 className="text-sm font-semibold tracking-tight">Control panel</h1>
+            </div>
           </div>
+
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon-sm"
             onClick={openSettings}
             aria-label="Open settings"
             title="Settings"
           >
-            <Settings className="size-4" />
+            <Settings />
           </Button>
         </CardHeader>
 
         <CardContent className="px-0 py-0">
-          <div className="px-4 py-3">
+          <section className="flex flex-col gap-3 px-4 py-3">
+            <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+              Account
+            </p>
             <AuthStatus />
-          </div>
+          </section>
 
           <Separator />
 
           <section className="flex flex-col gap-3 px-4 py-3">
-            <h2 className="font-mono text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
-              Active Model
-            </h2>
-            {modelStatus ? (
-              <div className="flex items-center gap-2">
-                <Select
-                  value={modelStatus.modelId ?? undefined}
-                  onValueChange={handleModelChange}
-                  disabled={!modelStatus.configured}
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                Active model
+              </p>
+              {modelStatus?.configured ? (
+                <Badge
+                  variant="outline"
+                  className="rounded-sm border-[color:var(--accent-signal)] font-mono text-[10px] tracking-[0.12em] text-[color:var(--accent-signal)] uppercase"
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a model..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {providers.map((provider) => (
-                      <SelectGroup key={provider.id}>
-                        <SelectLabel>{provider.name}</SelectLabel>
-                        {provider.models.map((model) => (
-                          <SelectItem key={model.id} value={model.id}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {modelStatus.configured ? (
-                  <Badge variant="secondary" className="font-mono text-[9px] uppercase">
-                    Active
-                  </Badge>
-                ) : null}
-              </div>
+                  Configured
+                </Badge>
+              ) : null}
+            </div>
+
+            {modelStatus ? (
+              <Select
+                value={modelStatus.modelId ?? undefined}
+                onValueChange={handleModelChange}
+                disabled={!modelStatus.configured}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a model..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {providers.map((provider) => (
+                    <SelectGroup key={provider.id}>
+                      <SelectLabel>{provider.name}</SelectLabel>
+                      {provider.models.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
             ) : (
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-9 w-full" />
-              </div>
+              <Skeleton className="h-9 w-full rounded-sm" />
             )}
           </section>
 
           {!modelStatus?.configured ? (
             <>
               <Separator />
-              <div className="flex flex-col gap-3 bg-muted/30 px-4 py-3">
-                <p className="text-xs font-medium">
-                  Setup your model to enable real-time prompt enhancement.
+              <section className="flex flex-col gap-3 px-4 py-3">
+                <p className="rounded-sm border border-[color:var(--accent-signal)] bg-muted px-3 py-2 text-xs leading-relaxed">
+                  Model configuration is required before inline prompt enhancement is enabled.
                 </p>
-                <Button onClick={openSettings}>Configure now</Button>
-              </div>
+                <Button onClick={openSettings}>Configure model</Button>
+              </section>
             </>
           ) : null}
 
           <Separator />
 
-          <div className="flex flex-col gap-1 p-2">
-            <Button variant="ghost" className="justify-start gap-3">
-              <BarChart3 className="size-4 text-muted-foreground" />
-              Dashboard
-            </Button>
-            <Button variant="ghost" className="justify-start gap-3">
-              <Users className="size-4 text-muted-foreground" />
-              Community
-            </Button>
-          </div>
+          <section className="flex flex-col gap-2 px-4 py-3">
+            <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+              Links
+            </p>
+            <div className="grid gap-2">
+              <Button variant="outline" className="justify-start gap-2">
+                <BarChart3 data-icon="inline-start" />
+                Dashboard
+              </Button>
+              <Button variant="outline" className="justify-start gap-2">
+                <Users data-icon="inline-start" />
+                Community
+              </Button>
+            </div>
+          </section>
         </CardContent>
 
-        <CardFooter className="justify-center border-t px-3 py-2">
-          <p className="font-mono text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
-            PromptLens · v1.0.0
+        <CardFooter className="justify-between border-t border-border px-4 py-2">
+          <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+            PromptLens
+          </p>
+          <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+            v1.0.0
           </p>
         </CardFooter>
       </Card>
     </div>
   );
 }
-

@@ -1,6 +1,7 @@
-import { useState, useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { providers } from "@promptlens/providers";
 import type { ConnectionTestResult, ProviderConfig } from "@promptlens/types";
+import { Badge } from "@promptlens/ui/components/badge";
 import { Button } from "@promptlens/ui/components/button";
 import { Input } from "@promptlens/ui/components/input";
 import { Label } from "@promptlens/ui/components/label";
@@ -98,9 +99,11 @@ export function ModelConfig() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="provider">Provider</Label>
+    <div className="flex flex-col gap-3">
+      <div className="grid gap-3 rounded-sm border border-border bg-card px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+        <Label htmlFor="provider" className="font-mono text-[11px] tracking-[0.14em] uppercase">
+          Provider
+        </Label>
         <Select
           value={selectedProvider}
           onValueChange={(value) => {
@@ -124,20 +127,18 @@ export function ModelConfig() {
         </Select>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="model">Model</Label>
+      <div className="grid gap-3 rounded-sm border border-border bg-card px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+        <Label htmlFor="model" className="font-mono text-[11px] tracking-[0.14em] uppercase">
+          Model
+        </Label>
         {usesCustomModelInput ? (
-          <>
+          <div className="flex flex-col gap-2">
             <Input
               id="model"
               type="text"
               value={selectedModel}
               onInput={(e) => setSelectedModel((e.target as HTMLInputElement).value)}
-              placeholder={
-                selectedProvider === "openrouter"
-                  ? "e.g., anthropic/claude-3-opus"
-                  : "e.g., llama3"
-              }
+              placeholder={selectedProvider === "openrouter" ? "e.g., anthropic/claude-3-opus" : "e.g., llama3"}
               list={`${selectedProvider}-models`}
             />
             <datalist id={`${selectedProvider}-models`}>
@@ -147,7 +148,7 @@ export function ModelConfig() {
                 </option>
               ))}
             </datalist>
-          </>
+          </div>
         ) : (
           <Select value={selectedModel} onValueChange={setSelectedModel}>
             <SelectTrigger id="model" className="w-full">
@@ -165,8 +166,10 @@ export function ModelConfig() {
       </div>
 
       {selectedProvider === "custom" ? (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="base-url">Base URL</Label>
+        <div className="grid gap-3 rounded-sm border border-border bg-card px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+          <Label htmlFor="base-url" className="font-mono text-[11px] tracking-[0.14em] uppercase">
+            Base URL
+          </Label>
           <Input
             id="base-url"
             type="text"
@@ -177,8 +180,10 @@ export function ModelConfig() {
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="api-key">API Key</Label>
+      <div className="grid gap-3 rounded-sm border border-border bg-card px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+        <Label htmlFor="api-key" className="font-mono text-[11px] tracking-[0.14em] uppercase">
+          API key
+        </Label>
         <Input
           id="api-key"
           type="password"
@@ -188,7 +193,7 @@ export function ModelConfig() {
         />
       </div>
 
-      <div className="flex flex-wrap gap-3 pt-2">
+      <div className="flex flex-wrap gap-2 pt-1">
         <Button onClick={handleTest} disabled={testStatus.loading} variant="outline">
           {testStatus.loading ? "Testing..." : "Test connection"}
         </Button>
@@ -198,15 +203,28 @@ export function ModelConfig() {
       {testStatus.result ? (
         <div
           className={cn(
-            "rounded-md border px-3 py-2 text-sm",
+            "flex items-center justify-between gap-3 rounded-sm border px-3 py-2",
             testStatus.result.success
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-destructive/30 bg-destructive/10 text-destructive",
+              ? "border-[color:var(--accent-secondary)] bg-muted"
+              : "border-[color:var(--accent-signal)] bg-muted",
           )}
         >
-          {testStatus.result.success
-            ? `Success! Latency: ${testStatus.result.latencyMs}ms`
-            : `Error: ${testStatus.result.error}`}
+          <p className="text-sm leading-relaxed text-foreground">
+            {testStatus.result.success
+              ? `Connection OK. Latency: ${testStatus.result.latencyMs}ms`
+              : `Connection failed: ${testStatus.result.error}`}
+          </p>
+          <Badge
+            variant="outline"
+            className={cn(
+              "rounded-sm font-mono text-[10px] tracking-[0.12em] uppercase",
+              testStatus.result.success
+                ? "border-[color:var(--accent-secondary)] text-[color:var(--accent-secondary)]"
+                : "border-[color:var(--accent-signal)] text-[color:var(--accent-signal)]",
+            )}
+          >
+            {testStatus.result.success ? "Healthy" : "Error"}
+          </Badge>
         </div>
       ) : null}
     </div>

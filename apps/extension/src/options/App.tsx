@@ -8,41 +8,44 @@ import { Label } from "@promptlens/ui/components/label";
 export function App() {
   return (
     <div className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-3xl flex-col gap-8">
-        <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <img
-              src={logo}
-              alt="PromptLens"
-              className="size-10 grayscale transition-all duration-300 hover:grayscale-0"
-            />
-            <h1 className="text-3xl font-bold tracking-tight">PromptLens Settings</h1>
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        <header className="grid gap-4 border border-border bg-card px-4 py-4 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="PromptLens" className="size-9 grayscale" />
+            <div className="flex flex-col gap-1">
+              <p className="font-mono text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                Extension settings
+              </p>
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">PromptLens control plane</h1>
+            </div>
           </div>
-          <div className="sm:min-w-[250px]">
+          <div className="w-full sm:w-[260px]">
             <AuthStatus />
           </div>
         </header>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-mono text-sm tracking-widest text-muted-foreground uppercase">
-              Model Configuration
+        <Card className="gap-0 rounded-md border-border py-0 shadow-none">
+          <CardHeader className="border-b border-border px-4 py-3">
+            <CardTitle className="font-mono text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+              Model configuration
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 py-4">
             <ModelConfig />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-mono text-sm tracking-widest text-muted-foreground uppercase">
-              General Preferences
+        <Card className="gap-0 rounded-md border-border py-0 shadow-none">
+          <CardHeader className="border-b border-border px-4 py-3">
+            <CardTitle className="font-mono text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+              General preferences
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="debounce">Debounce Time (ms)</Label>
+          <CardContent className="px-4 py-4">
+            <div className="grid gap-3 border border-border bg-card px-3 py-3 sm:grid-cols-[220px_1fr] sm:items-center">
+              <Label htmlFor="debounce" className="font-mono text-[11px] tracking-[0.14em] uppercase">
+                Debounce time (ms)
+              </Label>
               <Input id="debounce" type="number" defaultValue={500} />
             </div>
           </CardContent>

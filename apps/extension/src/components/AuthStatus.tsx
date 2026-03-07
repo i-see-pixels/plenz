@@ -1,4 +1,4 @@
-import { useState, useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import type { UserInfo } from "../background/auth";
 import { Button } from "@promptlens/ui/components/button";
 import { Skeleton } from "@promptlens/ui/components/skeleton";
@@ -39,32 +39,35 @@ export function AuthStatus() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2">
-        <Skeleton className="size-8 rounded-full" />
-        <Skeleton className="h-4 w-24" />
+      <div className="flex items-center gap-2 rounded-sm border border-border px-3 py-2">
+        <Skeleton className="size-8 rounded-sm" />
+        <div className="flex flex-1 flex-col gap-1">
+          <Skeleton className="h-3 w-24 rounded-sm" />
+          <Skeleton className="h-3 w-16 rounded-sm" />
+        </div>
       </div>
     );
   }
 
   if (user) {
     return (
-      <div className="flex items-center gap-3 px-1">
+      <div className="flex items-center gap-3 rounded-sm border border-border bg-card px-3 py-2">
         {user.picture ? (
-          <img src={user.picture} alt={user.name} className="size-7 rounded-sm" />
+          <img src={user.picture} alt={user.name} className="size-8 rounded-sm border border-border object-cover" />
         ) : (
-          <div className="flex size-7 items-center justify-center rounded-sm bg-muted text-xs font-semibold text-foreground">
+          <div className="flex size-8 items-center justify-center rounded-sm border border-border bg-muted text-xs font-semibold text-foreground">
             {user.name?.charAt(0) || user.email?.charAt(0)}
           </div>
         )}
+
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold leading-tight text-foreground">
-            {user.name}
-          </p>
-          <p className="truncate font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-            {user.email?.split("@")[0]}
+          <p className="truncate text-sm font-semibold leading-tight text-foreground">{user.name}</p>
+          <p className="truncate font-mono text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+            {user.email}
           </p>
         </div>
-        <Button variant="ghost" size="xs" onClick={handleSignOut} title="Sign out">
+
+        <Button variant="outline" size="xs" onClick={handleSignOut} title="Sign out">
           Sign out
         </Button>
       </div>
@@ -72,8 +75,8 @@ export function AuthStatus() {
   }
 
   return (
-    <Button onClick={handleSignIn} variant="outline" className="w-full justify-center gap-2">
-      <svg className="size-4 grayscale" viewBox="0 0 24 24" aria-hidden="true">
+    <Button onClick={handleSignIn} className="w-full justify-center gap-2">
+      <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="inline-start">
         <path
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
           fill="currentColor"
