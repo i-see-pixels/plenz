@@ -1,51 +1,52 @@
-import { ModelConfig } from "../components/ModelConfig";
-import { AuthStatus } from "../components/AuthStatus";
 import logo from "../assets/logo.svg";
+import { AuthStatus } from "../components/AuthStatus";
+import { ModelConfig } from "../components/ModelConfig";
+import { Card, CardContent, CardHeader, CardTitle } from "@promptlens/ui/components/card";
+import { Input } from "@promptlens/ui/components/input";
+import { Label } from "@promptlens/ui/components/label";
 
 export function App() {
   return (
-    <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-3xl mx-auto">
-        <header className="mb-10 flex items-center justify-between border-b border-gray-200 pb-6">
+    <div className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-3xl flex-col gap-8">
+        <header className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <img
               src={logo}
               alt="PromptLens"
-              className="w-10 h-10 grayscale hover:grayscale-0 transition-all duration-300"
+              className="size-10 grayscale transition-all duration-300 hover:grayscale-0"
             />
-            <h1 className="text-3xl font-bold text-black tracking-tight">
-              PromptLens Settings
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight">PromptLens Settings</h1>
           </div>
-          <AuthStatus />
+          <div className="sm:min-w-[250px]">
+            <AuthStatus />
+          </div>
         </header>
 
-        <main className="space-y-8">
-          <section className="bg-white border border-gray-200 p-8">
-            <h2 className="text-xl font-bold tracking-tight text-black mb-6 uppercase text-sm tracking-widest font-mono text-gray-500">
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-mono text-sm tracking-widest text-muted-foreground uppercase">
               Model Configuration
-            </h2>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <ModelConfig />
-          </section>
+          </CardContent>
+        </Card>
 
-          <section className="bg-white border border-gray-200 p-8">
-            <h2 className="text-xl font-bold tracking-tight text-black mb-6 uppercase text-sm tracking-widest font-mono text-gray-500">
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-mono text-sm tracking-widest text-muted-foreground uppercase">
               General Preferences
-            </h2>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-mono font-bold text-gray-700 uppercase tracking-wider mb-2">
-                  Debounce Time (ms)
-                </label>
-                <input
-                  type="number"
-                  className="block w-full border border-gray-300 rounded-none focus:ring-1 focus:ring-black focus:border-black sm:text-sm p-2 transition-colors duration-200"
-                  defaultValue={500}
-                />
-              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="debounce">Debounce Time (ms)</Label>
+              <Input id="debounce" type="number" defaultValue={500} />
             </div>
-          </section>
-        </main>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

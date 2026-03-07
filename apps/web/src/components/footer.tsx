@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@promptlens/ui/components/separator";
 import { Github } from "lucide-react";
 import logo from "@/assets/logo.svg";
 
@@ -126,3 +126,4 @@ export function Footer() {
     </footer>
   );
 }
+

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@promptlens/ui/components/button";
 import { Chrome, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -57,3 +57,4 @@ export function CTA() {
     </section>
   );
 }
+

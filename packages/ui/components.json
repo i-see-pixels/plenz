@@ -1,11 +1,11 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
   "style": "new-york",
-  "rsc": true,
+  "rsc": false,
   "tsx": true,
   "tailwind": {
     "config": "",
-    "css": "src/app/globals.css",
+    "css": "src/styles.css",
     "baseColor": "zinc",
     "cssVariables": true,
     "prefix": ""
@@ -13,7 +13,7 @@
   "iconLibrary": "lucide",
   "rtl": false,
   "aliases": {
-    "components": "@/components",
+    "components": "@promptlens/ui/components",
     "utils": "@promptlens/ui/lib/utils",
     "ui": "@promptlens/ui/components",
     "lib": "@promptlens/ui/lib",

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@promptlens/ui/components/button";
+import { Badge } from "@promptlens/ui/components/badge";
 import { Chrome, Github, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -158,3 +158,4 @@ export function Hero() {
     </section>
   );
 }
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@promptlens/ui/components/card";
 import {
   Sparkles,
   Key,
@@ -118,3 +118,4 @@ export function Features() {
     </section>
   );
 }
+

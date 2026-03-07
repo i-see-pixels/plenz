@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "@promptlens/ui/styles.css";
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
 
 @theme {
   --color-orange-600: #ff4f00;
@@ -10,6 +12,6 @@
 
 @layer base {
   body {
-    @apply antialiased text-gray-900 bg-white selection:bg-orange-600 selection:text-white;
+    @apply antialiased selection:bg-orange-600 selection:text-white;
   }
 }
