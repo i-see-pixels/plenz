@@ -24,8 +24,10 @@ export function ModelConfig() {
     result?: ConnectionTestResult;
   }>({ loading: false });
 
-  const provider = providers.find((p) => p.id === selectedProvider) ?? providers[0];
-  const usesCustomModelInput = selectedProvider === "custom" || selectedProvider === "openrouter";
+  const provider =
+    providers.find((p) => p.id === selectedProvider) ?? providers[0];
+  const usesCustomModelInput =
+    selectedProvider === "custom" || selectedProvider === "openrouter";
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -100,8 +102,11 @@ export function ModelConfig() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid gap-3 rounded-sm border border-border bg-card px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
-        <Label htmlFor="provider" className="font-mono text-[11px] tracking-[0.14em] uppercase">
+      <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+        <Label
+          htmlFor="provider"
+          className="font-mono text-[11px] tracking-[0.14em] uppercase"
+        >
           Provider
         </Label>
         <Select
@@ -127,8 +132,11 @@ export function ModelConfig() {
         </Select>
       </div>
 
-      <div className="grid gap-3 rounded-sm border border-border bg-card px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
-        <Label htmlFor="model" className="font-mono text-[11px] tracking-[0.14em] uppercase">
+      <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+        <Label
+          htmlFor="model"
+          className="font-mono text-[11px] tracking-[0.14em] uppercase"
+        >
           Model
         </Label>
         {usesCustomModelInput ? (
@@ -137,8 +145,14 @@ export function ModelConfig() {
               id="model"
               type="text"
               value={selectedModel}
-              onInput={(e) => setSelectedModel((e.target as HTMLInputElement).value)}
-              placeholder={selectedProvider === "openrouter" ? "e.g., anthropic/claude-3-opus" : "e.g., llama3"}
+              onInput={(e) =>
+                setSelectedModel((e.target as HTMLInputElement).value)
+              }
+              placeholder={
+                selectedProvider === "openrouter"
+                  ? "e.g., anthropic/claude-3-opus"
+                  : "e.g., llama3"
+              }
               list={`${selectedProvider}-models`}
             />
             <datalist id={`${selectedProvider}-models`}>
@@ -166,8 +180,11 @@ export function ModelConfig() {
       </div>
 
       {selectedProvider === "custom" ? (
-        <div className="grid gap-3 rounded-sm border border-border bg-card px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
-          <Label htmlFor="base-url" className="font-mono text-[11px] tracking-[0.14em] uppercase">
+        <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+          <Label
+            htmlFor="base-url"
+            className="font-mono text-[11px] tracking-[0.14em] uppercase"
+          >
             Base URL
           </Label>
           <Input
@@ -180,8 +197,11 @@ export function ModelConfig() {
         </div>
       ) : null}
 
-      <div className="grid gap-3 rounded-sm border border-border bg-card px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
-        <Label htmlFor="api-key" className="font-mono text-[11px] tracking-[0.14em] uppercase">
+      <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+        <Label
+          htmlFor="api-key"
+          className="font-mono text-[11px] tracking-[0.14em] uppercase"
+        >
           API key
         </Label>
         <Input
@@ -194,7 +214,11 @@ export function ModelConfig() {
       </div>
 
       <div className="flex flex-wrap gap-2 pt-1">
-        <Button onClick={handleTest} disabled={testStatus.loading} variant="outline">
+        <Button
+          onClick={handleTest}
+          disabled={testStatus.loading}
+          variant="outline"
+        >
           {testStatus.loading ? "Testing..." : "Test connection"}
         </Button>
         <Button onClick={handleSave}>Save configuration</Button>
@@ -205,8 +229,8 @@ export function ModelConfig() {
           className={cn(
             "flex items-center justify-between gap-3 rounded-sm border px-3 py-2",
             testStatus.result.success
-              ? "border-[color:var(--accent-secondary)] bg-muted"
-              : "border-[color:var(--accent-signal)] bg-muted",
+              ? "border-accent-secondary bg-muted"
+              : "border-accent-signal bg-muted",
           )}
         >
           <p className="text-sm leading-relaxed text-foreground">
@@ -219,8 +243,8 @@ export function ModelConfig() {
             className={cn(
               "rounded-sm font-mono text-[10px] tracking-[0.12em] uppercase",
               testStatus.result.success
-                ? "border-[color:var(--accent-secondary)] text-[color:var(--accent-secondary)]"
-                : "border-[color:var(--accent-signal)] text-[color:var(--accent-signal)]",
+                ? "border-accent-secondary text-accent-secondary"
+                : "border-accent-signal text-accent-signal",
             )}
           >
             {testStatus.result.success ? "Healthy" : "Error"}

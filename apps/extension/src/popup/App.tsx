@@ -5,7 +5,12 @@ import { AuthStatus } from "../components/AuthStatus";
 import { BarChart3, Settings, Users } from "lucide-react";
 import { Badge } from "@promptlens/ui/components/badge";
 import { Button } from "@promptlens/ui/components/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@promptlens/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@promptlens/ui/components/card";
 import {
   Select,
   SelectContent,
@@ -68,7 +73,9 @@ export function App() {
       },
       (response) => {
         if (response?.success) {
-          setModelStatus((prev) => (prev ? { ...prev, modelId: newModelId } : null));
+          setModelStatus((prev) =>
+            prev ? { ...prev, modelId: newModelId } : null,
+          );
         }
       },
     );
@@ -77,14 +84,16 @@ export function App() {
   return (
     <div className="w-80 border border-border bg-background">
       <Card className="gap-0 rounded-none border-0 bg-transparent py-0 shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between border-b border-border px-4 py-3">
+        <CardHeader className="flex flex-row items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
             <img src={logo} alt="PromptLens" className="size-5 grayscale" />
             <div className="flex flex-col gap-0.5 leading-none">
               <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                 PromptLens
               </p>
-              <h1 className="text-sm font-semibold tracking-tight">Control panel</h1>
+              <h1 className="text-sm font-semibold tracking-tight">
+                Control panel
+              </h1>
             </div>
           </div>
 
@@ -107,8 +116,6 @@ export function App() {
             <AuthStatus />
           </section>
 
-          <Separator />
-
           <section className="flex flex-col gap-3 px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
@@ -117,7 +124,7 @@ export function App() {
               {modelStatus?.configured ? (
                 <Badge
                   variant="outline"
-                  className="rounded-sm border-[color:var(--accent-signal)] font-mono text-[10px] tracking-[0.12em] text-[color:var(--accent-signal)] uppercase"
+                  className="rounded-sm border-accent-signal font-mono text-[10px] tracking-[0.12em] text-accent-signal uppercase"
                 >
                   Configured
                 </Badge>
@@ -155,15 +162,14 @@ export function App() {
             <>
               <Separator />
               <section className="flex flex-col gap-3 px-4 py-3">
-                <p className="rounded-sm border border-[color:var(--accent-signal)] bg-muted px-3 py-2 text-xs leading-relaxed">
-                  Model configuration is required before inline prompt enhancement is enabled.
+                <p className="rounded-sm border border-accent-signal bg-muted px-3 py-2 text-xs leading-relaxed">
+                  Model configuration is required before inline prompt
+                  enhancement is enabled.
                 </p>
                 <Button onClick={openSettings}>Configure model</Button>
               </section>
             </>
           ) : null}
-
-          <Separator />
 
           <section className="flex flex-col gap-2 px-4 py-3">
             <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
@@ -182,7 +188,7 @@ export function App() {
           </section>
         </CardContent>
 
-        <CardFooter className="justify-between border-t border-border px-4 py-2">
+        <CardFooter className="justify-between px-4 py-2">
           <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
             PromptLens
           </p>

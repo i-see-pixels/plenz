@@ -31,7 +31,10 @@ const platforms = [
 
 export function Platforms() {
   return (
-    <section id="platforms" className="border-b border-border px-4 py-14 sm:px-6 sm:py-18">
+    <section
+      id="platforms"
+      className="border-b border-border px-4 py-14 sm:px-6 sm:py-18"
+    >
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <div className="flex flex-col gap-3 border border-border bg-card px-4 py-5 sm:px-6">
           <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
@@ -41,8 +44,8 @@ export function Platforms() {
             Works in your existing AI tabs.
           </h2>
           <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            PromptLens detects target input areas and injects suggestions without changing your host
-            platform workflow.
+            PromptLens detects target input areas and injects suggestions
+            without changing your host platform workflow.
           </p>
         </div>
 
@@ -52,10 +55,12 @@ export function Platforms() {
               key={platform.name}
               className="flex flex-col items-center justify-center gap-3 rounded-md border border-border bg-card px-4 py-5"
             >
-              <Image src={platform.link} alt={platform.name} width={platform.width} height={platform.height} />
-              <p className="font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-                {platform.name}
-              </p>
+              <Image
+                src={platform.link}
+                alt={platform.name}
+                width={platform.width}
+                height={platform.height}
+              />
             </div>
           ))}
         </div>

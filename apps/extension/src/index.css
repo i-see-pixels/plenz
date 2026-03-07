@@ -46,7 +46,8 @@
 
 :root {
   --font-sans-brand: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
-  --font-mono-brand: "IBM Plex Mono", "JetBrains Mono", "Cascadia Mono", monospace;
+  --font-mono-brand:
+    "IBM Plex Mono", "JetBrains Mono", "Cascadia Mono", monospace;
   --radius: 0.375rem;
   --background: oklch(0.995 0.001 95);
   --foreground: oklch(0.19 0.004 56);
@@ -87,10 +88,6 @@
   body {
     @apply bg-background text-foreground antialiased;
     min-width: 320px;
-  }
-
-  #app {
-    @apply min-h-screen;
   }
 }
 
