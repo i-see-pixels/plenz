@@ -20,12 +20,11 @@ export function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border bg-background">
       <nav className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-3">
-          <Image src={logo} alt="PromptLens" width={26} height={26} className="grayscale" />
+          <Image src={logo} alt="PromptLens" width={26} height={26} />
           <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-mono text-[10px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-              Prompt refinement
+            <span className="text-lg font-semibold tracking-tight">
+              PromptLens
             </span>
-            <span className="text-lg font-semibold tracking-tight">PromptLens</span>
           </div>
         </Link>
 

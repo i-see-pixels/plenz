@@ -86,7 +86,7 @@ export function App() {
       <Card className="gap-0 rounded-none border-0 bg-transparent py-0 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="PromptLens" className="size-5 grayscale" />
+            <img src={logo} alt="PromptLens" className="size-5" />
             <div className="flex flex-col gap-0.5 leading-none">
               <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                 PromptLens
