@@ -59,7 +59,10 @@ export class SuggestionOverlay {
     this.container.classList.add("visible");
     this.visible = true;
     this.positionOverlay();
-    requestAnimationFrame(() => this.positionOverlay());
+    requestAnimationFrame(() => {
+      this.positionOverlay();
+      this.scrollToActive();
+    });
   }
 
   public hide() {
@@ -136,6 +139,17 @@ export class SuggestionOverlay {
       ?.addEventListener("click", () => this.hide());
   }
 
+  private scrollToActive() {
+    requestAnimationFrame(() => {
+      const activeItem = this.container.querySelector(
+        `.pl-suggestion-item[data-index="${this.activeIndex}"]`,
+      ) as HTMLElement;
+      if (activeItem) {
+        activeItem.scrollIntoView({ block: "nearest", behavior: "auto" });
+      }
+    });
+  }
+
   public navigate(direction: "up" | "down") {
     if (!this.visible) return;
 
@@ -148,6 +162,7 @@ export class SuggestionOverlay {
     }
     this.render();
     this.positionOverlay();
+    this.scrollToActive();
   }
 
   public getActiveSuggestion(): Suggestion | null {
