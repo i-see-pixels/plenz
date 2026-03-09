@@ -1,12 +1,12 @@
 export interface Suggestion {
 	id: string
 	type:
-		| "rewrite"
-		| "add_context"
-		| "add_constraints"
-		| "add_role"
-		| "add_format"
-		| "clarify"
+	| "rewrite"
+	| "add_context"
+	| "add_constraints"
+	| "add_role"
+	| "add_format"
+	| "clarify"
 	original: string
 	suggested: string
 	rationale: string
@@ -50,5 +50,6 @@ export interface ProviderAdapter {
 		prompt: string,
 		systemPrompt: string,
 		config: ProviderConfig,
+		context?: { active_website?: string }
 	): Promise<AnalysisResult>
 }
