@@ -98,8 +98,8 @@ export class SuggestionOverlay {
             </div>
             <div class="pl-suggestion-list">
                 ${this.suggestions
-                  .map(
-                    (s, idx) => `
+        .map(
+          (s, idx) => `
                     <div class="pl-suggestion-item ${idx === this.activeIndex ? "active" : ""}" data-index="${idx}">
                         <div class="pl-suggestion-text">${this.escapeHtml(s.suggested)}</div>
                         <div class="pl-suggestion-rationale">
@@ -107,8 +107,8 @@ export class SuggestionOverlay {
                         </div>
                     </div>
                 `,
-                  )
-                  .join("")}
+        )
+        .join("")}
             </div>
             <div class="pl-footer">
                 <span>[Tab] Accept</span>
@@ -169,9 +169,13 @@ export class SuggestionOverlay {
     const rect = this.anchorElement.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
 
-    const viewportPadding = 8;
+    const viewportPadding = 12;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // Width logic
     const width = Math.min(600, Math.max(320, rect.width));
-    const maxLeft = window.innerWidth - width - viewportPadding;
+    const maxLeft = windowWidth - width - viewportPadding;
     const left = Math.max(viewportPadding, Math.min(rect.left, maxLeft));
 
     this.container.style.width = `${width}px`;
@@ -179,12 +183,47 @@ export class SuggestionOverlay {
     this.container.style.minWidth = `${width}px`;
     this.container.style.left = `${left}px`;
 
-    const overlayHeight = this.container.getBoundingClientRect().height || 220;
-    let top = rect.top - overlayHeight - 8;
-    if (top < viewportPadding) {
-      top = rect.bottom + 8;
+    // Height and Vertical Positioning logic
+    const spaceAbove = rect.top - viewportPadding;
+    const spaceBelow = windowHeight - rect.bottom - viewportPadding;
+    const preferredMaxHeight = 480;
+
+    const suggestionList = this.container.querySelector(
+      ".pl-suggestion-list",
+    ) as HTMLElement;
+    const header = this.container.querySelector(".pl-header") as HTMLElement;
+    const footer = this.container.querySelector(".pl-footer") as HTMLElement;
+
+    const chromeHeight =
+      (header?.offsetHeight || 0) +
+      (footer?.offsetHeight || 0) +
+      24 + // padding-top/bottom of .pl-overlay
+      8; // margin-top of .pl-overlay
+
+    // Decide if we show above or below
+    // Priority: Below if there's enough space for preferredMaxHeight, otherwise Above if there's more space Above.
+    const showBelow =
+      spaceBelow >= preferredMaxHeight + chromeHeight ||
+      spaceBelow >= spaceAbove;
+
+    if (showBelow) {
+      this.container.style.top = `${rect.bottom}px`;
+      this.container.style.bottom = "auto";
+      const availableHeight = spaceBelow - chromeHeight;
+      if (suggestionList) {
+        suggestionList.style.maxHeight = `${Math.min(preferredMaxHeight, availableHeight)}px`;
+      }
+    } else {
+      // Show above
+      const availableHeight = spaceAbove - chromeHeight;
+      if (suggestionList) {
+        suggestionList.style.maxHeight = `${Math.min(preferredMaxHeight, availableHeight)}px`;
+      }
+      // Re-measure height after setting maxHeight on list
+      const overlayHeight = this.container.offsetHeight;
+      this.container.style.top = `${rect.top - overlayHeight - 8}px`;
+      this.container.style.bottom = "auto";
     }
-    this.container.style.top = `${top}px`;
   }
 
   private escapeHtml(str: string) {
