@@ -28,6 +28,10 @@ export function App() {
     configured: boolean;
     modelId: string | null;
   } | null>(null);
+  const [modelStatus, setModelStatus] = useState<{
+    configured: boolean;
+    modelId: string | null;
+  } | null>(null);
 
   useEffect(() => {
     fetchActiveModel();
@@ -59,6 +63,9 @@ export function App() {
     });
   };
 
+  const openSettings = () => {
+    chrome.runtime.openOptionsPage();
+  };
   const openSettings = () => {
     chrome.runtime.openOptionsPage();
   };
