@@ -46,7 +46,7 @@ export class EntityExtractor {
         }
 
         // 3. Topic extraction
-        const topicMatch = text.match(/\b(?:about|for|on)\s+([a-zA-Z0-9\s._-]+)\b/i);
+        const topicMatch = text.match(/\b(?:about|for|on)\s+([a-zA-Z0-9._-]+(?:\s+[a-zA-Z0-9._-]+)*)\b/i);
         if (topicMatch && topicMatch[1]) {
             entities.topic = topicMatch[1].trim().split(/\s+/).slice(0, 3).join(" ");
         }
