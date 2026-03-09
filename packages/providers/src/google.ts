@@ -220,6 +220,7 @@ export class GoogleAdapter implements ProviderAdapter {
 		prompt: string,
 		systemPrompt: string,
 		config: ProviderConfig,
+		context?: { active_website?: string }
 	): Promise<AnalysisResult> {
 		const start = performance.now()
 		const res = await fetch(this.getUrl(config.model), {
@@ -229,10 +230,20 @@ export class GoogleAdapter implements ProviderAdapter {
 				"X-goog-api-key": config.apiKey,
 			},
 			body: JSON.stringify({
-				system_instruction: {
-					parts: [{ text: systemPrompt }],
-				},
-				contents: [{ parts: [{ text: prompt }] }],
+				contents: [
+					{
+						role: "user",
+						parts: [{ text: systemPrompt }],
+					},
+					{
+						role: "user",
+						parts: [{
+							text: context?.active_website
+								? `[Context: ${context.active_website}]\n\n${prompt}`
+								: prompt
+						}],
+					},
+				],
 				generationConfig: {
 					maxOutputTokens: config.maxTokens ?? 1024,
 					temperature: config.temperature ?? 0.3,
@@ -251,11 +262,11 @@ export class GoogleAdapter implements ProviderAdapter {
 		const parts = data.candidates?.[0]?.content?.parts
 		const text = Array.isArray(parts)
 			? parts
-					.map((part: Record<string, unknown>) =>
-						typeof part.text === "string" ? part.text : "",
-					)
-					.join("\n")
-					.trim()
+				.map((part: Record<string, unknown>) =>
+					typeof part.text === "string" ? part.text : "",
+				)
+				.join("\n")
+				.trim()
 			: ""
 		let parsed: Record<string, unknown> = {}
 		let suggestions: Suggestion[] = []

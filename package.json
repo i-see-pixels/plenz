@@ -10,6 +10,7 @@
     "build:firefox": "pnpm -C apps/extension build",
     "dev": "turbo dev",
     "lint": "turbo lint",
+    "lint:ui-primitives": "node scripts/check-no-app-local-ui.mjs",
     "format": "turbo format",
     "test": "turbo test",
     "test:unit": "echo \"No unit tests are configured yet.\"",

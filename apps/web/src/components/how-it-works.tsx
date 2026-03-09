@@ -1,99 +1,62 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Download, Settings, Zap } from "lucide-react";
 
 const steps = [
   {
     number: "01",
     icon: Download,
-    title: "Install the Extension",
+    title: "Install extension",
     description:
-      "Add PromptLens to Chrome with one click. It's free, open source, and takes under 10 seconds.",
+      "Add PromptLens to Chrome and pin it. The popup and options surfaces are ready immediately.",
   },
   {
     number: "02",
     icon: Settings,
-    title: "Connect Your LLM",
+    title: "Connect model provider",
     description:
-      "Choose your provider (OpenAI, Gemini, etc.), paste your API key, and test the connection. Your key stays local.",
+      "Choose provider, add key, test connection, and set an active model in one bordered config flow.",
   },
   {
     number: "03",
     icon: Zap,
-    title: "Start Prompting Better",
+    title: "Draft with guidance",
     description:
-      "Open any AI chat and start typing. PromptLens analyzes your prompt and suggests improvements in real time.",
+      "PromptLens annotates weak prompts in-context and lets you accept rewrites from the keyboard.",
   },
 ];
 
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.15,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
-};
-
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="relative px-6 py-24 sm:py-32">
-      <div className="mx-auto max-w-6xl">
-        <motion.div
-          className="mb-16 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Up and running in{" "}
-            <span className="text-primary">under a minute.</span>
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Three simple steps to transform your AI conversations.
+    <section id="how-it-works" className="border-b border-border px-4 py-14 sm:px-6 sm:py-18">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <div className="flex flex-col gap-3 border border-border bg-card px-4 py-5 sm:px-6">
+          <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+            Setup sequence
           </p>
-        </motion.div>
+          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Operational in under one minute.</h2>
+          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            The onboarding path prioritizes fast activation: install, configure, then draft with
+            immediate inline feedback.
+          </p>
+        </div>
 
-        <motion.div
-          className="relative grid gap-8 md:grid-cols-3"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-        >
-          {/* Connecting line (desktop) */}
-          <div className="pointer-events-none absolute left-0 right-0 top-14 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent md:block" />
-
+        <div className="grid gap-3 md:grid-cols-3">
           {steps.map((step) => (
-            <motion.div
-              key={step.number}
-              className="relative flex flex-col items-center text-center"
-              variants={itemVariants}
-            >
-              {/* Step circle */}
-              <div className="relative mb-6">
-                <div className="flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
-                  <step.icon className="size-6 text-primary" />
+            <article key={step.number} className="flex flex-col gap-4 rounded-md border border-border bg-card px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex size-10 items-center justify-center rounded-sm border border-border bg-muted">
+                  <step.icon className="size-4" />
                 </div>
-                <span className="absolute -right-1 -top-1 flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                <span className="rounded-sm border border-[color:var(--accent-signal)] px-2 py-1 font-mono text-[10px] font-semibold tracking-[0.14em] text-[color:var(--accent-signal)] uppercase">
                   {step.number}
                 </span>
               </div>
-
-              <h3 className="mb-2 text-lg font-semibold">{step.title}</h3>
-              <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-                {step.description}
-              </p>
-            </motion.div>
+              <h3 className="text-lg font-semibold leading-tight">{step.title}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
+            </article>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

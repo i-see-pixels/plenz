@@ -1,42 +1,69 @@
-import { ModelConfig } from "../components/ModelConfig";
+import logo from "../assets/logo.svg";
 import { AuthStatus } from "../components/AuthStatus";
+import { ModelConfig } from "../components/ModelConfig";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@promptlens/ui/components/card";
+import { Input } from "@promptlens/ui/components/input";
+import { Label } from "@promptlens/ui/components/label";
 
 export function App() {
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <header className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src="/icon.svg" alt="PromptLens" className="w-10 h-10" />
-            <h1 className="text-3xl font-bold text-gray-900">
-              PromptLens Settings
-            </h1>
-          </div>
-          <AuthStatus />
-        </header>
-
-        <main className="space-y-6">
-          <section className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Model Configuration</h2>
-            <ModelConfig />
-          </section>
-
-          <section className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">General Preferences</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Debounce Time (ms)
-                </label>
-                <input
-                  type="number"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  defaultValue={500}
-                />
-              </div>
+    <div className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        <Card className="grid gap-4 px-4 py-4 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="PromptLens" className="size-9" />
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                PromptLens Control Panel
+              </h1>
             </div>
-          </section>
-        </main>
+          </div>
+          <div className="w-full sm:w-[260px]">
+            <AuthStatus />
+          </div>
+        </Card>
+
+        <Card className="gap-0 rounded-md border-border py-0 shadow-none">
+          <CardHeader className="gap-0 font-mono border-b border-border px-4 pt-4">
+            <CardTitle className="font-mono text-lg font-semibold tracking-[0.16em] uppercase">
+              Model configuration
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Configure the model to use for prompt analysis.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 py-4">
+            <ModelConfig />
+          </CardContent>
+        </Card>
+
+        <Card className="gap-0 rounded-md border-border py-0 shadow-none">
+          <CardHeader className="gap-0 font-mono border-b border-border px-4 pt-4">
+            <CardTitle className="font-mono text-lg font-semibold tracking-[0.16em] uppercase">
+              General preferences
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Configure the extension's general preferences.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 py-4">
+            <div className="grid gap-3 px-3 py-3 sm:grid-cols-[220px_1fr] sm:items-center">
+              <Label
+                htmlFor="debounce"
+                className="font-mono text-[11px] tracking-[0.14em] uppercase"
+              >
+                Debounce time (ms)
+              </Label>
+              <Input id="debounce" type="number" defaultValue={500} />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

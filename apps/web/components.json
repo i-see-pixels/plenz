@@ -14,10 +14,10 @@
   "rtl": false,
   "aliases": {
     "components": "@/components",
-    "utils": "@/lib/utils",
-    "ui": "@/components/ui",
-    "lib": "@/lib",
-    "hooks": "@/hooks"
+    "utils": "@promptlens/ui/lib/utils",
+    "ui": "@promptlens/ui/components",
+    "lib": "@promptlens/ui/lib",
+    "hooks": "@promptlens/ui/hooks"
   },
   "registries": {}
 }

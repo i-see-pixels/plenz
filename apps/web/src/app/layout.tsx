@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-sans-brand",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: "--font-mono-brand",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "PromptLens — AI Prompt Refinement, Right in Your Browser",
+  title: "PromptLens - AI Prompt Refinement, Right in Your Browser",
   description:
     "Open-source Chrome extension that refines your AI prompts in real time. Like Grammarly, but for AI. Bring your own API key. Privacy-first. Free forever.",
   keywords: [
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
     "prompt refinement",
   ],
   openGraph: {
-    title: "PromptLens — AI Prompt Refinement, Right in Your Browser",
+    title: "PromptLens - AI Prompt Refinement, Right in Your Browser",
     description:
       "Open-source Chrome extension that refines your AI prompts in real time. Bring your own API key. Privacy-first. Free forever.",
     type: "website",
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PromptLens — AI Prompt Refinement",
+    title: "PromptLens - AI Prompt Refinement",
     description:
       "Open-source Chrome extension that refines your AI prompts in real time.",
   },
@@ -50,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link
           rel="apple-touch-icon"
@@ -71,9 +72,7 @@ export default function RootLayout({
         />
         <link rel="manifest" href="/site.webmanifest" />
       </head>
-      <body
-        className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}
-      >
+      <body className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>

@@ -8,9 +8,18 @@ import { Footer } from "@/components/footer";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden">
+    <div className="relative min-h-screen bg-background text-foreground">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10 opacity-45"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)",
+          backgroundSize: "52px 52px",
+        }}
+      />
       <Navbar />
-      <main>
+      <main className="relative z-10">
         <Hero />
         <Features />
         <HowItWorks />

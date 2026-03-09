@@ -140,6 +140,7 @@ export class AnthropicAdapter implements ProviderAdapter {
     prompt: string,
     systemPrompt: string,
     config: ProviderConfig,
+    context?: { active_website?: string }
   ): Promise<AnalysisResult> {
     const start = performance.now();
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -153,7 +154,14 @@ export class AnthropicAdapter implements ProviderAdapter {
       body: JSON.stringify({
         model: config.model,
         system: systemPrompt,
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          {
+            role: "user",
+            content: context?.active_website
+              ? `[Context: ${context.active_website}]\n\n${prompt}`
+              : prompt
+          }
+        ],
         max_tokens: config.maxTokens ?? 1024,
         temperature: config.temperature ?? 0.3,
       }),

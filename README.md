@@ -25,6 +25,7 @@ Open-source browser extension for real-time AI prompt refinement. Like Grammarly
 - `packages/core`: Prompt analysis logic and system prompt template.
 - `packages/providers`: LLM provider adapters.
 - `packages/types`: Shared TypeScript contracts.
+- `packages/ui`: Shared shadcn primitives and UI tokens for web + extension.
 
 ## Installation
 
@@ -103,3 +104,5 @@ MIT. See `LICENSE`.
 ## Acknowledgments
 
 - Open-source maintainer community and early contributors.
+
+
