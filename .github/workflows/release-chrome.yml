@@ -29,7 +29,7 @@ jobs:
 
       - name: Build Chrome package
         env:
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          VITE_GOOGLE_CLIENT_ID: "984390443499-mc4mr2kfjhlde2dfb5qbr3ut4rnamgvg.apps.googleusercontent.com"
         run: pnpm build:chrome
 
       - name: Package extension
