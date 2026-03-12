@@ -32,5 +32,18 @@ jobs:
           VITE_GOOGLE_CLIENT_ID: "984390443499-mc4mr2kfjhlde2dfb5qbr3ut4rnamgvg.apps.googleusercontent.com"
         run: pnpm build:chrome
 
-      - name: Create release artifact placeholder
-        run: echo "Chrome Web Store upload step requires API credentials and packaging script."
+      - name: Package extension
+        run: |
+          cd apps/extension/dist
+          zip -r ../../../extension.zip .
+          cd ../../../
+
+      - name: Upload to Chrome Web Store
+        uses: Klemensas/chrome-extension-upload-action@v1.1.3
+        with:
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+          file-path: extension.zip
+          publish: true
