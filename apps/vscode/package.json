@@ -2,7 +2,7 @@
   "name": "promptlens-vscode",
   "displayName": "PromptLens",
   "description": "AI Prompt Refinement for VS Code",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "icon": "icon.svg",
   "engines": {
     "vscode": "^1.80.0"
