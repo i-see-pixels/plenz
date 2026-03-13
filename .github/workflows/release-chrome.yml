@@ -39,7 +39,7 @@ jobs:
           cd ../../../
 
       - name: Upload to Chrome Web Store
-        uses: Klemensas/chrome-extension-upload-action@v1.1.3
+        uses: Klemensas/chrome-extension-upload-action@v1.3
         with:
           refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
           client-id: ${{ secrets.CHROME_CLIENT_ID }}
