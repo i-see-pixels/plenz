@@ -44,6 +44,6 @@ jobs:
           refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
           client-id: ${{ secrets.CHROME_CLIENT_ID }}
           client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
-          extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
-          file-path: extension.zip
+          app-id: ${{ secrets.CHROME_EXTENSION_ID }}
+          file-name: extension.zip
           publish: true
