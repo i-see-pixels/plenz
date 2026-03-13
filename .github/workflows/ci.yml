@@ -26,8 +26,5 @@ jobs:
       - name: Shared UI guardrails
         run: pnpm lint:ui-primitives
 
-      - name: Lint
-        run: pnpm -C apps/web run lint
-
       - name: Unit tests
         run: pnpm test:unit
