@@ -2,7 +2,7 @@ name = "promptlens"
 type = "nextjs"
 
 [build]
-  command = "pnpm run build"
+  command = "pnpm install && pnpm build"
   cwd = "apps/web"
 
 [env]
