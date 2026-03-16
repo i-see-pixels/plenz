@@ -1,5 +1,4 @@
 name = "promptlens"
-type = "nextjs"
 
 [build]
   command = "pnpm install && pnpm build"
@@ -8,7 +7,6 @@ type = "nextjs"
 [env]
   NODE_ENV = "production"
 
-[routes]
-  # Route for the Next.js app
+[[routes]]
   route = "*"
   pattern = "/*"
