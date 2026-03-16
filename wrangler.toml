@@ -1,0 +1,14 @@
+name = "promptlens"
+type = "nextjs"
+
+[build]
+  command = "pnpm run build"
+  cwd = "apps/web"
+
+[env]
+  NODE_ENV = "production"
+
+[routes]
+  # Route for the Next.js app
+  route = "*"
+  pattern = "/*"
