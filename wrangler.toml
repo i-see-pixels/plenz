@@ -8,5 +8,4 @@ name = "promptlens"
   NODE_ENV = "production"
 
 [[routes]]
-  route = "*"
   pattern = "/*"
