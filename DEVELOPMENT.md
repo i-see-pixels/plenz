@@ -11,7 +11,7 @@
 Clone the repository and install dependencies from the root of the monorepo:
 
 ```bash
-git clone https://github.com/promptlens/promptlens.git
+git clone https://github.com/i-see-pixels/promptlens.git
 cd promptlens
 pnpm install
 ```
@@ -61,3 +61,22 @@ We use **Vite** and **CRXJS** for a fast development experience with Hot Module 
 ### Options Page
 
 - Right-click the extension icon and select **Options**, or click the "Settings" gear in the popup.
+
+## 4. Shared UI (shadcn Monorepo)
+
+PromptLens now uses `@promptlens/ui` as the single source of truth for shadcn primitives.
+
+- Add components from web context:
+  - `pnpm dlx shadcn@latest add <component> -c apps/web`
+- Add components from extension context:
+  - `pnpm dlx shadcn@latest add <component> -c apps/extension`
+
+Rules:
+
+- Do not add new primitive files under app-local `components/ui` folders.
+- Import primitives from `@promptlens/ui/components/*`.
+- Keep app CSS entry points local (`apps/web/src/app/globals.css`, `apps/extension/src/index.css`).
+
+Guardrail check:
+
+- `pnpm lint:ui-primitives`

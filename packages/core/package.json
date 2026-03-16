@@ -1,14 +1,14 @@
 {
-	"name": "@promptlens/core",
-	"version": "0.0.0",
-	"private": true,
-	"main": "./src/index.ts",
-	"types": "./src/index.ts",
-	"dependencies": {
-		"@promptlens/types": "workspace:*",
-		"@promptlens/providers": "workspace:*"
-	},
-	"devDependencies": {
-		"@promptlens/tsconfig": "workspace:*"
-	}
+  "name": "@promptlens/core",
+  "version": "1.0.5",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@promptlens/types": "workspace:*",
+    "@promptlens/providers": "workspace:*"
+  },
+  "devDependencies": {
+    "@promptlens/tsconfig": "workspace:*"
+  }
 }

@@ -79,7 +79,7 @@ class ExtensionContentScript {
     const target = e.target as HTMLElement;
     const text = (target as any).value || target.innerText || "";
 
-    if (text.length < 5) {
+    if (text.length < 10) {
       this.currentSuggestions = [];
       this.badge?.hide();
       // Hide overlays if text is too short or cleared
@@ -99,7 +99,7 @@ class ExtensionContentScript {
     // Set new timer
     this.debounceTimer = window.setTimeout(() => {
       this.analyzePrompt(text);
-    }, 1000); // 1s debounce
+    }, 500); // 500ms debounce
   }
 
   private async analyzePrompt(text: string) {
@@ -110,7 +110,13 @@ class ExtensionContentScript {
         error?: string;
       }>({
         type: "ANALYZE_PROMPT",
-        payload: { prompt: text },
+        payload: {
+          prompt: text,
+          context: {
+            active_website: window.location.hostname,
+            // More context could be added here if needed
+          }
+        },
       });
 
       if (!response) {

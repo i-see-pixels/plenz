@@ -48,3 +48,12 @@ Use the issue templates in `.github/ISSUE_TEMPLATE`.
 
 Do not open public issues for vulnerabilities.
 See `SECURITY.md` for disclosure instructions.
+
+## Shared UI Convention
+
+- All shadcn primitives must come from `@promptlens/ui`.
+- Use app-context commands when adding components:
+  - `pnpm dlx shadcn@latest add <component> -c apps/web`
+  - `pnpm dlx shadcn@latest add <component> -c apps/extension`
+- Do not create or commit files under `apps/*/src/components/ui`.
+- Run `pnpm lint:ui-primitives` before opening a PR.
