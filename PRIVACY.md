@@ -1,6 +1,6 @@
 # PromptLens Privacy Policy
 
-Last updated: March 6, 2026
+Last updated: March 21, 2026
 
 ## Overview
 
@@ -38,6 +38,8 @@ Prompt text is sent only to the provider you configure in the extension.
 
 - Preferences may be stored using the browser extension storage APIs.
 - Provider configuration and API credentials may be stored locally in the browser extension storage area.
+- When Cloud Sync is enabled, provider configuration is stored in Firebase. The `apiKey` field is encrypted in the client before it is written to Firestore, while non-secret fields such as model selection and optional base URL remain readable for sync purposes.
+- This Cloud Sync encryption removes plaintext API keys from Firestore records, but it does not add a user passphrase or server-side key management. Browser-local copies remain governed by the browser's storage protections.
 - PromptLens does not require a central PromptLens backend to process prompt analysis.
 
 ## Data Sharing and Sale

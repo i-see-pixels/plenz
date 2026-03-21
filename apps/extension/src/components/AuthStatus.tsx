@@ -3,6 +3,23 @@ import type { UserInfo } from "../background/auth";
 import { Button } from "@promptlens/ui/components/button";
 import { Skeleton } from "@promptlens/ui/components/skeleton";
 
+function dispatchAuthChanged(user: UserInfo | null) {
+  window.dispatchEvent(
+    new CustomEvent("promptlens-auth-status-changed", {
+      detail: { user },
+    }),
+  );
+}
+
+function isUserInfo(value: unknown): value is UserInfo {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    "email" in value &&
+    "name" in value
+  );
+}
+
 export function AuthStatus() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -14,7 +31,9 @@ export function AuthStatus() {
   const checkAuthStatus = () => {
     setLoading(true);
     chrome.runtime.sendMessage({ type: "GET_AUTH_STATUS" }, (response) => {
-      setUser(response || null);
+      const nextUser = isUserInfo(response) ? response : null;
+      setUser(nextUser);
+      dispatchAuthChanged(nextUser);
       setLoading(false);
     });
   };
@@ -22,19 +41,42 @@ export function AuthStatus() {
   const handleSignIn = () => {
     setLoading(true);
     chrome.runtime.sendMessage({ type: "AUTH_SIGN_IN" }, (response) => {
-      setUser(response || null);
+      const nextUser = isUserInfo(response) ? response : null;
+      setUser(nextUser);
+      if (nextUser) {
+        chrome.runtime.sendMessage({ type: "MIGRATE_KEYS_TO_SYNC" }, () => {
+          dispatchAuthChanged(nextUser);
+          setLoading(false);
+        });
+        return;
+      }
+
+      dispatchAuthChanged(null);
       setLoading(false);
     });
   };
 
   const handleSignOut = () => {
+    const keepLocalCopies = window.confirm(
+      "Sign out and keep local copies of your saved API keys on this device?",
+    );
+    if (!keepLocalCopies) {
+      return;
+    }
+
     setLoading(true);
-    chrome.runtime.sendMessage({ type: "AUTH_SIGN_OUT" }, (success) => {
-      if (success) {
-        setUser(null);
-      }
-      setLoading(false);
-    });
+    chrome.runtime.sendMessage(
+      { type: "CACHE_MODEL_CONFIGS_LOCALLY" },
+      () => {
+        chrome.runtime.sendMessage({ type: "AUTH_SIGN_OUT" }, (success) => {
+          if (success) {
+            setUser(null);
+            dispatchAuthChanged(null);
+          }
+          setLoading(false);
+        });
+      },
+    );
   };
 
   if (loading) {
