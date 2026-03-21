@@ -32,6 +32,23 @@ export async function handleMessage(
       });
       return { success: true };
 
+    case "GET_STORAGE_SETTINGS":
+      return await StorageManager.getStorageSettings();
+
+    case "SET_STORAGE_BACKEND": {
+      const nextBackend = message.payload?.backend;
+
+      if (nextBackend !== "chrome-sync" && nextBackend !== "firebase") {
+        return {
+          success: false,
+          error: "Invalid storage backend.",
+        };
+      }
+
+      await StorageManager.setStorageBackend(nextBackend);
+      return { success: true };
+    }
+
     case "GET_MODEL_CONFIG":
       return await StorageManager.getModelConfig(message.payload.providerId);
 
@@ -45,7 +62,10 @@ export async function handleMessage(
       return await StorageManager.getAllModelConfigs();
 
     case "MIGRATE_KEYS_TO_SYNC":
-      return await StorageManager.migrateLocalToSync();
+      return await StorageManager.migrateLocalToPreferredBackend();
+
+    case "MIGRATE_SYNC_TO_FIREBASE":
+      return await StorageManager.migrateSyncToFirebase();
 
     case "CACHE_MODEL_CONFIGS_LOCALLY":
       return await StorageManager.cacheSyncToLocal();

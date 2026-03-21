@@ -1,3 +1,5 @@
+import { signOutFromFirebase } from "./firebase";
+
 export interface UserInfo {
   id: string;
   email: string;
@@ -6,6 +8,7 @@ export interface UserInfo {
 }
 
 const AUTH_USER_STORAGE_KEY = "auth_user";
+const AUTH_SESSION_ACTIVE_STORAGE_KEY = "auth_session_active";
 type AuthTokenResult = string | { token?: string };
 
 function isUserInfo(value: unknown): value is UserInfo {
@@ -26,9 +29,11 @@ export const AuthManager = {
       if (!token) return null;
 
       const user = await this.fetchUserInfo(token);
+      await this.setSessionActive(true);
       await this.setCachedUser(user);
       return user;
     } catch (error) {
+      await this.setSessionActive(false);
       await this.clearCachedUser();
       console.error("AuthManager - signIn error:", error);
       return null;
@@ -40,7 +45,15 @@ export const AuthManager = {
 
     try {
       // Local extension auth state must be cleared even if Chrome token cleanup is imperfect.
+      await this.setSessionActive(false);
       await this.clearCachedUser();
+
+      try {
+        await signOutFromFirebase();
+      } catch (error) {
+        hadCleanupError = true;
+        console.warn("AuthManager - Firebase signOut cleanup warning:", error);
+      }
 
       try {
         const token = await this.getAuthToken(false);
@@ -91,9 +104,15 @@ export const AuthManager = {
   },
 
   async getAuthStatus(): Promise<UserInfo | null> {
+    const isSessionActive = await this.getSessionActive();
+    if (!isSessionActive) {
+      return null;
+    }
+
     try {
       const token = await this.getAuthToken(false);
       if (!token) {
+        await this.setSessionActive(false);
         await this.clearCachedUser();
         return null;
       }
@@ -107,6 +126,7 @@ export const AuthManager = {
       await this.setCachedUser(user);
       return user;
     } catch (error) {
+      await this.setSessionActive(false);
       await this.clearCachedUser();
       console.error("AuthManager - getAuthStatus error:", error);
       return null;
@@ -155,8 +175,19 @@ export const AuthManager = {
     return isUserInfo(cachedUser) ? cachedUser : null;
   },
 
+  async getSessionActive(): Promise<boolean> {
+    const data = await chrome.storage.local.get(AUTH_SESSION_ACTIVE_STORAGE_KEY);
+    return data[AUTH_SESSION_ACTIVE_STORAGE_KEY] === true;
+  },
+
   async setCachedUser(user: UserInfo): Promise<void> {
     await chrome.storage.local.set({ [AUTH_USER_STORAGE_KEY]: user });
+  },
+
+  async setSessionActive(isActive: boolean): Promise<void> {
+    await chrome.storage.local.set({
+      [AUTH_SESSION_ACTIVE_STORAGE_KEY]: isActive,
+    });
   },
 
   async clearCachedUser(): Promise<void> {
