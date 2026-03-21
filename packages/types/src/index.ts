@@ -22,6 +22,16 @@ export interface ProviderConfig {
 	temperature?: number
 }
 
+/** Status of key sync with the user's account */
+export type SyncStatus = "synced" | "local-only" | "syncing" | "error"
+
+/** Result returned by storage operations */
+export interface StorageResult<T> {
+	data: T | null
+	syncStatus: SyncStatus
+	error?: string
+}
+
 export interface ConnectionTestResult {
 	success: boolean
 	latencyMs: number

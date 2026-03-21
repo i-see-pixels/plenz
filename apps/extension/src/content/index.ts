@@ -4,6 +4,21 @@ import { BadgeIndicator } from "./ui/BadgeIndicator";
 import { GhostOverlay } from "./ui/GhostOverlay";
 import { Suggestion } from "@promptlens/types";
 
+const PREFERENCES_STORAGE_KEY = "preferences";
+const DEFAULT_DEBOUNCE_MS = 500;
+
+type Preferences = {
+  debounceMs?: number;
+};
+
+function sanitizeDebounceMs(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return DEFAULT_DEBOUNCE_MS;
+  }
+
+  return Math.max(0, Math.min(5000, Math.round(value)));
+}
+
 class ExtensionContentScript {
   private platform: PlatformConfig | null = null;
   private inputElement: HTMLElement | null = null;
@@ -12,15 +27,22 @@ class ExtensionContentScript {
   private badge: BadgeIndicator | null = null;
   private currentSuggestions: Suggestion[] = [];
   private runtimeUnavailableLogged = false;
+  private domObserver: MutationObserver | null = null;
+  private readonly boundHandleInput = this.handleInput.bind(this);
+  private debounceTimer: number | null = null;
+  private debounceMs = DEFAULT_DEBOUNCE_MS;
+  private activeAnalysisRequestId = 0;
 
   constructor() {
     this.platform = getActivePlatform();
     if (this.platform) {
-      this.init();
+      void this.init();
     }
   }
 
-  private init() {
+  private async init() {
+    await this.loadPreferences();
+    this.observePreferenceChanges();
     this.observeDOM();
     this.detectInput();
 
@@ -33,10 +55,59 @@ class ExtensionContentScript {
   }
 
   private observeDOM() {
-    const observer = new MutationObserver(() => {
-      if (!this.inputElement) this.detectInput();
+    this.domObserver = new MutationObserver(() => {
+      if (!this.inputElement?.isConnected) {
+        this.detachInput();
+      }
+
+      if (!this.inputElement) {
+        this.detectInput();
+      }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    this.domObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
+  private async loadPreferences() {
+    try {
+      const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
+      const preferences = stored[PREFERENCES_STORAGE_KEY] as
+        | Preferences
+        | undefined;
+      this.debounceMs = sanitizeDebounceMs(preferences?.debounceMs);
+    } catch (error) {
+      console.warn("PromptLens: failed to load preferences", error);
+      this.debounceMs = DEFAULT_DEBOUNCE_MS;
+    }
+  }
+
+  private observePreferenceChanges() {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== "local" || !changes[PREFERENCES_STORAGE_KEY]) {
+        return;
+      }
+
+      const updatedPreferences = changes[PREFERENCES_STORAGE_KEY].newValue as
+        | Preferences
+        | undefined;
+      this.debounceMs = sanitizeDebounceMs(
+        updatedPreferences?.debounceMs,
+      );
+    });
+  }
+
+  private detachInput() {
+    if (this.inputElement) {
+      this.inputElement.removeEventListener("input", this.boundHandleInput);
+    }
+
+    this.inputElement = null;
+    this.overlay?.hide();
+    this.badge?.hide();
+    this.ghostOverlay?.hide();
+    this.overlay = null;
+    this.badge = null;
+    this.ghostOverlay = null;
+    this.currentSuggestions = [];
   }
 
   private detectInput() {
@@ -45,6 +116,12 @@ class ExtensionContentScript {
     for (const selector of this.platform.inputSelectors) {
       const el = document.querySelector(selector) as HTMLElement;
       if (el) {
+        if (this.inputElement === el) {
+          return;
+        }
+
+        this.detachInput();
+
         // Determine container for overlay (usually parent of input)
         const container = el.parentElement || el;
         this.inputElement = el;
@@ -62,7 +139,7 @@ class ExtensionContentScript {
   }
 
   private hookInput(el: HTMLElement) {
-    el.addEventListener("input", this.handleInput.bind(this));
+    el.addEventListener("input", this.boundHandleInput);
 
     // Badge click handler
     this.badge?.setOnClick(() => {
@@ -72,8 +149,6 @@ class ExtensionContentScript {
       }
     });
   }
-
-  private debounceTimer: number | null = null;
 
   private handleInput(e: Event) {
     const target = e.target as HTMLElement;
@@ -98,11 +173,13 @@ class ExtensionContentScript {
 
     // Set new timer
     this.debounceTimer = window.setTimeout(() => {
-      this.analyzePrompt(text);
-    }, 500); // 500ms debounce
+      void this.analyzePrompt(text);
+    }, this.debounceMs);
   }
 
   private async analyzePrompt(text: string) {
+    const requestId = ++this.activeAnalysisRequestId;
+
     try {
       this.badge?.showSaving();
       const response = await this.sendRuntimeMessage<{
@@ -118,6 +195,10 @@ class ExtensionContentScript {
           }
         },
       });
+
+      if (requestId !== this.activeAnalysisRequestId) {
+        return;
+      }
 
       if (!response) {
         this.currentSuggestions = [];
@@ -145,6 +226,10 @@ class ExtensionContentScript {
         this.ghostOverlay?.hide();
       }
     } catch (error) {
+      if (requestId !== this.activeAnalysisRequestId) {
+        return;
+      }
+
       console.error("PromptLens Analysis Error:", error);
       this.badge?.hide();
       this.ghostOverlay?.hide();

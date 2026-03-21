@@ -15,12 +15,14 @@ export async function handleMessage(
 ) {
   switch (message.type) {
     case "GET_ACTIVE_MODEL":
-      const config = await StorageManager.getActiveModelConfig();
+      const configResult = await StorageManager.getActiveModelConfig();
       const prefs = await StorageManager.getPreferences();
       const response = {
-        config,
+        config: configResult.data,
         activeModelId: prefs.activeModelId,
-        isConfigured: !!config?.apiKey,
+        isConfigured: !!configResult.data?.apiKey,
+        syncStatus: configResult.syncStatus,
+        error: configResult.error,
       };
       return response;
 
@@ -29,6 +31,44 @@ export async function handleMessage(
         activeModelId: message.payload.modelId,
       });
       return { success: true };
+
+    case "GET_STORAGE_SETTINGS":
+      return await StorageManager.getStorageSettings();
+
+    case "SET_STORAGE_BACKEND": {
+      const nextBackend = message.payload?.backend;
+
+      if (nextBackend !== "chrome-sync" && nextBackend !== "firebase") {
+        return {
+          success: false,
+          error: "Invalid storage backend.",
+        };
+      }
+
+      await StorageManager.setStorageBackend(nextBackend);
+      return { success: true };
+    }
+
+    case "GET_MODEL_CONFIG":
+      return await StorageManager.getModelConfig(message.payload.providerId);
+
+    case "SAVE_MODEL_CONFIG":
+      return await StorageManager.setModelConfig(
+        message.payload.providerId,
+        message.payload.config,
+      );
+
+    case "GET_ALL_MODEL_CONFIGS":
+      return await StorageManager.getAllModelConfigs();
+
+    case "MIGRATE_KEYS_TO_SYNC":
+      return await StorageManager.migrateLocalToPreferredBackend();
+
+    case "MIGRATE_SYNC_TO_FIREBASE":
+      return await StorageManager.migrateSyncToFirebase();
+
+    case "CACHE_MODEL_CONFIGS_LOCALLY":
+      return await StorageManager.cacheSyncToLocal();
 
     case "TEST_CONNECTION": {
       const { providerId, config } = message.payload;
@@ -55,7 +95,8 @@ export async function handleMessage(
       // 2. Remote Analysis (Optional/Enrichment)
       // If we have high confidence local suggestions, we might skip or use LLM to refine
       try {
-        const config = await StorageManager.getActiveModelConfig();
+        const configResult = await StorageManager.getActiveModelConfig();
+        const config = configResult.data;
         if (config && config.apiKey) {
           const provider = providers.find((p) =>
             p.models.some((m) => m.id === config.model),
