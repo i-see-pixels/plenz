@@ -30,6 +30,12 @@ jobs:
       - name: Build Chrome package
         env:
           VITE_GOOGLE_CLIENT_ID: "984390443499-mc4mr2kfjhlde2dfb5qbr3ut4rnamgvg.apps.googleusercontent.com"
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
         run: pnpm build:chrome
 
       - name: Package extension
@@ -45,5 +51,5 @@ jobs:
           client-id: ${{ secrets.CHROME_CLIENT_ID }}
           client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
           app-id: ${{ secrets.CHROME_EXTENSION_ID }}
-          file-name: extension.zip
+          file-name: "./extension.zip"
           publish: true
