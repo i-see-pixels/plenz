@@ -23,7 +23,11 @@ import {
 import { Separator } from "@promptlens/ui/components/separator";
 import { Skeleton } from "@promptlens/ui/components/skeleton";
 
+const PROJECT_URL = "https://github.com/i-see-pixels/promptlens";
+const COMMUNITY_URL = "https://github.com/i-see-pixels/promptlens/discussions";
+
 export function App() {
+  const extensionVersion = chrome.runtime.getManifest().version;
   const [modelStatus, setModelStatus] = useState<{
     configured: boolean;
     modelId: string | null;
@@ -61,6 +65,10 @@ export function App() {
 
   const openSettings = () => {
     chrome.runtime.openOptionsPage();
+  };
+
+  const openExternalPage = (url: string) => {
+    void chrome.tabs.create({ url });
   };
 
   const handleModelChange = (newModelId: string) => {
@@ -176,11 +184,19 @@ export function App() {
               Links
             </p>
             <div className="grid gap-2">
-              <Button variant="outline" className="justify-start gap-2">
+              <Button
+                variant="outline"
+                className="justify-start gap-2"
+                onClick={() => openExternalPage(PROJECT_URL)}
+              >
                 <BarChart3 data-icon="inline-start" />
-                Dashboard
+                Project
               </Button>
-              <Button variant="outline" className="justify-start gap-2">
+              <Button
+                variant="outline"
+                className="justify-start gap-2"
+                onClick={() => openExternalPage(COMMUNITY_URL)}
+              >
                 <Users data-icon="inline-start" />
                 Community
               </Button>
@@ -193,7 +209,7 @@ export function App() {
             PromptLens
           </p>
           <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-            v1.0.0
+            v{extensionVersion}
           </p>
         </CardFooter>
       </Card>
