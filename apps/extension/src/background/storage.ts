@@ -15,6 +15,7 @@ import {
   isFirebaseConfigured,
   signInToFirebase,
 } from "./firebase";
+import { toFirestoreProviderConfig } from "./encryption";
 
 export interface UserPreferences {
   debounceTime: number;
@@ -96,7 +97,10 @@ async function writeConfigsToFirebase(configs: Record<string, ProviderConfig>) {
 
     for (const [providerId, config] of Object.entries(configs)) {
       try {
-        await setDoc(doc(db, "users", userId, "model_configs", providerId), config);
+        await setDoc(
+          doc(db, "users", userId, "model_configs", providerId),
+          await toFirestoreProviderConfig(config, userId),
+        );
         migratedProviderIds.push(providerId);
       } catch (error) {
         errors.push(`Failed to migrate ${providerId}: ${getErrorMessage(error)}`);

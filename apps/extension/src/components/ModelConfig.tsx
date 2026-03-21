@@ -420,16 +420,16 @@ export function ModelConfig() {
     !firebaseConfigured
       ? "Cloud Sync is unavailable in this build. Add the VITE_FIREBASE_* environment variables and rebuild the extension."
       : !isSignedIn
-        ? "Sign in with Google to enable Cloud Sync."
+        ? "Sign in with Google to enable Cloud Sync and access encrypted synced API keys."
         : storageBackend === "firebase"
-      ? "Cloud Sync stores provider settings in Firebase so they follow you across browsers."
-      : "Chrome Sync uses Chrome's built-in sync storage and falls back to local storage when needed.";
+          ? "Cloud Sync stores provider settings in Firebase, with API keys encrypted before upload. Browser-local copies are unchanged."
+          : "Chrome Sync uses Chrome's built-in sync storage and falls back to local storage when needed.";
 
   return (
     <div className="flex flex-col gap-3">
       {!isSignedIn ? (
         <div className="rounded-sm border border-border bg-muted px-3 py-2 text-sm leading-relaxed text-muted-foreground">
-          Sign in with Google to unlock cross-device sync for your API keys.
+          Sign in with Google to unlock Cloud Sync and decrypt synced API keys on this device.
         </div>
       ) : null}
 
