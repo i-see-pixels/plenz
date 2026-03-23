@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PromptLens",
-  "version": "1.0.5",
+  "version": "1.1.1",
   "description": "Open-Source AI Prompt Refinement co-pilot",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo+j7YxCyDCC7v8Gf4BIQ1VOmirX4TZkBudpLg4bnWcQ4w6GZVW9rnFycab06n4w22IKiNsvzQsCwqp9pLxt0uPJ19M58ptYnf7W4h38gaCpIRAhTMWXbrI5AkdkBaAR4zRdWbKjA2tIm6tl+3rF0XqJWmW/2IKfjjaQONbCzEeGmH3K2QSWJnPTTe8qDt1Q2G3zT/oiJJRs/3h19l7WLe6mUJfhdP56uhJ7OdSBEY+ODnpRM10NkulQFQ3ZFWN5r1C+OpdVrwsCj4HS7X2gE/hmq79BunQSBqMuhG10u4YGicxS1jEZjT5EEn/Gwiybe4wg4nA2D3SGAwlYMo3eKuwIDAQAB",
   "icons": {
@@ -45,6 +45,12 @@
     "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*",
     "https://www.googleapis.com/*",
+    "https://apis.google.com/*",
+    "https://www.gstatic.com/*",
+    "https://securetoken.googleapis.com/*",
+    "https://identitytoolkit.googleapis.com/*",
+    "https://firebaseinstallations.googleapis.com/*",
+    "https://firestore.googleapis.com/*",
     "https://api.anthropic.com/*",
     "https://api.mistral.ai/*",
     "https://api.groq.com/*",
@@ -61,6 +67,6 @@
     ]
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.openai.com https://generativelanguage.googleapis.com https://www.googleapis.com https://api.anthropic.com https://api.mistral.ai https://api.groq.com https://openrouter.ai http://localhost:* http://127.0.0.1:*"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.openai.com https://generativelanguage.googleapis.com https://www.googleapis.com https://apis.google.com https://www.gstatic.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com https://firestore.googleapis.com https://api.anthropic.com https://api.mistral.ai https://api.groq.com https://openrouter.ai http://localhost:* http://127.0.0.1:*"
   }
 }
