@@ -16,7 +16,7 @@
     "@promptlens/ui": "workspace:*",
     "firebase": "^12.11.0",
     "lucide-react": "^0.575.0",
-    "preact": "^10.28.4",
+    "preact": "^10.29.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.4"
