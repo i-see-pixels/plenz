@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { Button } from "@promptlens/ui/components/button";
-import { ArrowRight, Chrome } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { FaChrome } from "react-icons/fa";
 
 export function CTA() {
   return (
@@ -12,7 +13,7 @@ export function CTA() {
     >
       <div className="mx-auto w-full max-w-6xl">
         <div className="flex flex-col gap-6 rounded-md border border-border bg-card px-4 py-6 text-left sm:px-6">
-          <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-[color:var(--accent-signal)] uppercase">
+          <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-accent-signal uppercase">
             Deploy now
           </p>
           <h2 className="max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
@@ -30,7 +31,7 @@ export function CTA() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Chrome data-icon="inline-start" />
+                <FaChrome data-icon="inline-start" />
                 Add to Chrome
                 <ArrowRight data-icon="inline-end" />
               </Link>

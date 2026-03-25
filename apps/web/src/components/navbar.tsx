@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@promptlens/ui/components/button";
-import { Github, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { FaGithub } from "react-icons/fa";
 import logo from "@/assets/logo.svg";
 
 const navLinks = [
@@ -47,7 +48,7 @@ export function Navbar() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Github data-icon="inline-start" />
+              <FaGithub data-icon="inline-start" />
               GitHub
             </Link>
           </Button>
@@ -86,7 +87,7 @@ export function Navbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <Github data-icon="inline-start" />
+                  <FaGithub data-icon="inline-start" />
                   GitHub
                 </Link>
               </Button>

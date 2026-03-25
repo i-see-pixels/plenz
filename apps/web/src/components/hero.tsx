@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Button } from "@promptlens/ui/components/button";
 import { Badge } from "@promptlens/ui/components/badge";
-import { ArrowRight, Chrome, Github } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { FaChrome, FaGithub } from "react-icons/fa";
 
 export function Hero() {
   return (
@@ -15,7 +16,7 @@ export function Hero() {
         <div className="flex flex-col gap-6">
           <Badge
             variant="outline"
-            className="rounded-sm border-[color:var(--accent-signal)] font-mono text-[10px] tracking-[0.15em] text-[color:var(--accent-signal)] uppercase"
+            className="rounded-sm border-accent-signal font-mono text-[10px] tracking-[0.15em] text-[color:var(--accent-signal)] uppercase"
           >
             Open source - Privacy first
           </Badge>
@@ -41,7 +42,7 @@ export function Hero() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Chrome data-icon="inline-start" />
+                <FaChrome data-icon="inline-start" />
                 Add to Chrome
               </Link>
             </Button>
@@ -51,7 +52,7 @@ export function Hero() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Github data-icon="inline-start" />
+                <FaGithub data-icon="inline-start" />
                 View source
                 <ArrowRight data-icon="inline-end" />
               </Link>
