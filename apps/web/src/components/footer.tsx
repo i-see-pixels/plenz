@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Separator } from "@promptlens/ui/components/separator";
-import { Github } from "lucide-react";
+import { FaGithub } from "react-icons/fa";
 import logo from "@/assets/logo.svg";
 
 interface FooterLink {
@@ -68,11 +68,20 @@ export function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col gap-4">
             <Link href="/" className="flex items-center gap-3">
-              <Image src={logo} alt="PromptLens" width={24} height={24} className="grayscale" />
-              <span className="text-base font-semibold tracking-tight">PromptLens</span>
+              <Image
+                src={logo}
+                alt="PromptLens"
+                width={24}
+                height={24}
+                className="grayscale"
+              />
+              <span className="text-base font-semibold tracking-tight">
+                PromptLens
+              </span>
             </Link>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Open-source AI prompt refinement built for fast, keyboard-first iteration.
+              Open-source AI prompt refinement built for fast, keyboard-first
+              iteration.
             </p>
             <Link
               href="https://github.com/i-see-pixels/promptlens"
@@ -80,7 +89,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              <Github className="size-4" />
+              <FaGithub className="size-4" />
               Star on GitHub
             </Link>
           </div>
@@ -123,4 +132,3 @@ export function Footer() {
     </footer>
   );
 }
-
