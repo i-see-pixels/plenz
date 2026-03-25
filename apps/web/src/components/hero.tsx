@@ -7,7 +7,10 @@ import { ArrowRight, Chrome, Github } from "lucide-react";
 
 export function Hero() {
   return (
-    <section id="top" className="border-b border-border px-4 py-14 sm:px-6 sm:py-20">
+    <section
+      id="top"
+      className="border-b border-border px-4 py-14 sm:px-6 sm:py-20"
+    >
       <div className="mx-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
         <div className="flex flex-col gap-6">
           <Badge
@@ -25,15 +28,16 @@ export function Hero() {
               Rewrite weak prompts before you send them.
             </h1>
             <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              PromptLens scans your input inline, proposes higher-precision alternatives, and keeps
-              your keys and prompt data local to your browser.
+              PromptLens scans your input inline, proposes higher-precision
+              alternatives, and keeps your keys and prompt data local to your
+              browser.
             </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button size="lg" asChild>
               <Link
-                href="https://chromewebstore.google.com/"
+                href="https://chromewebstore.google.com/detail/promptlens/fdbjbkomedpokmfkmacjnbdnghkejihl"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -73,7 +77,9 @@ export function Hero() {
               <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                 Draft
               </p>
-              <p className="mt-1 text-sm text-foreground">write me an email to my manager</p>
+              <p className="mt-1 text-sm text-foreground">
+                write me an email to my manager
+              </p>
             </div>
 
             <div className="rounded-sm border border-[color:var(--accent-signal)] bg-muted px-3 py-3">
@@ -81,8 +87,9 @@ export function Hero() {
                 PromptLens recommendation
               </p>
               <p className="mt-1 text-sm leading-relaxed text-foreground">
-                Write a concise professional email to my manager requesting PTO from March 10 to
-                March 14. Include a clear subject line and confirm coverage.
+                Write a concise professional email to my manager requesting PTO
+                from March 10 to March 14. Include a clear subject line and
+                confirm coverage.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-[10px] tracking-[0.08em] text-muted-foreground uppercase">
                 <kbd className="rounded-sm border border-border bg-background px-1.5 py-0.5">
@@ -101,4 +108,3 @@ export function Hero() {
     </section>
   );
 }
-
