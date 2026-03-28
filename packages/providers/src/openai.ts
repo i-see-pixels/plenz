@@ -4,15 +4,33 @@ import {
 	ConnectionTestResult,
 	AnalysisResult,
 	Suggestion,
+	ModelOption,
 } from "@promptlens/types"
 
 export class OpenAIAdapter implements ProviderAdapter {
 	id = "openai"
 	name = "OpenAI"
-	models = [
-		{ id: "gpt-4o", name: "GPT-4o", tier: "premium" as const },
-		{ id: "gpt-4o-mini", name: "GPT-4o Mini", tier: "standard" as const },
-	]
+
+	async fetchModels(config: ProviderConfig): Promise<ModelOption[]> {
+		if (!config.apiKey) return [];
+		try {
+			const res = await fetch("https://api.openai.com/v1/models", {
+				headers: { Authorization: `Bearer ${config.apiKey}` },
+			});
+			if (!res.ok) return [];
+			const data = await res.json();
+			return data.data
+				.filter((m: any) => m.id.includes("gpt") || m.id.includes("o1") || m.id.includes("o3"))
+				.map((m: any) => ({
+					id: m.id,
+					name: m.id,
+					tier: m.id.includes("4") || m.id.includes("o1") || m.id.includes("o3") ? "premium" : "standard"
+				}))
+				.sort((a: any, b: any) => b.id.localeCompare(a.id));
+		} catch {
+			return [];
+		}
+	}
 
 	private normalizeSuggestions(raw: unknown): Suggestion[] {
 		const validTypes: Suggestion["type"][] = [
@@ -66,6 +84,7 @@ export class OpenAIAdapter implements ProviderAdapter {
 	}
 
 	async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
+		if (!config.model) return { success: false, latencyMs: 0, error: "No model selected" };
 		const start = performance.now()
 		try {
 			const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -82,7 +101,7 @@ export class OpenAIAdapter implements ProviderAdapter {
 			})
 			const latency = Math.round(performance.now() - start)
 			if (!res.ok) {
-				const err = await res.json()
+				const err = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }));
 				return { success: false, latencyMs: latency, error: err.error?.message }
 			}
 			return { success: true, latencyMs: latency }

@@ -4,34 +4,30 @@ import {
   ConnectionTestResult,
   AnalysisResult,
   Suggestion,
+  ModelOption,
 } from "@promptlens/types";
 
 export class OpenRouterAdapter implements ProviderAdapter {
   id = "openrouter";
   name = "OpenRouter";
-  models = [
-    {
-      id: "anthropic/claude-3.5-sonnet",
-      name: "Claude 3.5 Sonnet",
-      tier: "premium" as const,
-    },
-    { id: "openai/gpt-4o", name: "GPT-4o", tier: "premium" as const },
-    {
-      id: "google/gemini-pro-1.5",
-      name: "Gemini 1.5 Pro",
-      tier: "premium" as const,
-    },
-    {
-      id: "meta-llama/llama-3.1-70b-instruct",
-      name: "Llama 3.1 70B",
-      tier: "standard" as const,
-    },
-    {
-      id: "nousresearch/hermes-3-llama-3.1-405b",
-      name: "Hermes 3 405B",
-      tier: "premium" as const,
-    },
-  ];
+
+  async fetchModels(config: ProviderConfig): Promise<ModelOption[]> {
+    if (!config.apiKey) return [];
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/models", {
+        headers: { Authorization: `Bearer ${config.apiKey}` },
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.data.map((m: any) => ({
+        id: m.id,
+        name: m.name || m.id,
+        tier: m.pricing?.prompt > 0 ? "premium" : "standard"
+      }));
+    } catch {
+      return [];
+    }
+  }
 
   private normalizeSuggestions(raw: unknown): Suggestion[] {
     const validTypes: Suggestion["type"][] = [
@@ -85,6 +81,7 @@ export class OpenRouterAdapter implements ProviderAdapter {
   }
 
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
+    if (!config.model) return { success: false, latencyMs: 0, error: "No model selected" };
     const start = performance.now();
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -103,7 +100,7 @@ export class OpenRouterAdapter implements ProviderAdapter {
       });
       const latency = Math.round(performance.now() - start);
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }));
         return {
           success: false,
           latencyMs: latency,

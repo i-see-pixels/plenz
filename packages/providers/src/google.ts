@@ -4,39 +4,30 @@ import {
 	ConnectionTestResult,
 	AnalysisResult,
 	Suggestion,
+	ModelOption,
 } from "@promptlens/types"
 
 export class GoogleAdapter implements ProviderAdapter {
 	id = "google"
 	name = "Google Gemini"
-	models = [
-		{ id: "gemini-3-pro", name: "Gemini 3 Pro", tier: "premium" as const },
-		{
-			id: "gemini-3-flash-preview",
-			name: "Gemini 3 Flash",
-			tier: "standard" as const,
-		},
-		{
-			id: "gemini-3-pro-preview",
-			name: "Gemini 3 Pro Preview",
-			tier: "standard" as const,
-		},
-		{
-			id: "gemini-2.5-flash",
-			name: "Gemini 2.5 Flash",
-			tier: "standard" as const,
-		},
-		{
-			id: "gemini-2.5-flash-lite",
-			name: "Gemini 2.5 Flash Lite",
-			tier: "standard" as const,
-		},
-		{
-			id: "gemini-2.5-pro",
-			name: "Gemini 2.5 Pro",
-			tier: "standard" as const,
-		},
-	]
+
+	async fetchModels(config: ProviderConfig): Promise<ModelOption[]> {
+		if (!config.apiKey) return [];
+		try {
+			const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${config.apiKey}`);
+			if (!res.ok) return [];
+			const data = await res.json();
+			return data.models
+				.filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
+				.map((m: any) => ({
+					id: m.name.replace("models/", ""),
+					name: m.displayName || m.name.replace("models/", ""),
+					tier: m.name.includes("pro") ? "premium" : "standard"
+				}));
+		} catch {
+			return [];
+		}
+	}
 
 	private normalizeSuggestions(raw: unknown): Suggestion[] {
 		const validTypes: Suggestion["type"][] = [
@@ -186,6 +177,7 @@ export class GoogleAdapter implements ProviderAdapter {
 	}
 
 	async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
+		if (!config.model) return { success: false, latencyMs: 0, error: "No model selected" };
 		const start = performance.now()
 		try {
 			const res = await fetch(this.getUrl(config.model), {
@@ -203,7 +195,7 @@ export class GoogleAdapter implements ProviderAdapter {
 			})
 			const latency = Math.round(performance.now() - start)
 			if (!res.ok) {
-				const err = await res.json()
+				const err = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
 				return {
 					success: false,
 					latencyMs: latency,

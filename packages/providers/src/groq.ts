@@ -4,29 +4,34 @@ import {
   ConnectionTestResult,
   AnalysisResult,
   Suggestion,
+  ModelOption,
 } from "@promptlens/types";
 
 export class GroqAdapter implements ProviderAdapter {
   id = "groq";
   name = "Groq";
-  models = [
-    {
-      id: "llama-3.1-70b-versatile",
-      name: "Llama 3.1 70B",
-      tier: "premium" as const,
-    },
-    {
-      id: "llama-3.1-8b-instant",
-      name: "Llama 3.1 8B",
-      tier: "standard" as const,
-    },
-    {
-      id: "mixtral-8x7b-32768",
-      name: "Mixtral 8x7B",
-      tier: "standard" as const,
-    },
-    { id: "gemma2-9b-it", name: "Gemma 2 9B", tier: "standard" as const },
-  ];
+
+  async fetchModels(config: ProviderConfig): Promise<ModelOption[]> {
+    if (!config.apiKey) return [];
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      console.log("MODELS", data);
+      return data.data.map((m: any) => ({
+        id: m.id,
+        name: m.id,
+        tier: m.id.includes("70b") ? "premium" : "standard",
+      }));
+    } catch {
+      return [];
+    }
+  }
 
   private normalizeSuggestions(raw: unknown): Suggestion[] {
     const validTypes: Suggestion["type"][] = [
@@ -80,6 +85,8 @@ export class GroqAdapter implements ProviderAdapter {
   }
 
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
+    if (!config.model)
+      return { success: false, latencyMs: 0, error: "No model selected" };
     const start = performance.now();
     try {
       const res = await fetch(
@@ -99,7 +106,9 @@ export class GroqAdapter implements ProviderAdapter {
       );
       const latency = Math.round(performance.now() - start);
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }));
         return {
           success: false,
           latencyMs: latency,
@@ -116,7 +125,7 @@ export class GroqAdapter implements ProviderAdapter {
     prompt: string,
     systemPrompt: string,
     config: ProviderConfig,
-    context?: { active_website?: string }
+    context?: { active_website?: string },
   ): Promise<AnalysisResult> {
     const start = performance.now();
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -130,9 +139,10 @@ export class GroqAdapter implements ProviderAdapter {
         messages: [
           { role: "system", content: systemPrompt },
           {
-            role: "user", content: context?.active_website
+            role: "user",
+            content: context?.active_website
               ? `[Context: ${context.active_website}]\n\n${prompt}`
-              : prompt
+              : prompt,
           },
         ],
         max_tokens: config.maxTokens ?? 1024,

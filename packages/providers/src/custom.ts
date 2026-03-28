@@ -4,14 +4,32 @@ import {
   ConnectionTestResult,
   AnalysisResult,
   Suggestion,
+  ModelOption,
 } from "@promptlens/types";
 
 export class CustomAdapter implements ProviderAdapter {
   id = "custom";
   name = "Custom Provider";
-  models = [
-    { id: "custom-model", name: "Custom Model", tier: "standard" as const },
-  ];
+
+  async fetchModels(config: ProviderConfig): Promise<ModelOption[]> {
+    const endpoint = this.getEndpoint(config.baseUrl);
+    const modelsEndpoint = endpoint.replace(/\/chat\/completions$/, "") + "/models";
+    const headers: Record<string, string> = {};
+    if (config.apiKey) headers.Authorization = `Bearer ${config.apiKey}`;
+
+    try {
+      const res = await fetch(modelsEndpoint, { headers });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.data.map((m: any) => ({
+        id: m.id,
+        name: m.name || m.id,
+        tier: "standard"
+      }));
+    } catch {
+      return [];
+    }
+  }
 
   private normalizeSuggestions(raw: unknown): Suggestion[] {
     const validTypes: Suggestion["type"][] = [
@@ -81,6 +99,7 @@ export class CustomAdapter implements ProviderAdapter {
   }
 
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
+    if (!config.model) return { success: false, latencyMs: 0, error: "No model selected" };
     const start = performance.now();
     const endpoint = this.getEndpoint(config.baseUrl);
     const headers: Record<string, string> = {

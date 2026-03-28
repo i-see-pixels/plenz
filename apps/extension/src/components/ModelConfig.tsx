@@ -5,6 +5,7 @@ import type {
   ProviderConfig,
   StorageResult,
   SyncStatus,
+  ModelOption,
 } from "@promptlens/types";
 import { Badge } from "@promptlens/ui/components/badge";
 import { Button } from "@promptlens/ui/components/button";
@@ -154,7 +155,9 @@ function getSyncStatusIcon(status: SyncStatus) {
 export function ModelConfig() {
   const [selectedProvider, setSelectedProvider] = useState(providers[0].id);
   const [apiKey, setApiKey] = useState("");
-  const [selectedModel, setSelectedModel] = useState(providers[0].models[0].id);
+  const [selectedModel, setSelectedModel] = useState("");
+  const [models, setModels] = useState<ModelOption[]>([]);
+  const [fetchingModels, setFetchingModels] = useState(false);
   const [baseUrl, setBaseUrl] = useState("");
   const [testStatus, setTestStatus] = useState<{
     loading: boolean;
@@ -217,11 +220,11 @@ export function ModelConfig() {
     const config = response?.data;
     if (config) {
       setApiKey(config.apiKey || "");
-      setSelectedModel(config.model || provider.models[0].id);
+      setSelectedModel(config.model || "");
       setBaseUrl(config.baseUrl || "");
     } else {
       setApiKey("");
-      setSelectedModel(provider.models[0].id);
+      setSelectedModel("");
       setBaseUrl("");
     }
 
@@ -255,6 +258,42 @@ export function ModelConfig() {
   useEffect(() => {
     void loadConfig();
   }, [selectedProvider, isSignedIn, storageBackend]);
+
+  useEffect(() => {
+    const fetchModelsWithCache = async () => {
+      const p = providers.find((prov) => prov.id === selectedProvider) || providers[0];
+      const cacheKey = `models_${selectedProvider}`;
+      
+      if (!apiKey && selectedProvider !== "openrouter" && selectedProvider !== "custom") {
+        chrome.storage.local.get([cacheKey], (res) => {
+          setModels((res[cacheKey] as ModelOption[]) || []);
+        });
+        return;
+      }
+
+      setFetchingModels(true);
+      try {
+        const fetched = await p.fetchModels({ apiKey, baseUrl, model: "" });
+        if (fetched && fetched.length > 0) {
+          setModels(fetched);
+          chrome.storage.local.set({ [cacheKey]: fetched });
+        } else {
+          chrome.storage.local.get([cacheKey], (res) => {
+            setModels((res[cacheKey] as ModelOption[]) || []);
+          });
+        }
+      } catch {
+        chrome.storage.local.get([cacheKey], (res) => {
+          setModels((res[cacheKey] as ModelOption[]) || []);
+        });
+      } finally {
+        setFetchingModels(false);
+      }
+    };
+
+    const timer = setTimeout(fetchModelsWithCache, 600);
+    return () => clearTimeout(timer);
+  }, [selectedProvider, apiKey, baseUrl]);
 
   const handleTest = async () => {
     setTestStatus({ loading: true });
@@ -404,7 +443,7 @@ export function ModelConfig() {
 
       await chrome.runtime.sendMessage({
         type: "SET_ACTIVE_MODEL",
-        payload: { modelId: selectedModel },
+        payload: { modelId: selectedModel, providerId: selectedProvider },
       });
     } catch (error) {
       setSaveState({
@@ -499,10 +538,7 @@ export function ModelConfig() {
           value={selectedProvider}
           onValueChange={(value) => {
             setSelectedProvider(value);
-            const nextProvider = providers.find((prov) => prov.id === value);
-            if (nextProvider) {
-              setSelectedModel(nextProvider.models[0].id);
-            }
+            setSelectedModel("");
           }}
         >
           <SelectTrigger id="provider" className="w-full">
@@ -535,6 +571,7 @@ export function ModelConfig() {
                 setSelectedModel((e.target as HTMLInputElement).value)
               }
               placeholder={
+                fetchingModels ? "Fetching models..." :
                 selectedProvider === "openrouter"
                   ? "e.g., anthropic/claude-3-opus"
                   : "e.g., llama3"
@@ -542,7 +579,7 @@ export function ModelConfig() {
               list={`${selectedProvider}-models`}
             />
             <datalist id={`${selectedProvider}-models`}>
-              {provider.models.map((model) => (
+              {models.map((model) => (
                 <option key={model.id} value={model.id}>
                   {model.name}
                 </option>
@@ -555,11 +592,17 @@ export function ModelConfig() {
               <SelectValue placeholder="Select model" />
             </SelectTrigger>
             <SelectContent>
-              {provider.models.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  {model.name}
-                </SelectItem>
-              ))}
+              {models.length === 0 && fetchingModels ? (
+                <SelectItem value="..." disabled>Loading models...</SelectItem>
+              ) : models.length === 0 ? (
+                <SelectItem value="none" disabled>Enter API Key to load models</SelectItem>
+              ) : (
+                models.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>
+                    {model.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         )}
