@@ -231,7 +231,7 @@ class ExtensionContentScript {
       }
 
       console.error("PromptLens Analysis Error:", error);
-      this.badge?.hide();
+      this.badge?.showError((error as Error).message || "An error occurred");
       this.ghostOverlay?.hide();
     }
   }
