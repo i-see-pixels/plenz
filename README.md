@@ -1,13 +1,31 @@
-# PromptLens
+<a href="https://promptlens-web.vercel.app" target="_blank" rel="noopener">
+  <picture>
+    <img alt="PromptLens" src="assets/banner.png" />
+  </picture>
+</a>
 
-Open-source browser extension for real-time AI prompt refinement. Like Grammarly, but for AI prompts.
+<div align="center">
+  <h3>Open-source extension for real-time AI prompt refinement.<br />Like Grammarly, but for AI prompts.</h3>
+  <a href="LICENSE">
+    <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green.svg" />
+  </a>
+  <a href="https://github.com/i-see-pixels/promptlens/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/i-see-pixels/promptlens/actions/workflows/ci.yml/badge.svg" />
+  </a>
+  <a href="https://github.com/i-see-pixels/promptlens/actions/workflows/e2e.yml">
+    <img alt="E2E" src="https://github.com/i-see-pixels/promptlens/actions/workflows/e2e.yml/badge.svg" />
+  </a>
+   <a href="https://github.com/i-see-pixels/promptlens/actions/workflows/codeql.yml">
+      <img alt="CodeQL" src="https://github.com/i-see-pixels/promptlens/actions/workflows/codeql.yml/badge.svg" />
+   </a>
+  <br />
+  <a href="https://twitter.com/creatorsidd">
+    <img alt="Twitter" src="https://img.shields.io/twitter/url.svg?label=%40creatorsidd&style=social&url=https%3A%2F%2Ftwitter.com%2Fcreatorsidd" />
+  </a>
+  <br />
+</div>
 
-![PromptLens Logo](assets/PromptLensLogo.svg)
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![CI](https://github.com/i-see-pixels/promptlens/actions/workflows/ci.yml/badge.svg)](https://github.com/i-see-pixels/promptlens/actions/workflows/ci.yml)
-[![E2E](https://github.com/i-see-pixels/promptlens/actions/workflows/e2e.yml/badge.svg)](https://github.com/i-see-pixels/promptlens/actions/workflows/e2e.yml)
-[![CodeQL](https://github.com/i-see-pixels/promptlens/actions/workflows/codeql.yml/badge.svg)](https://github.com/i-see-pixels/promptlens/actions/workflows/codeql.yml)
+<br />
 
 ## Features
 
@@ -16,6 +34,16 @@ Open-source browser extension for real-time AI prompt refinement. Like Grammarly
 - One-click suggestion apply into chat editors.
 - Provider-agnostic architecture with BYOK.
 - Works across multiple AI chat platforms.
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=i-see-pixels%2Fpromptlens&type=date&logscale=&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=i-see-pixels/promptlens&type=date&theme=dark&logscale&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=i-see-pixels/promptlens&type=date&logscale&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=i-see-pixels/promptlens&type=date&logscale&legend=top-left" />
+ </picture>
+</a>
 
 ## Monorepo Structure
 
@@ -104,5 +132,3 @@ MIT. See `LICENSE`.
 ## Acknowledgments
 
 - Open-source maintainer community and early contributors.
-
-

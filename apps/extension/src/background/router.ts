@@ -3,7 +3,7 @@ import { providers } from "@promptlens/providers";
 import {
   buildSystemPrompt,
   IntentDetector,
-  EntityExtractor
+  EntityExtractor,
 } from "@promptlens/core";
 import { AuthManager } from "./auth";
 
@@ -90,20 +90,31 @@ export async function handleMessage(
         const configResult = await StorageManager.getActiveModelConfig();
         const config = configResult.data;
         const prefs = await StorageManager.getPreferences();
-        
+
         if (!config || !config.apiKey) {
-          return { error: "LLM Provider not configured. Please set an API key in the extension options." };
+          return {
+            error:
+              "LLM Provider not configured. Please set an API key in the extension options.",
+          };
         }
 
         const provider = providers.find((p) => p.id === prefs.activeProviderId);
         if (!provider) {
-          return { error: "Active LLM Provider not found. Please review your settings." };
+          return {
+            error:
+              "Active LLM Provider not found. Please review your settings.",
+          };
         }
 
-        const remoteResult = await provider.analyze(prompt, systemPrompt, config, context);
+        const remoteResult = await provider.analyze(
+          prompt,
+          systemPrompt,
+          config,
+          context,
+        );
         return {
           suggestions: remoteResult.suggestions.slice(0, 5),
-          latencyMs: remoteResult.latencyMs
+          latencyMs: remoteResult.latencyMs,
         };
       } catch (e: any) {
         console.error("Remote analysis failed:", e);
