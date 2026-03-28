@@ -20,6 +20,7 @@ import { toFirestoreProviderConfig } from "./encryption";
 export interface UserPreferences {
   debounceTime: number;
   activeModelId: string | null;
+  activeProviderId: string | null;
   theme: "light" | "dark" | "system";
   storageBackend: StorageBackendPreference;
 }
@@ -27,6 +28,7 @@ export interface UserPreferences {
 const DEFAULT_PREFERENCES: UserPreferences = {
   debounceTime: 500,
   activeModelId: null,
+  activeProviderId: null,
   theme: "system",
   storageBackend: "chrome-sync",
 };
@@ -50,6 +52,8 @@ function normalizePreferences(value: unknown): UserPreferences {
       : DEFAULT_PREFERENCES.theme;
   const activeModelId =
     typeof prefs.activeModelId === "string" ? prefs.activeModelId : null;
+  const activeProviderId =
+    typeof prefs.activeProviderId === "string" ? prefs.activeProviderId : null;
   const debounceTime =
     typeof prefs.debounceTime === "number" && Number.isFinite(prefs.debounceTime)
       ? prefs.debounceTime
@@ -62,6 +66,7 @@ function normalizePreferences(value: unknown): UserPreferences {
   return {
     debounceTime,
     activeModelId,
+    activeProviderId,
     theme,
     storageBackend,
   };
@@ -313,16 +318,14 @@ export const StorageManager = {
   },
 
   async getActiveModelConfig(): Promise<StorageResult<ProviderConfig>> {
-    const { activeModelId } = await this.getPreferences();
+    const { activeModelId, activeProviderId } = await this.getPreferences();
     const { isSignedIn } = await this.getStorageContext();
     const defaultSyncStatus = getDefaultSyncStatus(isSignedIn);
-    if (!activeModelId) {
+    if (!activeModelId || !activeProviderId) {
       return { data: null, syncStatus: defaultSyncStatus };
     }
 
-    const provider = providers.find((p) =>
-      p.models.some((m) => m.id === activeModelId),
-    );
+    const provider = providers.find((p) => p.id === activeProviderId);
 
     if (!provider) {
       return { data: null, syncStatus: defaultSyncStatus };

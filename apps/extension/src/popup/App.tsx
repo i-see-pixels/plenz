@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import logo from "../assets/logo.svg";
 import { providers } from "@promptlens/providers";
 import { AuthStatus } from "../components/AuthStatus";
+import type { ModelOption } from "@promptlens/types";
 import { BarChart3, Settings, Users } from "lucide-react";
 import { Badge } from "@promptlens/ui/components/badge";
 import { Button } from "@promptlens/ui/components/button";
@@ -32,15 +33,22 @@ export function App() {
     configured: boolean;
     modelId: string | null;
   } | null>(null);
+  const [providerModels, setProviderModels] = useState<Record<string, ModelOption[]>>({});
 
   useEffect(() => {
     fetchActiveModel();
+    fetchProviderModels();
 
     const handleStorageChange = (changes: {
       [key: string]: chrome.storage.StorageChange;
     }) => {
       if (changes.preferences) {
         fetchActiveModel();
+      }
+      // Reload models if cached models change
+      const changedKeys = Object.keys(changes);
+      if (changedKeys.some(k => k.startsWith("models_"))) {
+        fetchProviderModels();
       }
     };
 
@@ -63,6 +71,17 @@ export function App() {
     });
   };
 
+  const fetchProviderModels = () => {
+    const keys = providers.map((p) => `models_${p.id}`);
+    chrome.storage.local.get(keys, (res) => {
+      const pm: Record<string, ModelOption[]> = {};
+      providers.forEach((p) => {
+        pm[p.id] = (res[`models_${p.id}`] as ModelOption[]) || [];
+      });
+      setProviderModels(pm);
+    });
+  };
+
   const openSettings = () => {
     chrome.runtime.openOptionsPage();
   };
@@ -77,7 +96,11 @@ export function App() {
     chrome.runtime.sendMessage(
       {
         type: "SET_ACTIVE_MODEL",
-        payload: { modelId: newModelId },
+        payload: { 
+          modelId: newModelId,
+          // Find the provider that has this model to pass both
+          providerId: Object.entries(providerModels).find(([_, models]) => models.some((m) => m.id === newModelId))?.[0] || ""
+        },
       },
       (response) => {
         if (response?.success) {
@@ -149,16 +172,20 @@ export function App() {
                   <SelectValue placeholder="Select a model..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {providers.map((provider) => (
-                    <SelectGroup key={provider.id}>
-                      <SelectLabel>{provider.name}</SelectLabel>
-                      {provider.models.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
+                  {providers.map((provider) => {
+                    const models = providerModels[provider.id] || [];
+                    if (models.length === 0) return null;
+                    return (
+                      <SelectGroup key={provider.id}>
+                        <SelectLabel>{provider.name}</SelectLabel>
+                        {models.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             ) : (

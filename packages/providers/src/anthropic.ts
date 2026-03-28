@@ -4,28 +4,37 @@ import {
   ConnectionTestResult,
   AnalysisResult,
   Suggestion,
+  ModelOption,
 } from "@promptlens/types";
 
 export class AnthropicAdapter implements ProviderAdapter {
   id = "anthropic";
   name = "Anthropic";
-  models = [
-    {
-      id: "claude-3-5-sonnet-20240620",
-      name: "Claude 3.5 Sonnet",
-      tier: "premium" as const,
-    },
-    {
-      id: "claude-3-haiku-20240307",
-      name: "Claude 3 Haiku",
-      tier: "standard" as const,
-    },
-    {
-      id: "claude-3-opus-20240229",
-      name: "Claude 3 Opus",
-      tier: "premium" as const,
-    },
-  ];
+
+  async fetchModels(config: ProviderConfig): Promise<ModelOption[]> {
+    if (!config.apiKey) return [];
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/models", {
+        headers: {
+          "x-api-key": config.apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.data.map((m: any) => ({
+        id: m.id,
+        name: m.display_name || m.id,
+        tier:
+          m.id.includes("opus") || m.id.includes("sonnet-2024")
+            ? "premium"
+            : "standard",
+      }));
+    } catch {
+      return [];
+    }
+  }
 
   private normalizeSuggestions(raw: unknown): Suggestion[] {
     const validTypes: Suggestion["type"][] = [
@@ -79,6 +88,8 @@ export class AnthropicAdapter implements ProviderAdapter {
   }
 
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
+    if (!config.model)
+      return { success: false, latencyMs: 0, error: "No model selected" };
     const start = performance.now();
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -87,7 +98,7 @@ export class AnthropicAdapter implements ProviderAdapter {
           "Content-Type": "application/json",
           "x-api-key": config.apiKey,
           "anthropic-version": "2023-06-01",
-          "anthropic-dangerously-allow-browser": "true",
+          "anthropic-dangerous-direct-browser-access": "true",
         },
         body: JSON.stringify({
           model: config.model,
@@ -97,7 +108,9 @@ export class AnthropicAdapter implements ProviderAdapter {
       });
       const latency = Math.round(performance.now() - start);
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res
+          .json()
+          .catch(() => ({ error: { message: `HTTP ${res.status}` } }));
         return {
           success: false,
           latencyMs: latency,
@@ -140,7 +153,7 @@ export class AnthropicAdapter implements ProviderAdapter {
     prompt: string,
     systemPrompt: string,
     config: ProviderConfig,
-    context?: { active_website?: string }
+    context?: { active_website?: string },
   ): Promise<AnalysisResult> {
     const start = performance.now();
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -149,7 +162,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         "Content-Type": "application/json",
         "x-api-key": config.apiKey,
         "anthropic-version": "2023-06-01",
-        "anthropic-dangerously-allow-browser": "true",
+        "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
         model: config.model,
@@ -159,8 +172,8 @@ export class AnthropicAdapter implements ProviderAdapter {
             role: "user",
             content: context?.active_website
               ? `[Context: ${context.active_website}]\n\n${prompt}`
-              : prompt
-          }
+              : prompt,
+          },
         ],
         max_tokens: config.maxTokens ?? 1024,
         temperature: config.temperature ?? 0.3,
