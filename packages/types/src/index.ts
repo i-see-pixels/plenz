@@ -54,7 +54,7 @@ export interface ModelOption {
 export interface ProviderAdapter {
 	id: string
 	name: string
-	models: ModelOption[]
+	fetchModels(config: ProviderConfig): Promise<ModelOption[]>
 	testConnection(config: ProviderConfig): Promise<ConnectionTestResult>
 	analyze(
 		prompt: string,

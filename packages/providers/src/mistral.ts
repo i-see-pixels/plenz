@@ -4,33 +4,30 @@ import {
   ConnectionTestResult,
   AnalysisResult,
   Suggestion,
+  ModelOption,
 } from "@promptlens/types";
 
 export class MistralAdapter implements ProviderAdapter {
   id = "mistral";
   name = "Mistral";
-  models = [
-    {
-      id: "mistral-large-latest",
-      name: "Mistral Large",
-      tier: "premium" as const,
-    },
-    {
-      id: "mistral-small-latest",
-      name: "Mistral Small",
-      tier: "standard" as const,
-    },
-    {
-      id: "open-mistral-nemo",
-      name: "Mistral Nemo",
-      tier: "standard" as const,
-    },
-    {
-      id: "open-mixtral-8x22b",
-      name: "Mixtral 8x22B",
-      tier: "premium" as const,
-    },
-  ];
+
+  async fetchModels(config: ProviderConfig): Promise<ModelOption[]> {
+    if (!config.apiKey) return [];
+    try {
+      const res = await fetch("https://api.mistral.ai/v1/models", {
+        headers: { Authorization: `Bearer ${config.apiKey}` },
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.data.map((m: any) => ({
+        id: m.id,
+        name: m.id,
+        tier: m.id.includes("large") ? "premium" : "standard"
+      }));
+    } catch {
+      return [];
+    }
+  }
 
   private normalizeSuggestions(raw: unknown): Suggestion[] {
     const validTypes: Suggestion["type"][] = [
@@ -84,6 +81,7 @@ export class MistralAdapter implements ProviderAdapter {
   }
 
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
+    if (!config.model) return { success: false, latencyMs: 0, error: "No model selected" };
     const start = performance.now();
     try {
       const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -100,7 +98,7 @@ export class MistralAdapter implements ProviderAdapter {
       });
       const latency = Math.round(performance.now() - start);
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }));
         return {
           success: false,
           latencyMs: latency,

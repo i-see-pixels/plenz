@@ -29,6 +29,7 @@ export async function handleMessage(
     case "SET_ACTIVE_MODEL":
       await StorageManager.setPreferences({
         activeModelId: message.payload.modelId,
+        activeProviderId: message.payload.providerId,
       });
       return { success: true };
 
@@ -97,10 +98,9 @@ export async function handleMessage(
       try {
         const configResult = await StorageManager.getActiveModelConfig();
         const config = configResult.data;
+        const prefs = await StorageManager.getPreferences();
         if (config && config.apiKey) {
-          const provider = providers.find((p) =>
-            p.models.some((m) => m.id === config.model),
-          );
+          const provider = providers.find((p) => p.id === prefs.activeProviderId);
           if (provider) {
             const remoteResult = await provider.analyze(prompt, SYSTEM_PROMPT_TEMPLATE, config, context);
             // Merge suggestions, keeping local ones first if they are highly relevant
