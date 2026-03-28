@@ -5,12 +5,9 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@promptlens/ui"],
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "upload.wikimedia.org",
-        port: "",
-        pathname: "/wikipedia/**",
-      },
+      new URL("https://upload.wikimedia.org/**"),
+      new URL("https://files.buildwithfern.com/**"),
+      new URL("https://docs.mistral.ai/**"),
     ],
   },
 };

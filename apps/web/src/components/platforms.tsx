@@ -1,5 +1,6 @@
 "use client";
 
+import { BrainCogIcon } from "lucide-react";
 import Image from "next/image";
 
 const platforms = [
@@ -22,10 +23,16 @@ const platforms = [
     link: "https://upload.wikimedia.org/wikipedia/commons/d/d9/Google_Gemini_logo_2025.svg",
   },
   {
-    name: "Perplexity",
-    width: 96,
-    height: 96,
-    link: "https://upload.wikimedia.org/wikipedia/commons/1/1d/Perplexity_AI_logo.svg",
+    name: "Mistral",
+    width: 120,
+    height: 120,
+    link: "http://docs.mistral.ai/img/logo.svg",
+  },
+  {
+    name: "OpenRouter",
+    width: 120,
+    height: 120,
+    link: "https://files.buildwithfern.com/openrouter.docs.buildwithfern.com/docs/5a7e2b0bd58241d151e9e352d7a4f898df12c062576c0ce0184da76c3635c5d3/content/assets/logo.svg",
   },
 ];
 
@@ -53,7 +60,7 @@ export function Platforms() {
           {platforms.map((platform) => (
             <div
               key={platform.name}
-              className="flex flex-col items-center justify-center gap-3 rounded-md border border-border bg-card px-4 py-5"
+              className="flex items-center justify-center gap-3 rounded-md border border-border bg-card px-4 py-5"
             >
               <Image
                 src={platform.link}
@@ -63,6 +70,13 @@ export function Platforms() {
               />
             </div>
           ))}
+          <div className="flex items-center justify-center gap-3 rounded-md border border-border bg-card px-4 py-5">
+            <BrainCogIcon />
+            <div className="flex flex-col">
+              <p className="font-medium leading-4">Custom</p>
+              <p className="text-xs text-muted-foreground">Use your own</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
