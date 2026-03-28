@@ -1,11 +1,9 @@
 import { StorageManager } from "./storage";
 import { providers } from "@promptlens/providers";
 import {
-  SYSTEM_PROMPT_TEMPLATE,
+  buildSystemPrompt,
   IntentDetector,
   EntityExtractor,
-  PromptGenerator,
-  PromptRanker
 } from "@promptlens/core";
 import { AuthManager } from "./auth";
 
@@ -81,40 +79,47 @@ export async function handleMessage(
     case "ANALYZE_PROMPT": {
       const { prompt, context } = message.payload;
 
-      // 1. Local Analysis (Fast)
       const intentDetector = new IntentDetector();
       const entityExtractor = new EntityExtractor();
-      const promptGenerator = new PromptGenerator();
-      const promptRanker = new PromptRanker();
 
       const intentMatch = intentDetector.detect(prompt);
       const entities = entityExtractor.extract(prompt, context);
+      const systemPrompt = buildSystemPrompt(intentMatch, entities);
 
-      const generated = promptGenerator.generate(intentMatch.intent, entities, prompt);
-      const suggestions = promptRanker.rank(generated, intentMatch);
-
-      // 2. Remote Analysis (Optional/Enrichment)
-      // If we have high confidence local suggestions, we might skip or use LLM to refine
       try {
         const configResult = await StorageManager.getActiveModelConfig();
         const config = configResult.data;
         const prefs = await StorageManager.getPreferences();
-        if (config && config.apiKey) {
-          const provider = providers.find((p) => p.id === prefs.activeProviderId);
-          if (provider) {
-            const remoteResult = await provider.analyze(prompt, SYSTEM_PROMPT_TEMPLATE, config, context);
-            // Merge suggestions, keeping local ones first if they are highly relevant
-            return {
-              suggestions: [...suggestions, ...remoteResult.suggestions].slice(0, 5),
-              latencyMs: remoteResult.latencyMs
-            };
-          }
-        }
-      } catch (e) {
-        console.error("Remote analysis failed, falling back to local:", e);
-      }
 
-      return { suggestions };
+        if (!config || !config.apiKey) {
+          return {
+            error:
+              "LLM Provider not configured. Please set an API key in the extension options.",
+          };
+        }
+
+        const provider = providers.find((p) => p.id === prefs.activeProviderId);
+        if (!provider) {
+          return {
+            error:
+              "Active LLM Provider not found. Please review your settings.",
+          };
+        }
+
+        const remoteResult = await provider.analyze(
+          prompt,
+          systemPrompt,
+          config,
+          context,
+        );
+        return {
+          suggestions: remoteResult.suggestions.slice(0, 5),
+          latencyMs: remoteResult.latencyMs,
+        };
+      } catch (e: any) {
+        console.error("Remote analysis failed:", e);
+        return { error: e.message || "Failed to analyze prompt." };
+      }
     }
 
     case "AUTH_SIGN_IN":

@@ -51,6 +51,16 @@
   background: color-mix(in srgb, var(--pl-accent) 18%, white);
 }
 
+.pl-badge.error {
+  background: color-mix(in srgb, #ef4444 12%, white);
+  color: #ef4444;
+  border-color: color-mix(in srgb, #ef4444 45%, white);
+}
+
+.pl-badge.error:hover {
+  background: color-mix(in srgb, #ef4444 18%, white);
+}
+
 .pl-overlay {
   background: var(--pl-bg-primary);
   border: 1px solid var(--pl-border);
