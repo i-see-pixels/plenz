@@ -9,9 +9,9 @@ import { FaGithub } from "react-icons/fa";
 import logo from "@/assets/logo.svg";
 
 const navLinks = [
-  { label: "Features", href: "#features" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Platforms", href: "#platforms" },
+  { label: "Features", href: "/#features" },
+  { label: "Getting Started", href: "/getting-started" },
+  { label: "Platforms", href: "/#platforms" },
 ];
 
 export function Navbar() {
