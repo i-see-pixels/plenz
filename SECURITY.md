@@ -6,7 +6,7 @@ Only the latest `main` branch and the latest tagged release are supported.
 
 ## Reporting a Vulnerability
 
-- Email: `security@promptlens.dev`
+- Email: `siddhant06137@gmail.com`
 - Include reproduction steps, impact, and affected components.
 - Do not open public GitHub issues for undisclosed vulnerabilities.
 

@@ -1,0 +1,120 @@
+export interface SiteLink {
+  label: string;
+  href: string;
+}
+
+export interface FaqItem {
+  question: string;
+  answer: string;
+  links?: readonly SiteLink[];
+}
+
+export const homepageFaqs = [
+  {
+    question: "Which AI tools can PromptLens work with?",
+    answer:
+      "PromptLens helps you refine prompts inside ChatGPT, Claude, Gemini, Mistral, OpenRouter, and custom AI chat surfaces so you can improve instructions before they reach a model.",
+    links: [
+      { label: "View supported AI surfaces", href: "/#platforms" },
+      { label: "Open the setup guide", href: "/getting-started" },
+    ],
+  },
+  {
+    question: "How does Bring Your Own Key work?",
+    answer:
+      "You connect your own provider credentials to PromptLens, so usage is billed directly by OpenAI, Anthropic, Google Gemini, Mistral, Groq, OpenRouter, or your custom endpoint instead of through a PromptLens markup layer.",
+    links: [
+      { label: "Connect a provider", href: "/getting-started#providers" },
+      {
+        label: "Review supported providers",
+        href: "/getting-started#api-keys",
+      },
+    ],
+  },
+  {
+    question: "Is PromptLens private by default?",
+    answer:
+      "Yes. API keys and prompt text stay in your browser storage, and PromptLens does not rely on a relay service that sits between your prompt and the model provider you choose.",
+    links: [{ label: "See the setup flow", href: "/getting-started" }],
+  },
+  {
+    question: "Who is PromptLens built for?",
+    answer:
+      "PromptLens is built for founders, marketers, operators, support teams, and prompt-heavy developers who want clearer AI instructions without changing the tools they already use every day.",
+    links: [{ label: "Explore core features", href: "/#features" }],
+  },
+  {
+    question: "How quickly can I start using PromptLens?",
+    answer:
+      "Most users can install the extension, connect a provider, and start refining prompts in a few minutes. The getting-started guide walks through installation, provider setup, and API key configuration step by step.",
+    links: [
+      { label: "Read the getting-started guide", href: "/getting-started" },
+    ],
+  },
+] as const satisfies readonly FaqItem[];
+
+export const siteConfig = {
+  name: "PromptLens",
+  shortName: "PromptLens",
+  defaultTitle: "PromptLens | AI Prompt Refinement in Your Browser",
+  description:
+    "Open-source browser extension that refines AI prompts in real time. Bring your own API key, keep prompt text local, and improve prompts before you send them.",
+  homeTitle: "PromptLens | Rewrite AI Prompts Before You Send Them",
+  homeDescription:
+    "Refine AI prompts in real time with a browser extension built for ChatGPT, Claude, Gemini, and other AI tools. Bring your own key, keep prompt text local, and improve instructions before you hit send.",
+  gettingStartedTitle: "Getting Started | PromptLens",
+  gettingStartedDescription:
+    "Set up PromptLens, connect your AI provider, add your API key, and start refining prompts across ChatGPT, Claude, Gemini, and other AI tools.",
+  url: "https://promptlens-web.vercel.app",
+  locale: "en_US",
+  ogImage: "/opengraph-image.png",
+  logo: "/favicon.ico",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Chrome and Chromium-based browsers",
+  keywords: [
+    "AI prompt refinement",
+    "browser extension",
+    "prompt engineering",
+    "ChatGPT prompts",
+    "Claude prompts",
+    "Gemini prompts",
+    "BYOK AI tools",
+    "open source AI extension",
+  ],
+  routes: {
+    home: "/",
+    gettingStarted: "/getting-started",
+  },
+  links: {
+    chromeWebStore:
+      "https://chromewebstore.google.com/detail/promptlens/fdbjbkomedpokmfkmacjnbdnghkejihl",
+    github: "https://github.com/i-see-pixels/promptlens",
+  },
+  sameAs: ["https://github.com/i-see-pixels/promptlens"],
+  supportedPlatforms: [
+    "ChatGPT",
+    "Claude",
+    "Gemini",
+    "Mistral",
+    "OpenRouter",
+    "Custom AI surfaces",
+  ],
+  supportedProviders: [
+    "OpenAI",
+    "Anthropic",
+    "Google Gemini",
+    "Mistral",
+    "Groq",
+    "OpenRouter",
+    "Custom local and self-hosted models",
+  ],
+  featureList: [
+    "Inline prompt rewrite suggestions before you send a message",
+    "Bring Your Own Key provider setup with direct billing to your chosen model vendor",
+    "Local-first privacy with prompt text and API keys stored in the browser",
+    "Keyboard-friendly accept and dismiss flows for fast drafting",
+  ],
+  privacyPromise:
+    "API keys and prompt text stay in your browser storage. PromptLens does not route your prompt through a central relay service.",
+  homepageFaqs,
+} as const;

@@ -5,6 +5,7 @@ import { Button } from "@promptlens/ui/components/button";
 import { Badge } from "@promptlens/ui/components/badge";
 import { ArrowRight } from "lucide-react";
 import { FaChrome, FaGithub } from "react-icons/fa";
+import { siteConfig } from "@/lib/site";
 
 export function Hero() {
   return (
@@ -38,7 +39,7 @@ export function Hero() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button size="lg" asChild>
               <Link
-                href="https://chromewebstore.google.com/detail/promptlens/fdbjbkomedpokmfkmacjnbdnghkejihl"
+                href={siteConfig.links.chromeWebStore}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -48,7 +49,7 @@ export function Hero() {
             </Button>
             <Button variant="outline" size="lg" asChild>
               <Link
-                href="https://github.com/i-see-pixels/promptlens"
+                href={siteConfig.links.github}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -58,6 +59,24 @@ export function Hero() {
               </Link>
             </Button>
           </div>
+
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Need setup details first? Follow the{" "}
+            <Link
+              href={siteConfig.routes.gettingStarted}
+              className="text-foreground underline decoration-border underline-offset-4 transition-colors hover:text-accent-signal"
+            >
+              PromptLens setup guide
+            </Link>{" "}
+            or jump straight to the{" "}
+            <Link
+              href="/getting-started#providers"
+              className="text-foreground underline decoration-border underline-offset-4 transition-colors hover:text-accent-signal"
+            >
+              provider connection steps
+            </Link>
+            .
+          </p>
         </div>
 
         <div className="flex flex-col gap-0 rounded-md border border-border bg-card">
@@ -67,7 +86,7 @@ export function Hero() {
             </p>
             <Badge
               variant="outline"
-              className="rounded-sm border-[color:var(--accent-signal)] font-mono text-[10px] tracking-[0.12em] text-[color:var(--accent-signal)] uppercase"
+              className="rounded-sm border-accent-signal font-mono text-[10px] tracking-[0.12em] text-[color:var(--accent-signal)] uppercase"
             >
               Active
             </Badge>
@@ -83,7 +102,7 @@ export function Hero() {
               </p>
             </div>
 
-            <div className="rounded-sm border border-[color:var(--accent-signal)] bg-muted px-3 py-3">
+            <div className="rounded-sm border border-accent-signal bg-muted px-3 py-3">
               <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-[color:var(--accent-signal)] uppercase">
                 PromptLens recommendation
               </p>

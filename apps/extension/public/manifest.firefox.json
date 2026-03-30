@@ -1,8 +1,8 @@
 {
-	"browser_specific_settings": {
-		"gecko": {
-			"id": "promptlens@promptlens.dev",
-			"strict_min_version": "128.0"
-		}
-	}
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "siddhant06137@gmail.com",
+      "strict_min_version": "128.0"
+    }
+  }
 }

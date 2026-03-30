@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import { createSiteGraphSchema, getAbsoluteUrl, serializeJsonLd } from "@/lib/seo";
+import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -13,36 +15,35 @@ const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
+const siteStructuredData = createSiteGraphSchema();
+
 export const metadata: Metadata = {
-  title: "PromptLens - AI Prompt Refinement, Right in Your Browser",
-  description:
-    "Open-source Chrome extension that refines your AI prompts in real time. Like Grammarly, but for AI. Bring your own API key. Privacy-first. Free forever.",
-  keywords: [
-    "AI prompt",
-    "prompt engineering",
-    "Chrome extension",
-    "ChatGPT",
-    "Claude",
-    "Gemini",
-    "open source",
-    "prompt refinement",
-  ],
+  metadataBase: new URL(siteConfig.url),
+  title: siteConfig.defaultTitle,
+  description: siteConfig.description,
+  applicationName: siteConfig.name,
+  keywords: [...siteConfig.keywords],
+  alternates: {
+    canonical: getAbsoluteUrl(siteConfig.routes.home),
+  },
   openGraph: {
-    title: "PromptLens - AI Prompt Refinement, Right in Your Browser",
-    description:
-      "Open-source Chrome extension that refines your AI prompts in real time. Bring your own API key. Privacy-first. Free forever.",
+    title: siteConfig.defaultTitle,
+    description: siteConfig.description,
+    siteName: siteConfig.name,
+    locale: siteConfig.locale,
     type: "website",
-    url: "https://promptlens.dev",
+    url: getAbsoluteUrl(siteConfig.routes.home),
   },
   twitter: {
     card: "summary_large_image",
-    title: "PromptLens - AI Prompt Refinement",
-    description:
-      "Open-source Chrome extension that refines your AI prompts in real time.",
+    title: siteConfig.defaultTitle,
+    description: siteConfig.description,
   },
   icons: {
-    icon: "/logo.svg",
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
   },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({
@@ -52,27 +53,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link
-          rel="apple-touch-icon"
-          sizes="180x180"
-          href="/apple-touch-icon.png"
-        />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="32x32"
-          href="/favicon-32x32.png"
-        />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="16x16"
-          href="/favicon-16x16.png"
-        />
-        <link rel="manifest" href="/site.webmanifest" />
-      </head>
       <body className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} font-sans antialiased`}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(siteStructuredData) }}
+        />
         {children}
       </body>
     </html>

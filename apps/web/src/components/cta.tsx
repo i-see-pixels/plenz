@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@promptlens/ui/components/button";
 import { ArrowRight } from "lucide-react";
 import { FaChrome } from "react-icons/fa";
+import { siteConfig } from "@/lib/site";
 
 export function CTA() {
   return (
@@ -27,7 +28,7 @@ export function CTA() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button size="lg" asChild>
               <Link
-                href="https://chromewebstore.google.com/detail/promptlens/fdbjbkomedpokmfkmacjnbdnghkejihl"
+                href={siteConfig.links.chromeWebStore}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -37,6 +38,24 @@ export function CTA() {
               </Link>
             </Button>
           </div>
+
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Need a quick walkthrough first? Read the{" "}
+            <Link
+              href={siteConfig.routes.gettingStarted}
+              className="text-foreground underline decoration-border underline-offset-4 transition-colors hover:text-accent-signal"
+            >
+              setup guide
+            </Link>{" "}
+            or review the{" "}
+            <Link
+              href="/#platforms"
+              className="text-foreground underline decoration-border underline-offset-4 transition-colors hover:text-accent-signal"
+            >
+              supported AI surfaces
+            </Link>
+            .
+          </p>
 
           <p className="font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             No account required - BYOK - MIT license

@@ -8,11 +8,13 @@ community a harassment-free experience for everyone.
 ## Our Standards
 
 Examples of behavior that contributes to a positive environment include:
+
 - Being respectful and constructive in feedback.
 - Accepting responsibility and learning from mistakes.
 - Prioritizing the health of the community over individual wins.
 
 Examples of unacceptable behavior include:
+
 - Harassment, discrimination, or personal attacks.
 - Trolling, insulting, or derogatory comments.
 - Publishing private information without permission.
@@ -30,7 +32,7 @@ is officially representing the project in public spaces.
 
 ## Enforcement
 
-Report incidents to: `security@promptlens.dev`.
+Report incidents to: `siddhant06137@gmail.com`.
 All reports will be reviewed and investigated promptly and fairly.
 
 ## Attribution

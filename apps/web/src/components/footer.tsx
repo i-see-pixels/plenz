@@ -67,14 +67,8 @@ export function Footer() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 rounded-md border border-border bg-card px-4 py-6 sm:px-6">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col gap-4">
-            <Link href="/" className="flex items-center gap-3">
-              <Image
-                src={logo}
-                alt="PromptLens"
-                width={24}
-                height={24}
-                className="grayscale"
-              />
+            <Link href="/" className="flex items-center gap-2">
+              <Image src={logo} alt="PromptLens" width={20} height={20} />
               <span className="text-base font-semibold tracking-tight">
                 PromptLens
               </span>

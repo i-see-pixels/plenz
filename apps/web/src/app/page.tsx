@@ -1,3 +1,4 @@
+import { FAQ } from "@/components/faq";
 import { Navbar } from "@/components/navbar";
 import { Hero } from "@/components/hero";
 import { Features } from "@/components/features";
@@ -5,6 +6,22 @@ import { HowItWorks } from "@/components/how-it-works";
 import { Platforms } from "@/components/platforms";
 import { CTA } from "@/components/cta";
 import { Footer } from "@/components/footer";
+import {
+  createFaqSchema,
+  createPageMetadata,
+  createSoftwareApplicationSchema,
+  serializeJsonLd,
+} from "@/lib/seo";
+import { siteConfig } from "@/lib/site";
+
+const softwareApplicationSchema = createSoftwareApplicationSchema();
+const faqSchema = createFaqSchema(siteConfig.homepageFaqs);
+
+export const metadata = createPageMetadata({
+  title: siteConfig.homeTitle,
+  description: siteConfig.homeDescription,
+  path: siteConfig.routes.home,
+});
 
 export default function Home() {
   return (
@@ -20,10 +37,19 @@ export default function Home() {
       />
       <Navbar />
       <main className="relative z-10">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(softwareApplicationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqSchema) }}
+        />
         <Hero />
         <Features />
         <HowItWorks />
         <Platforms />
+        <FAQ />
         <CTA />
       </main>
       <Footer />
