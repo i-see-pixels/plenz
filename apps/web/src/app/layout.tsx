@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { createSiteGraphSchema, getAbsoluteUrl, serializeJsonLd } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
@@ -60,6 +61,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(siteStructuredData) }}
         />
         {children}
+        <Analytics />
       </body>
     </html>
   );
