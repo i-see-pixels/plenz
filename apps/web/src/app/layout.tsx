@@ -23,6 +23,7 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   applicationName: siteConfig.name,
   keywords: [...siteConfig.keywords],
+  robots: siteConfig.robots,
   alternates: {
     canonical: getAbsoluteUrl(siteConfig.routes.home),
   },

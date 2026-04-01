@@ -31,6 +31,7 @@ export function createPageMetadata({
     title,
     description,
     keywords: [...siteConfig.keywords],
+    robots: siteConfig.robots,
     alternates: {
       canonical,
     },
