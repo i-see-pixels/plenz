@@ -26,9 +26,7 @@
   },
   "content_scripts": [
     {
-      "js": [
-        "src/content/index.ts"
-      ],
+      "js": ["src/content/index.ts"],
       "matches": [
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
@@ -37,10 +35,7 @@
       ]
     }
   ],
-  "permissions": [
-    "storage",
-    "identity"
-  ],
+  "permissions": ["storage", "identity"],
   "host_permissions": [
     "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*",
@@ -60,11 +55,7 @@
   ],
   "oauth2": {
     "client_id": "984390443499-mc4mr2kfjhlde2dfb5qbr3ut4rnamgvg.apps.googleusercontent.com",
-    "scopes": [
-      "openid",
-      "email",
-      "profile"
-    ]
+    "scopes": ["openid", "email", "profile"]
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.openai.com https://generativelanguage.googleapis.com https://www.googleapis.com https://apis.google.com https://www.gstatic.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com https://firestore.googleapis.com https://api.anthropic.com https://api.mistral.ai https://api.groq.com https://openrouter.ai http://localhost:* http://127.0.0.1:*"
