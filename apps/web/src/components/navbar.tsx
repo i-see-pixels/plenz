@@ -7,12 +7,37 @@ import { Button } from "@promptlens/ui/components/button";
 import { Menu, X } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import logo from "@/assets/logo.svg";
+import { siteConfig } from "@/lib/site";
 
 const navLinks = [
   { label: "Features", href: "/#features" },
   { label: "Getting Started", href: "/getting-started" },
   { label: "Platforms", href: "/#platforms" },
 ];
+
+const ExternalButtons = () => (
+  <>
+    <Button variant="outline" size="sm" asChild>
+      <Link
+        href={siteConfig.links.github}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <FaGithub data-icon="inline-start" />
+        GitHub
+      </Link>
+    </Button>
+    <Button size="sm" asChild>
+      <Link
+        href={siteConfig.links.chromeWebStore}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Add to Chrome
+      </Link>
+    </Button>
+  </>
+);
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -42,19 +67,7 @@ export function Navbar() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Button variant="outline" size="sm" asChild>
-            <Link
-              href="https://github.com/i-see-pixels/promptlens"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <FaGithub data-icon="inline-start" />
-              GitHub
-            </Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="#download">Add to Chrome</Link>
-          </Button>
+          <ExternalButtons />
         </div>
 
         <button
@@ -81,19 +94,7 @@ export function Navbar() {
               </Link>
             ))}
             <div className="flex flex-col gap-2 pt-1">
-              <Button variant="outline" size="sm" asChild>
-                <Link
-                  href="https://github.com/i-see-pixels/promptlens"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <FaGithub data-icon="inline-start" />
-                  GitHub
-                </Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link href="#download">Add to Chrome</Link>
-              </Button>
+              <ExternalButtons />
             </div>
           </div>
         </div>
