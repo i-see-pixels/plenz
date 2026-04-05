@@ -8,11 +8,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@promptlens/ui/components/card";
-import { Badge } from "@promptlens/ui/components/badge";
-import { Button } from "@promptlens/ui/components/button";
-import { Input } from "@promptlens/ui/components/input";
-import { Label } from "@promptlens/ui/components/label";
+} from "@plenz/ui/components/card";
+import { Badge } from "@plenz/ui/components/badge";
+import { Button } from "@plenz/ui/components/button";
+import { Input } from "@plenz/ui/components/input";
+import { Label } from "@plenz/ui/components/label";
 
 const PREFERENCES_STORAGE_KEY = "preferences";
 const DEFAULT_DEBOUNCE_MS = 500;
@@ -89,10 +89,10 @@ export function App() {
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
         <Card className="grid gap-4 px-4 py-4 sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="PromptLens" className="size-9" />
+            <img src={logo} alt="plenz" className="size-9" />
             <div className="flex flex-col">
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                PromptLens Control Panel
+                plenz Control Panel
               </h1>
             </div>
           </div>
@@ -167,7 +167,7 @@ export function App() {
               <p className="text-xs text-muted-foreground">
                 {preferencesState.status === "error"
                   ? preferencesState.message || "Failed to save preferences."
-                  : "Controls how long PromptLens waits after you stop typing before running analysis."}
+                  : "Controls how long plenz waits after you stop typing before running analysis."}
               </p>
             </div>
           </CardContent>
@@ -176,3 +176,4 @@ export function App() {
     </div>
   );
 }
+

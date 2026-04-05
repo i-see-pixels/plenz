@@ -5,7 +5,7 @@ import {
 	AnalysisResult,
 	Suggestion,
 	ModelOption,
-} from "@promptlens/types"
+} from "@plenz/types"
 
 export class GoogleAdapter implements ProviderAdapter {
 	id = "google"
@@ -283,3 +283,4 @@ export class GoogleAdapter implements ProviderAdapter {
 		}
 	}
 }
+

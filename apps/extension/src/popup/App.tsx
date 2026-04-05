@@ -1,17 +1,17 @@
 import { useEffect, useState } from "preact/hooks";
 import logo from "../assets/logo.svg";
-import { providers } from "@promptlens/providers";
+import { providers } from "@plenz/providers";
 import { AuthStatus } from "../components/AuthStatus";
-import type { ModelOption } from "@promptlens/types";
+import type { ModelOption } from "@plenz/types";
 import { BarChart3, Settings, Users } from "lucide-react";
-import { Badge } from "@promptlens/ui/components/badge";
-import { Button } from "@promptlens/ui/components/button";
+import { Badge } from "@plenz/ui/components/badge";
+import { Button } from "@plenz/ui/components/button";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
-} from "@promptlens/ui/components/card";
+} from "@plenz/ui/components/card";
 import {
   Select,
   SelectContent,
@@ -20,12 +20,12 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@promptlens/ui/components/select";
-import { Separator } from "@promptlens/ui/components/separator";
-import { Skeleton } from "@promptlens/ui/components/skeleton";
+} from "@plenz/ui/components/select";
+import { Separator } from "@plenz/ui/components/separator";
+import { Skeleton } from "@plenz/ui/components/skeleton";
 
-const PROJECT_URL = "https://github.com/i-see-pixels/promptlens";
-const COMMUNITY_URL = "https://github.com/i-see-pixels/promptlens/discussions";
+const PROJECT_URL = "https://github.com/i-see-pixels/plenz";
+const COMMUNITY_URL = "https://github.com/i-see-pixels/plenz/discussions";
 
 export function App() {
   const extensionVersion = chrome.runtime.getManifest().version;
@@ -117,10 +117,10 @@ export function App() {
       <Card className="gap-0 rounded-none border-0 bg-transparent py-0 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="PromptLens" className="size-5" />
+            <img src={logo} alt="plenz" className="size-5" />
             <div className="flex flex-col gap-0.5 leading-none">
               <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-                PromptLens
+                plenz
               </p>
               <h1 className="text-sm font-semibold tracking-tight">
                 Control panel
@@ -233,7 +233,7 @@ export function App() {
 
         <CardFooter className="justify-between px-4 py-2">
           <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-            PromptLens
+            plenz
           </p>
           <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
             v{extensionVersion}
@@ -243,3 +243,4 @@ export function App() {
     </div>
   );
 }
+

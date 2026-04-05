@@ -5,7 +5,7 @@ import {
   AnalysisResult,
   Suggestion,
   ModelOption,
-} from "@promptlens/types";
+} from "@plenz/types";
 
 export class GroqAdapter implements ProviderAdapter {
   id = "groq";
@@ -180,3 +180,4 @@ export class GroqAdapter implements ProviderAdapter {
     };
   }
 }
+

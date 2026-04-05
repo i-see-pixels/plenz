@@ -1,8 +1,8 @@
-import type { ProviderConfig } from "@promptlens/types";
+import type { ProviderConfig } from "@plenz/types";
 
 const ENCRYPTION_VERSION = 1;
 const ENCRYPTION_ALGORITHM = "AES-GCM";
-const KEY_DERIVATION_CONTEXT = "promptlens/firebase-api-key/v1";
+const KEY_DERIVATION_CONTEXT = "plenz/firebase-api-key/v1";
 const IV_LENGTH_BYTES = 12;
 
 export interface EncryptedApiKeyPayload {
@@ -171,3 +171,4 @@ export async function fromFirestoreProviderConfig(
 
   return { config: null, migratedConfig: null };
 }
+

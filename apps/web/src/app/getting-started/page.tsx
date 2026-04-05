@@ -108,9 +108,9 @@ const providers = [
     steps: [
       "Start your local server (e.g. LM Studio, Ollama, vLLM).",
       "Locate the host URL (e.g., http://localhost:1234/v1).",
-      "In PromptLens Settings, select 'Custom'.",
+      "In plenz Settings, select 'Custom'.",
       "Enter your host URL and optional API Key.",
-      "Test the connection to ensure PromptLens can reach your server.",
+      "Test the connection to ensure plenz can reach your server.",
     ],
     image: <Image src={customProvider} alt="Custom provider setup" />,
   },
@@ -142,7 +142,7 @@ export default function GettingStarted() {
               Getting Started
             </h1>
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Welcome to PromptLens. We run completely entirely in your browser
+              Welcome to plenz. We run completely entirely in your browser
               environment, which means your prompt text never routes through a
               unified backend server and stays private by default. Let&apos;s
               get your workspace set up.
@@ -176,13 +176,13 @@ export default function GettingStarted() {
                   Install the Extension
                 </h2>
                 <p className="leading-relaxed text-muted-foreground">
-                  First, download the PromptLens extension from the Chrome Web
+                  First, download the plenz extension from the Chrome Web
                   Store. Once installed, be sure to pin it to your browser
                   toolbar for quick access. This allows you to easily hop into
                   settings or toggle extension status.
                 </p>
                 <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border shadow-md flex flex-col items-center justify-center text-center">
-                  <Image src={chromePage} alt="PromptLens Chrome Web Store page" />
+                  <Image src={chromePage} alt="plenz Chrome Web Store page" />
                 </div>
               </div>
             </div>
@@ -199,14 +199,14 @@ export default function GettingStarted() {
                   Select your AI Provider
                 </h2>
                 <p className="leading-relaxed text-muted-foreground">
-                  PromptLens works with the major AI language models. Since we
+                  plenz works with the major AI language models. Since we
                   use a "BYOK" (Bring Your Own Key) model, you only pay for your
                   literal inference costs directly to the provider, with zero
-                  markup. Click on the PromptLens icon, open Settings, and
+                  markup. Click on the plenz icon, open Settings, and
                   select a provider from the dropdown.
                 </p>
                 <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border bg-muted/50 flex flex-col items-center justify-center text-center p-6">
-                  <Image src={configPage} alt="PromptLens provider configuration" />
+                  <Image src={configPage} alt="plenz provider configuration" />
                 </div>
               </div>
             </div>
@@ -279,3 +279,4 @@ export default function GettingStarted() {
     </div>
   );
 }
+

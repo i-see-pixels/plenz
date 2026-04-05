@@ -1,6 +1,6 @@
-# Contributing to PromptLens
+# Contributing to plenz
 
-Thanks for your interest in improving PromptLens.
+Thanks for your interest in improving plenz.
 
 ## Development Setup
 
@@ -51,9 +51,10 @@ See `SECURITY.md` for disclosure instructions.
 
 ## Shared UI Convention
 
-- All shadcn primitives must come from `@promptlens/ui`.
+- All shadcn primitives must come from `@plenz/ui`.
 - Use app-context commands when adding components:
   - `pnpm dlx shadcn@latest add <component> -c apps/web`
   - `pnpm dlx shadcn@latest add <component> -c apps/extension`
 - Do not create or commit files under `apps/*/src/components/ui`.
 - Run `pnpm lint:ui-primitives` before opening a PR.
+

@@ -2,7 +2,7 @@ import type {
   ProviderConfig,
   StorageResult,
   SyncStatus,
-} from "@promptlens/types";
+} from "@plenz/types";
 import {
   collection,
   deleteDoc,
@@ -427,3 +427,4 @@ export function createStorageBackend(
 export function getDefaultSyncStatus(isSignedIn: boolean): SyncStatus {
   return isSignedIn ? "synced" : "local-only";
 }
+

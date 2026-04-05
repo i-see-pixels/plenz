@@ -1,6 +1,6 @@
 {
-  "name": "promptlens-vscode",
-  "displayName": "PromptLens",
+  "name": "plenz-vscode",
+  "displayName": "plenz",
   "description": "AI Prompt Refinement for VS Code",
   "version": "1.2.3",
   "icon": "icon.svg",
@@ -21,9 +21,9 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "dependencies": {
-    "@promptlens/core": "workspace:*",
-    "@promptlens/providers": "workspace:*",
-    "@promptlens/types": "workspace:*"
+    "@plenz/core": "workspace:*",
+    "@plenz/providers": "workspace:*",
+    "@plenz/types": "workspace:*"
   },
   "devDependencies": {
     "@types/vscode": "^1.80.0",
@@ -31,3 +31,4 @@
     "typescript": "^5.1.3"
   }
 }
+

@@ -1,5 +1,5 @@
 {
-  "name": "@promptlens/tsconfig",
+  "name": "@plenz/tsconfig",
   "version": "1.2.3",
   "private": true,
   "license": "MIT",
@@ -10,3 +10,4 @@
     "react-library.json"
   ]
 }
+

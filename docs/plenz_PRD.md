@@ -1,8 +1,8 @@
-# Product Requirements Document [PRD] — PromptLens
+# Product Requirements Document [PRD] — plenz
 
 | Field | Details |
 | --- | --- |
-| **Title/Initiative** | **PromptLens** — Open-Source AI Prompt Refinement Browser Extension |
+| **Title/Initiative** | **plenz** — Open-Source AI Prompt Refinement Browser Extension |
 | **Date & Version** | February 7, 2026 · v1.0 |
 | **Product - POC** | *(To be assigned)* |
 | **Design POC** | *(To be assigned)* |
@@ -42,7 +42,7 @@
 ### Guardrail Metrics *(do not disturb)*
 - **Page load latency** — the extension must not add > 100 ms to any page load.
 - **AI platform compatibility** — zero increase in broken-UI reports on supported platforms (ChatGPT, Claude, Gemini, Perplexity, etc.).
-- **User privacy** — API keys are stored locally only (never transmitted to any PromptLens server). Zero prompt data leaves the browser except to the user's own chosen LLM endpoint.
+- **User privacy** — API keys are stored locally only (never transmitted to any plenz server). Zero prompt data leaves the browser except to the user's own chosen LLM endpoint.
 
 ---
 
@@ -77,7 +77,7 @@
 ## Solution
 
 ### Brief
-**PromptLens** is an **open-source**, cross-browser extension that acts as a **real-time prompt co-pilot**. Like Grammarly suggests grammar fixes inline while you type, PromptLens detects when a user is typing in any AI chat input box and offers inline suggestions to enhance prompt clarity, add missing context, specify constraints, and define the desired output format. Suggestions appear as a non-intrusive overlay (tooltip or inline ghost text) that users can accept, modify, or dismiss with a single keystroke.
+**plenz** is an **open-source**, cross-browser extension that acts as a **real-time prompt co-pilot**. Like Grammarly suggests grammar fixes inline while you type, plenz detects when a user is typing in any AI chat input box and offers inline suggestions to enhance prompt clarity, add missing context, specify constraints, and define the desired output format. Suggestions appear as a non-intrusive overlay (tooltip or inline ghost text) that users can accept, modify, or dismiss with a single keystroke.
 
 The tool is **completely free** — no paywall, no premium tier. Users authenticate via **Google Sign-In** (for syncing preferences and history across devices) and connect their own preferred LLM by providing an **API key** for any supported model provider.
 
@@ -88,7 +88,7 @@ The tool is **completely free** — no paywall, no premium tier. Users authentic
 2. Authentication uses Chrome's `chrome.identity` API (Manifest V3) with OAuth 2.0 and the `userinfo.email` + `userinfo.profile` scopes.
 3. For Firefox, the equivalent `browser.identity.launchWebAuthFlow()` is used.
 4. Google Sign-In is used **only** for: syncing user preferences across devices, syncing accepted suggestion history (for personalization), and identifying the user in community/feedback features.
-5. **No prompt data is ever sent to PromptLens servers.** Authentication tokens are stored locally via `chrome.storage.local`.
+5. **No prompt data is ever sent to plenz servers.** Authentication tokens are stored locally via `chrome.storage.local`.
 
 #### Model & API Key Configuration
 1. After sign-in, the user is guided to the **Settings → Model Configuration** page.
@@ -102,7 +102,7 @@ The tool is **completely free** — no paywall, no premium tier. Users authentic
    - Custom / Self-hosted (user provides a base URL + key for any OpenAI-compatible API)
 3. The user enters their **API key** in a password-masked input field.
 4. A **"Test Connection"** button sends a minimal test prompt to verify the key works and displays the model's response latency.
-5. API keys are stored **exclusively** in `chrome.storage.local` (encrypted at rest via the browser's built-in encryption). Keys are **never** transmitted to any PromptLens server.
+5. API keys are stored **exclusively** in `chrome.storage.local` (encrypted at rest via the browser's built-in encryption). Keys are **never** transmitted to any plenz server.
 6. Users can configure multiple models and switch between them via a quick-toggle in the extension popup.
 
 ### How the Core Tool Works
@@ -126,12 +126,12 @@ The tool is **completely free** — no paywall, no premium tier. Users authentic
 ## Product Flow (Details)
 
 ### Customer Journey
-1. User installs PromptLens from the Chrome/Firefox Web Store (free).
+1. User installs plenz from the Chrome/Firefox Web Store (free).
 2. Extension popup opens → user clicks **"Sign in with Google"** → OAuth flow completes.
 3. User is guided to **Settings → Model Configuration** → selects provider (e.g., OpenAI) → pastes API key → clicks **"Test Connection"** → sees ✅ success.
 4. User navigates to any supported AI platform (e.g., ChatGPT).
 5. User begins typing a prompt in the input box.
-6. PromptLens analyzes the draft prompt via the user's configured model and displays a suggestion badge (e.g., *"⚡ +3 improvements available"*).
+6. plenz analyzes the draft prompt via the user's configured model and displays a suggestion badge (e.g., *"⚡ +3 improvements available"*).
 7. User hovers or presses a shortcut to see suggestions inline.
 8. User accepts (`Tab`), edits, or dismisses (`Esc`) each suggestion.
 9. Enhanced prompt is submitted to the AI platform → higher-quality first response.
@@ -145,8 +145,8 @@ The tool is **completely free** — no paywall, no premium tier. Users authentic
 | US-03 | As a user, I want to configure multiple models and switch between them quickly. | Settings allows saving up to 5 model configurations; a quick-toggle in the popup switches the active model in 1 click. |
 | US-04 | As a casual user, I want to see prompt improvement suggestions while I type so I can get better AI answers without learning prompt engineering. | Suggestions appear within 1 s of pause; at least one suggestion shown for prompts < 20 words. |
 | US-05 | As a power user, I want to accept suggestions with a keyboard shortcut so my flow isn't interrupted. | `Tab` accepts top suggestion; `Esc` dismisses; `↑/↓` navigates alternatives. |
-| US-06 | As a privacy-conscious user, I want assurance that my API key and prompt data never leave my browser. | API key stored in `chrome.storage.local` only; network inspector shows zero calls to any PromptLens-owned domain with prompt/key data. |
-| US-07 | As a user, I want PromptLens to work on ChatGPT, Claude, Gemini, and Perplexity out of the box. | Extension detects and hooks into input fields on all four platforms without errors. |
+| US-06 | As a privacy-conscious user, I want assurance that my API key and prompt data never leave my browser. | API key stored in `chrome.storage.local` only; network inspector shows zero calls to any plenz-owned domain with prompt/key data. |
+| US-07 | As a user, I want plenz to work on ChatGPT, Claude, Gemini, and Perplexity out of the box. | Extension detects and hooks into input fields on all four platforms without errors. |
 | US-08 | As a user, I want to see *why* a suggestion was made so I can learn better prompting over time. | Each suggestion includes a one-line rationale (e.g., "Adding a role improves output relevance"). |
 | US-09 | As an open-source contributor, I want clear documentation and modular code so I can add support for new LLM providers. | README includes contribution guide; provider adapters follow a documented interface/plugin pattern. |
 
@@ -155,7 +155,7 @@ The tool is **completely free** — no paywall, no premium tier. Users authentic
 #### Screen 1: Onboarding / Sign-In
 ```
 ┌─────────────────────────────┐
-│       🔍 PromptLens          │
+│       🔍 plenz          │
 │                             │
 │   Refine your AI prompts    │
 │   in real time.             │
@@ -201,7 +201,7 @@ The tool is **completely free** — no paywall, no premium tier. Users authentic
 │                                          │
 │  "write me an email"                     │
 │  ┌────────────────────────────────────┐  │
-│  │ ⚡ PromptLens suggests:            │  │
+│  │ ⚡ plenz suggests:            │  │
 │  │                                    │  │
 │  │ "Write a professional email to my  │  │
 │  │  manager requesting PTO for March  │  │
@@ -221,7 +221,7 @@ The tool is **completely free** — no paywall, no premium tier. Users authentic
 - **Invalid or expired API key:** Surface the provider's error message directly (e.g., "OpenAI: Invalid API key") with a link to Settings.
 - **Empty or single-word prompts:** Show a starter template suggestion instead of refinement.
 - **Non-English prompts:** Detect language; if the user's model supports it, provide suggestions in that language. Otherwise, display "language not yet supported."
-- **Custom/unsupported AI platforms:** Provide a right-click context-menu fallback ("Enhance with PromptLens").
+- **Custom/unsupported AI platforms:** Provide a right-click context-menu fallback ("Enhance with plenz").
 - **Conflicting extensions:** If Grammarly or another overlay extension is active, avoid z-index collisions by rendering suggestions in a shadow DOM container.
 - **Rate limiting / API errors:** Queue suggestions and show a subtle "thinking…" indicator; if the error persists, show the raw API error so the user can troubleshoot.
 - **User not signed in:** Allow full functionality without sign-in; sign-in is only required for cross-device sync.
@@ -247,7 +247,7 @@ The tool is **completely free** — no paywall, no premium tier. Users authentic
 
 ### Repository Structure
 ```
-promptlens/
+plenz/
 ├── manifest.json          # Manifest V3 (Chrome) / V2 (Firefox compat)
 ├── src/
 │   ├── background/        # Service worker: auth, storage, message routing
@@ -332,3 +332,4 @@ promptlens/
 2. Design planning document *(to be created)*
 3. Go-to-market / community launch planning *(to be created)*
 4. GitHub repository setup & contribution guide *(to be created)*
+

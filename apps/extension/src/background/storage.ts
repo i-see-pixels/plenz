@@ -1,6 +1,6 @@
-import type { ProviderConfig, StorageResult } from "@promptlens/types";
+import type { ProviderConfig, StorageResult } from "@plenz/types";
 import { doc, setDoc } from "firebase/firestore/lite";
-import { providers } from "@promptlens/providers";
+import { providers } from "@plenz/providers";
 import { AuthManager } from "./auth";
 import {
   ChromeLocalBackend,
@@ -344,3 +344,4 @@ export const StorageManager = {
     };
   },
 };
+

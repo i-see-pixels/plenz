@@ -1,6 +1,6 @@
-<a href="https://promptlens-web.vercel.app" target="_blank" rel="noopener">
+<a href="https://plenz-web.vercel.app" target="_blank" rel="noopener">
   <picture>
-    <img alt="PromptLens" src="assets/banner.png" />
+    <img alt="plenz" src="assets/banner.png" />
   </picture>
 </a>
 
@@ -9,14 +9,14 @@
   <a href="LICENSE">
     <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green.svg" />
   </a>
-  <a href="https://github.com/i-see-pixels/promptlens/actions/workflows/ci.yml">
-    <img alt="CI" src="https://github.com/i-see-pixels/promptlens/actions/workflows/ci.yml/badge.svg" />
+  <a href="https://github.com/i-see-pixels/plenz/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/i-see-pixels/plenz/actions/workflows/ci.yml/badge.svg" />
   </a>
-  <a href="https://github.com/i-see-pixels/promptlens/actions/workflows/e2e.yml">
-    <img alt="E2E" src="https://github.com/i-see-pixels/promptlens/actions/workflows/e2e.yml/badge.svg" />
+  <a href="https://github.com/i-see-pixels/plenz/actions/workflows/e2e.yml">
+    <img alt="E2E" src="https://github.com/i-see-pixels/plenz/actions/workflows/e2e.yml/badge.svg" />
   </a>
-   <a href="https://github.com/i-see-pixels/promptlens/actions/workflows/codeql.yml">
-      <img alt="CodeQL" src="https://github.com/i-see-pixels/promptlens/actions/workflows/codeql.yml/badge.svg" />
+   <a href="https://github.com/i-see-pixels/plenz/actions/workflows/codeql.yml">
+      <img alt="CodeQL" src="https://github.com/i-see-pixels/plenz/actions/workflows/codeql.yml/badge.svg" />
    </a>
   <br />
   <a href="https://twitter.com/creatorsidd">
@@ -37,11 +37,11 @@
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=i-see-pixels%2Fpromptlens&type=date&logscale=&legend=top-left">
+<a href="https://www.star-history.com/?repos=i-see-pixels%2Fplenz&type=date&logscale=&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=i-see-pixels/promptlens&type=date&theme=dark&logscale&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=i-see-pixels/promptlens&type=date&logscale&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=i-see-pixels/promptlens&type=date&logscale&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=i-see-pixels/plenz&type=date&theme=dark&logscale&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=i-see-pixels/plenz&type=date&logscale&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=i-see-pixels/plenz&type=date&logscale&legend=top-left" />
  </picture>
 </a>
 
@@ -74,7 +74,7 @@
 ## Quick Start
 
 1. Load the extension in your browser.
-2. Configure provider/model and API key in PromptLens settings.
+2. Configure provider/model and API key in plenz settings.
 3. Open a supported chat platform and start typing.
 4. Accept or click suggestions to improve prompt quality.
 
@@ -104,7 +104,7 @@
 
 - BYOK (bring your own key).
 - Local-first storage for credentials.
-- No central PromptLens backend for prompt processing.
+- No central plenz backend for prompt processing.
 - Restricted extension host permissions and CSP for provider domains.
 
 ## Development
@@ -117,7 +117,7 @@ Detailed setup: `DEVELOPMENT.md`
 
 ## Contributing
 
-[![Good First Issues](https://img.shields.io/github/issues/i-see-pixels/promptlens/good%20first%20issue)](https://github.com/i-see-pixels/promptlens/labels/good%20first%20issue)
+[![Good First Issues](https://img.shields.io/github/issues/i-see-pixels/plenz/good%20first%20issue)](https://github.com/i-see-pixels/plenz/labels/good%20first%20issue)
 
 Please read `docs/CONTRIBUTING.md`.
 
@@ -132,3 +132,4 @@ MIT. See `LICENSE`.
 ## Acknowledgments
 
 - Open-source maintainer community and early contributors.
+

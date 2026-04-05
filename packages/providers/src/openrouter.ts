@@ -5,7 +5,7 @@ import {
   AnalysisResult,
   Suggestion,
   ModelOption,
-} from "@promptlens/types";
+} from "@plenz/types";
 
 export class OpenRouterAdapter implements ProviderAdapter {
   id = "openrouter";
@@ -89,8 +89,8 @@ export class OpenRouterAdapter implements ProviderAdapter {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${config.apiKey}`,
-          "HTTP-Referer": "https://github.com/i-see-pixels/promptlens",
-          "X-Title": "PromptLens",
+          "HTTP-Referer": "https://github.com/i-see-pixels/plenz",
+          "X-Title": "plenz",
         },
         body: JSON.stringify({
           model: config.model,
@@ -151,8 +151,8 @@ export class OpenRouterAdapter implements ProviderAdapter {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.apiKey}`,
-        "HTTP-Referer": "https://github.com/i-see-pixels/promptlens",
-        "X-Title": "PromptLens",
+        "HTTP-Referer": "https://github.com/i-see-pixels/plenz",
+        "X-Title": "plenz",
       },
       body: JSON.stringify({
         model: config.model,
@@ -201,3 +201,4 @@ export class OpenRouterAdapter implements ProviderAdapter {
     };
   }
 }
+

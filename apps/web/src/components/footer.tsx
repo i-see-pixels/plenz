@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Separator } from "@promptlens/ui/components/separator";
+import { Separator } from "@plenz/ui/components/separator";
 import { FaGithub } from "react-icons/fa";
 import logo from "@/assets/logo.svg";
 
@@ -29,17 +29,17 @@ const footerLinks: FooterGroup[] = [
     links: [
       {
         label: "GitHub",
-        href: "https://github.com/i-see-pixels/promptlens",
+        href: "https://github.com/i-see-pixels/plenz",
         external: true,
       },
       {
         label: "Contributing",
-        href: "https://github.com/i-see-pixels/promptlens/blob/main/DEVELOPMENT.md",
+        href: "https://github.com/i-see-pixels/plenz/blob/main/DEVELOPMENT.md",
         external: true,
       },
       {
         label: "Issues",
-        href: "https://github.com/i-see-pixels/promptlens/issues",
+        href: "https://github.com/i-see-pixels/plenz/issues",
         external: true,
       },
     ],
@@ -49,12 +49,12 @@ const footerLinks: FooterGroup[] = [
     links: [
       {
         label: "MIT License",
-        href: "https://github.com/i-see-pixels/promptlens/blob/main/LICENSE",
+        href: "https://github.com/i-see-pixels/plenz/blob/main/LICENSE",
         external: true,
       },
       {
         label: "Security",
-        href: "https://github.com/i-see-pixels/promptlens/blob/main/SECURITY.md",
+        href: "https://github.com/i-see-pixels/plenz/blob/main/SECURITY.md",
         external: true,
       },
     ],
@@ -68,9 +68,9 @@ export function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col gap-4">
             <Link href="/" className="flex items-center gap-2">
-              <Image src={logo} alt="PromptLens" width={20} height={20} />
+              <Image src={logo} alt="plenz" width={20} height={20} />
               <span className="text-base font-semibold tracking-tight">
-                PromptLens
+                plenz
               </span>
             </Link>
             <p className="text-sm leading-relaxed text-muted-foreground">
@@ -78,7 +78,7 @@ export function Footer() {
               iteration.
             </p>
             <Link
-              href="https://github.com/i-see-pixels/promptlens"
+              href="https://github.com/i-see-pixels/plenz"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -116,7 +116,7 @@ export function Footer() {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-            (c) {new Date().getFullYear()} PromptLens - MIT License
+            (c) {new Date().getFullYear()} plenz - MIT License
           </p>
           <p className="font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             Blueprint style system - Light-first rollout
@@ -126,3 +126,4 @@ export function Footer() {
     </footer>
   );
 }
+

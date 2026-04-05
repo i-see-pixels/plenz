@@ -13,11 +13,11 @@
   "iconLibrary": "lucide",
   "rtl": false,
   "aliases": {
-    "components": "@promptlens/ui/components",
-    "utils": "@promptlens/ui/lib/utils",
-    "ui": "@promptlens/ui/components",
-    "lib": "@promptlens/ui/lib",
-    "hooks": "@promptlens/ui/hooks"
+    "components": "@plenz/ui/components",
+    "utils": "@plenz/ui/lib/utils",
+    "ui": "@plenz/ui/components",
+    "lib": "@plenz/ui/lib",
+    "hooks": "@plenz/ui/hooks"
   },
   "registries": {}
 }

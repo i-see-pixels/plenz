@@ -22,7 +22,7 @@ export default defineConfig(() => {
       alias: {
         react: "preact/compat",
         "react-dom": "preact/compat",
-        "@promptlens/ui": resolve(__dirname, "../../packages/ui/src"),
+        "@plenz/ui": resolve(__dirname, "../../packages/ui/src"),
       },
     },
   };

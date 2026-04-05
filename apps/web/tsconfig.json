@@ -29,7 +29,7 @@
       "@/assets/*": [
         "./src/assets/*"
       ],
-      "@promptlens/ui/*": [
+      "@plenz/ui/*": [
         "../../packages/ui/src/*"
       ]
     }

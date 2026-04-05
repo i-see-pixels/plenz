@@ -1,11 +1,11 @@
 import { useEffect, useState } from "preact/hooks";
 import type { UserInfo } from "../background/auth";
-import { Button } from "@promptlens/ui/components/button";
-import { Skeleton } from "@promptlens/ui/components/skeleton";
+import { Button } from "@plenz/ui/components/button";
+import { Skeleton } from "@plenz/ui/components/skeleton";
 
 function dispatchAuthChanged(user: UserInfo | null) {
   window.dispatchEvent(
-    new CustomEvent("promptlens-auth-status-changed", {
+    new CustomEvent("plenz-auth-status-changed", {
       detail: { user },
     }),
   );
@@ -140,3 +140,4 @@ export function AuthStatus() {
     </Button>
   );
 }
+

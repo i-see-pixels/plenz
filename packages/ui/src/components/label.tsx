@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Label as LabelPrimitive } from "radix-ui"
 
-import { cn } from "@promptlens/ui/lib/utils"
+import { cn } from "@plenz/ui/lib/utils"
 
 function Label({
   className,
@@ -20,3 +20,4 @@ function Label({
 }
 
 export { Label }
+

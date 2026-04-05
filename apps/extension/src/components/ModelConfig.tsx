@@ -1,24 +1,24 @@
 import { useEffect, useState } from "preact/hooks";
-import { providers } from "@promptlens/providers";
+import { providers } from "@plenz/providers";
 import type {
   ConnectionTestResult,
   ProviderConfig,
   StorageResult,
   SyncStatus,
   ModelOption,
-} from "@promptlens/types";
-import { Badge } from "@promptlens/ui/components/badge";
-import { Button } from "@promptlens/ui/components/button";
-import { Input } from "@promptlens/ui/components/input";
-import { Label } from "@promptlens/ui/components/label";
+} from "@plenz/types";
+import { Badge } from "@plenz/ui/components/badge";
+import { Button } from "@plenz/ui/components/button";
+import { Input } from "@plenz/ui/components/input";
+import { Label } from "@plenz/ui/components/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@promptlens/ui/components/select";
-import { cn } from "@promptlens/ui/lib/utils";
+} from "@plenz/ui/components/select";
+import { cn } from "@plenz/ui/lib/utils";
 import { AlertTriangle, Cloud, HardDrive, LoaderCircle } from "lucide-react";
 
 type StorageBackendPreference = "chrome-sync" | "firebase";
@@ -246,10 +246,10 @@ export function ModelConfig() {
       void loadStorageSettings();
     };
 
-    window.addEventListener("promptlens-auth-status-changed", handleAuthChange);
+    window.addEventListener("plenz-auth-status-changed", handleAuthChange);
     return () => {
       window.removeEventListener(
-        "promptlens-auth-status-changed",
+        "plenz-auth-status-changed",
         handleAuthChange,
       );
     };
@@ -478,7 +478,7 @@ export function ModelConfig() {
             Sync method
           </p>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Choose where PromptLens stores your provider configuration.
+            Choose where plenz stores your provider configuration.
           </p>
         </div>
 
@@ -710,3 +710,4 @@ export function ModelConfig() {
     </div>
   );
 }
+

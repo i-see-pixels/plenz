@@ -1,14 +1,14 @@
-# PromptLens Privacy Policy
+# plenz Privacy Policy
 
 Last updated: March 21, 2026
 
 ## Overview
 
-PromptLens is a browser extension that helps users improve prompts on supported AI chat websites by analyzing prompt text and suggesting refinements in real time.
+plenz is a browser extension that helps users improve prompts on supported AI chat websites by analyzing prompt text and suggesting refinements in real time.
 
 ## Information We Collect
 
-PromptLens may collect and process the following information:
+plenz may collect and process the following information:
 
 - Google account profile information if you choose to sign in with Google, including your name, email address, Google account ID, and profile image.
 - API credentials and model configuration that you enter in the extension settings, such as provider API keys, selected model, and optional custom base URL.
@@ -27,7 +27,7 @@ We use this information only to provide the extension's functionality, including
 
 ## Third-Party Services
 
-PromptLens may send data to third-party services only when required for the feature you choose to use:
+plenz may send data to third-party services only when required for the feature you choose to use:
 
 - Google APIs for optional sign-in and profile retrieval
 - AI provider APIs selected by you, such as OpenAI, Google, Anthropic, Mistral, Groq, OpenRouter, or a self-hosted/local endpoint if configured by you
@@ -40,7 +40,7 @@ Prompt text is sent only to the provider you configure in the extension.
 - Provider configuration and API credentials may be stored locally in the browser extension storage area.
 - When Cloud Sync is enabled, provider configuration is stored in Firebase. The `apiKey` field is encrypted in the client before it is written to Firestore, while non-secret fields such as model selection and optional base URL remain readable for sync purposes.
 - This Cloud Sync encryption removes plaintext API keys from Firestore records, but it does not add a user passphrase or server-side key management. Browser-local copies remain governed by the browser's storage protections.
-- PromptLens does not require a central PromptLens backend to process prompt analysis.
+- plenz does not require a central plenz backend to process prompt analysis.
 
 ## Data Sharing and Sale
 
@@ -69,7 +69,7 @@ You can:
 
 ## Children's Privacy
 
-PromptLens is not intended for children under 13, and we do not knowingly collect personal information from children.
+plenz is not intended for children under 13, and we do not knowingly collect personal information from children.
 
 ## Changes to This Policy
 
@@ -78,3 +78,4 @@ We may update this Privacy Policy from time to time. Updates will be posted in t
 ## Contact
 
 For privacy questions, contact: siddhant06137@gmail.com
+

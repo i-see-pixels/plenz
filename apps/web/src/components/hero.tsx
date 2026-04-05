@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@promptlens/ui/components/button";
-import { Badge } from "@promptlens/ui/components/badge";
+import { Button } from "@plenz/ui/components/button";
+import { Badge } from "@plenz/ui/components/badge";
 import { ArrowRight } from "lucide-react";
 import { FaChrome, FaGithub } from "react-icons/fa";
 import { siteConfig } from "@/lib/site";
@@ -31,7 +31,7 @@ export function Hero() {
               Rewrite weak prompts before you send them.
             </h1>
             <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              PromptLens scans your input inline, proposes higher-precision
+              plenz scans your input inline, proposes higher-precision
               alternatives, and keeps your keys and prompt data local to your
               browser.
             </p>
@@ -67,7 +67,7 @@ export function Hero() {
               href={siteConfig.routes.gettingStarted}
               className="text-foreground underline decoration-border underline-offset-4 transition-colors hover:text-accent-signal"
             >
-              PromptLens setup guide
+              plenz setup guide
             </Link>{" "}
             or jump straight to the{" "}
             <Link
@@ -88,3 +88,4 @@ export function Hero() {
     </section>
   );
 }
+

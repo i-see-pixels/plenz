@@ -11,7 +11,7 @@ export class BadgeIndicator {
 
   constructor(anchorElement: HTMLElement) {
     this.shadowHost = document.createElement("div");
-    this.shadowHost.id = "promptlens-badge-host";
+    this.shadowHost.id = "plenz-badge-host";
 
     // We use closed shadow DOM to protect styles
     this.shadowRoot = this.shadowHost.attachShadow({ mode: "closed" });
@@ -79,3 +79,4 @@ export class BadgeIndicator {
     this.badge.addEventListener("click", handler);
   }
 }
+

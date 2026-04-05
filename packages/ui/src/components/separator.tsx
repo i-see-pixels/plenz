@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Separator as SeparatorPrimitive } from "radix-ui"
 
-import { cn } from "@promptlens/ui/lib/utils"
+import { cn } from "@plenz/ui/lib/utils"
 
 function Separator({
   className,
@@ -26,3 +26,4 @@ function Separator({
 }
 
 export { Separator }
+

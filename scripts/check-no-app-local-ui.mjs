@@ -34,7 +34,7 @@ const violations = blockedDirs.flatMap((dir) => {
 })
 
 if (violations.length > 0) {
-  console.error("Found app-local shadcn primitives. Use @promptlens/ui instead:")
+  console.error("Found app-local shadcn primitives. Use @plenz/ui instead:")
   for (const file of violations) {
     console.error(` - ${file}`)
   }
@@ -42,3 +42,4 @@ if (violations.length > 0) {
 }
 
 console.log("No app-local shadcn primitive files found.")
+

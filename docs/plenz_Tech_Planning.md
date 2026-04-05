@@ -1,10 +1,10 @@
-# Tech Planning Document — PromptLens
+# Tech Planning Document — plenz
 
 | Field | Details |
 | --- | --- |
-| **Title/Initiative** | **PromptLens** — Open-Source AI Prompt Refinement Browser Extension |
+| **Title/Initiative** | **plenz** — Open-Source AI Prompt Refinement Browser Extension |
 | **Date & Version** | February 7, 2026 · v1.0 |
-| **Parent Document** | PromptLens PRD v1.0 (Feb 7, 2026) |
+| **Parent Document** | plenz PRD v1.0 (Feb 7, 2026) |
 | **Tech POC** | *(To be assigned)* |
 | **Status** | Draft — Pending Technical Review |
 
@@ -12,9 +12,9 @@
 
 ## 1. Technical Vision & Goals
 
-PromptLens is a **client-side-only** browser extension that provides real-time AI prompt refinement inline on major AI chat platforms. The guiding technical philosophy is:
+plenz is a **client-side-only** browser extension that provides real-time AI prompt refinement inline on major AI chat platforms. The guiding technical philosophy is:
 
-- **Zero backend** — All LLM communication happens directly between the user's browser and their chosen provider endpoint. No PromptLens server ever touches prompt data or API keys.
+- **Zero backend** — All LLM communication happens directly between the user's browser and their chosen provider endpoint. No plenz server ever touches prompt data or API keys.
 - **Privacy by architecture** — Security is enforced structurally (local-only storage, direct API calls), not by policy alone.
 - **Contributor-first DX** — TypeScript, modular plugin architecture, clear interfaces, and comprehensive docs make it easy for open-source contributors to extend the tool.
 - **Performance-obsessed** — The extension must be invisible to the user's browsing experience: < 100 ms added page load, < 1 s suggestion latency after typing pause.
@@ -114,7 +114,7 @@ PromptLens is a **client-side-only** browser extension that provides real-time A
 | `chrome.storage.local` | API keys, preferences, suggestion history | ✅ | ✅ (via `browser.storage.local`) |
 | `chrome.storage.sync` | Non-sensitive preferences cross-device sync | ✅ | ✅ |
 | `chrome.scripting` | Dynamic content script injection | ✅ MV3 | MV2 `content_scripts` in manifest |
-| `chrome.contextMenus` | Right-click "Enhance with PromptLens" fallback | ✅ | ✅ |
+| `chrome.contextMenus` | Right-click "Enhance with plenz" fallback | ✅ | ✅ |
 | `chrome.alarms` | Periodic cleanup of stale suggestion cache | ✅ | ✅ |
 
 ---
@@ -123,7 +123,7 @@ PromptLens is a **client-side-only** browser extension that provides real-time A
 
 ### 4.1 Content Script — Platform Detection Layer
 
-The content script is the heart of PromptLens. It must reliably detect and hook into AI chat input fields across multiple platforms that frequently change their DOM structure.
+The content script is the heart of plenz. It must reliably detect and hook into AI chat input fields across multiple platforms that frequently change their DOM structure.
 
 #### Platform Selector Registry
 
@@ -201,7 +201,7 @@ class SuggestionOverlay {
 
   constructor(anchorElement: HTMLElement) {
     this.shadowHost = document.createElement('div');
-    this.shadowHost.id = 'promptlens-overlay';
+    this.shadowHost.id = 'plenz-overlay';
     this.shadowRoot = this.shadowHost.attachShadow({ mode: 'closed' });
 
     // Inject isolated styles
@@ -225,7 +225,7 @@ class SuggestionOverlay {
 }
 ```
 
-**Why Shadow DOM?** Competitors like Prompt Perfect and Promptimize have documented issues with CSS conflicts when Grammarly or similar overlay extensions are active. Shadow DOM completely isolates PromptLens styles, preventing z-index battles and style leakage.
+**Why Shadow DOM?** Competitors like Prompt Perfect and Promptimize have documented issues with CSS conflicts when Grammarly or similar overlay extensions are active. Shadow DOM completely isolates plenz styles, preventing z-index battles and style leakage.
 
 ### 4.3 Background Service Worker
 
@@ -409,7 +409,7 @@ The analysis engine constructs a system prompt that instructs the user's chosen 
 #### System Prompt Template
 
 ```
-You are PromptLens, a prompt-quality analysis engine. Evaluate the user's draft
+You are plenz, a prompt-quality analysis engine. Evaluate the user's draft
 prompt against this rubric and return a JSON object with improvement suggestions.
 
 RUBRIC:
@@ -478,7 +478,7 @@ User types → [500ms debounce] → Extract prompt text
 
 1. **Storage**: Keys are stored in `chrome.storage.local`, which is sandboxed per-extension and encrypted at rest by the browser.
 2. **Display**: Keys are always masked in the UI (`••••••••sk-xyz`). A "reveal" toggle shows the key only while held.
-3. **Transmission**: Keys are sent **only** in the `Authorization` header of direct HTTPS requests to the user's chosen provider. They are **never** included in requests to any PromptLens-owned domain.
+3. **Transmission**: Keys are sent **only** in the `Authorization` header of direct HTTPS requests to the user's chosen provider. They are **never** included in requests to any plenz-owned domain.
 4. **Content Security Policy**: The extension's CSP restricts `connect-src` to the whitelisted provider API domains + the user's custom base URL.
 5. **No logging**: API keys are excluded from all error tracking and analytics payloads. Sentry is configured with a `beforeSend` hook that strips any string matching API key patterns.
 
@@ -501,7 +501,7 @@ For custom provider URLs, the extension dynamically requests `host_permissions` 
 ### 6.1 Repository Structure (Expanded)
 
 ```
-promptlens/
+plenz/
 ├── .github/
 │   ├── workflows/
 │   │   ├── ci.yml              # Lint + type-check + unit tests on every PR
@@ -716,7 +716,7 @@ export class MockProviderAdapter implements ProviderAdapter {
 - **Lazy provider loading**: Provider adapters are dynamically imported only when the user configures that provider, keeping the content script lean.
 - **Debounce + abort**: No wasted API calls; in-flight requests are aborted when the user resumes typing.
 - **LRU suggestion cache**: The last 10 analyses are cached in memory (keyed by SHA-256 hash of the prompt text) to instantly re-display suggestions for unchanged prompts.
-- **Shadow DOM isolation**: The overlay is rendered in a Shadow DOM, so PromptLens CSS never triggers repaints on the host page.
+- **Shadow DOM isolation**: The overlay is rendered in a Shadow DOM, so plenz CSS never triggers repaints on the host page.
 - **Minimal content script**: Only the detection + overlay code runs in the content script. All heavy logic (provider calls, parsing) runs in the service worker.
 - **Tree-shaking**: Vite's tree-shaking ensures unused provider code isn't included in the content script bundle.
 
@@ -726,13 +726,13 @@ export class MockProviderAdapter implements ProviderAdapter {
 
 Insights from competitive analysis inform several technical decisions:
 
-| Competitor Weakness | PromptLens Technical Response |
+| Competitor Weakness | plenz Technical Response |
 | --- | --- |
 | **Prompt Perfect / Promptimize** proxy prompts through their own servers | All API calls go directly from browser → user's LLM; CSP enforces this |
 | **AIPRM** is template-only; no real-time analysis | Real-time analysis engine with debounced LLM calls evaluates each prompt dynamically |
 | **Better Prompt** supports BYOK but is closed-source | Open-source MIT license; plugin adapter pattern invites community extensions |
 | **Superpower ChatGPT** is ChatGPT-only | Platform registry pattern supports any AI site; community can add new platforms via simple config |
-| **Multiple competitors** have CSS/z-index conflicts with Grammarly | Shadow DOM encapsulation completely isolates PromptLens UI |
+| **Multiple competitors** have CSS/z-index conflicts with Grammarly | Shadow DOM encapsulation completely isolates plenz UI |
 | **TypingMind** requires a separate app (not inline) | Content script injects directly into the user's existing AI platform workflow |
 | **Most competitors** offer no rationale for suggestions | Every suggestion includes a `rationale` field explaining *why* the improvement matters |
 
@@ -809,7 +809,7 @@ Insights from competitive analysis inform several technical decisions:
 - Chrome Web Store API credentials → GitHub Secrets (for CI deployment).
 - Firefox AMO API credentials → GitHub Secrets.
 - Sentry DSN → hardcoded in extension (non-sensitive; only receives error reports).
-- **No PromptLens-owned API keys exist** — all LLM calls use the user's own key.
+- **No plenz-owned API keys exist** — all LLM calls use the user's own key.
 
 ---
 
@@ -843,7 +843,7 @@ Insights from competitive analysis inform several technical decisions:
 
 ## Related Documents
 
-1. **PromptLens PRD v1.0** — Product requirements and user stories
+1. **plenz PRD v1.0** — Product requirements and user stories
 2. Design Planning Document *(to be created)*
 3. Go-to-Market / Community Launch Plan *(to be created)*
 4. Security Audit Checklist *(to be created before beta)*
@@ -852,3 +852,4 @@ Insights from competitive analysis inform several technical decisions:
 ---
 
 *Document Version: 1.0 · Date: February 7, 2026 · Status: Draft*
+

@@ -1,4 +1,4 @@
-import { Suggestion } from "@promptlens/types";
+import { Suggestion } from "@plenz/types";
 import styles from "./styles.css?inline";
 
 export class SuggestionOverlay {
@@ -14,7 +14,7 @@ export class SuggestionOverlay {
   constructor(anchorElement: HTMLElement) {
     this.anchorElement = anchorElement;
     this.shadowHost = document.createElement("div");
-    this.shadowHost.id = "promptlens-overlay";
+    this.shadowHost.id = "plenz-overlay";
     this.shadowRoot = this.shadowHost.attachShadow({ mode: "closed" });
 
     // Inject styles
@@ -96,7 +96,7 @@ export class SuggestionOverlay {
   private render() {
     this.container.innerHTML = `
             <div class="pl-header">
-                <span style="display:flex; align-items:center; gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> PromptLens Suggestions</span>
+                <span style="display:flex; align-items:center; gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> plenz Suggestions</span>
                 <span class="pl-close-btn" id="pl-close" style="display:flex; align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
             </div>
             <div class="pl-suggestion-list">
@@ -247,3 +247,4 @@ export class SuggestionOverlay {
     return div.innerHTML;
   }
 }
+

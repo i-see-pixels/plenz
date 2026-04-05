@@ -8,7 +8,7 @@ const steps = [
     icon: Download,
     title: "Install extension",
     description:
-      "Add PromptLens to Chrome and pin it. The popup and options surfaces are ready immediately.",
+      "Add plenz to Chrome and pin it. The popup and options surfaces are ready immediately.",
   },
   {
     number: "02",
@@ -22,7 +22,7 @@ const steps = [
     icon: Zap,
     title: "Draft with guidance",
     description:
-      "PromptLens annotates weak prompts in-context and lets you accept rewrites from the keyboard.",
+      "plenz annotates weak prompts in-context and lets you accept rewrites from the keyboard.",
   },
 ];
 
@@ -73,3 +73,4 @@ export function HowItWorks() {
     </section>
   );
 }
+

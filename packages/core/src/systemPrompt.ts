@@ -14,7 +14,7 @@ export function buildSystemPrompt(intentMatch: IntentMatch, entities: Entities):
         : "";
 
     return `
-You are PromptLens, a context-aware prompt refinement engine. Your goal is to transform vague or incomplete user inputs into high-quality, structured prompts tailored to the user's current environment.
+You are plenz, a context-aware prompt refinement engine. Your goal is to transform vague or incomplete user inputs into high-quality, structured prompts tailored to the user's current environment.
 
 The user's primary detected intent is "${intentMatch.intent}" (Confidence: ${intentMatch.confidence.toFixed(2)}).
 ${contextSection}
@@ -62,3 +62,4 @@ RULES:
 }
 `;
 }
+

@@ -11,9 +11,9 @@ export interface FaqItem {
 
 export const homepageFaqs = [
   {
-    question: "Which AI tools can PromptLens work with?",
+    question: "Which AI tools can plenz work with?",
     answer:
-      "PromptLens helps you refine prompts inside ChatGPT, Claude, Gemini, Mistral, OpenRouter, and custom AI chat surfaces so you can improve instructions before they reach a model.",
+      "plenz helps you refine prompts inside ChatGPT, Claude, Gemini, Mistral, OpenRouter, and custom AI chat surfaces so you can improve instructions before they reach a model.",
     links: [
       { label: "View supported AI surfaces", href: "/#platforms" },
       { label: "Open the setup guide", href: "/getting-started" },
@@ -22,7 +22,7 @@ export const homepageFaqs = [
   {
     question: "How does Bring Your Own Key work?",
     answer:
-      "You connect your own provider credentials to PromptLens, so usage is billed directly by OpenAI, Anthropic, Google Gemini, Mistral, Groq, OpenRouter, or your custom endpoint instead of through a PromptLens markup layer.",
+      "You connect your own provider credentials to plenz, so usage is billed directly by OpenAI, Anthropic, Google Gemini, Mistral, Groq, OpenRouter, or your custom endpoint instead of through a plenz markup layer.",
     links: [
       { label: "Connect a provider", href: "/getting-started#providers" },
       {
@@ -32,19 +32,19 @@ export const homepageFaqs = [
     ],
   },
   {
-    question: "Is PromptLens private by default?",
+    question: "Is plenz private by default?",
     answer:
-      "Yes. API keys and prompt text stay in your browser storage, and PromptLens does not rely on a relay service that sits between your prompt and the model provider you choose.",
+      "Yes. API keys and prompt text stay in your browser storage, and plenz does not rely on a relay service that sits between your prompt and the model provider you choose.",
     links: [{ label: "See the setup flow", href: "/getting-started" }],
   },
   {
-    question: "Who is PromptLens built for?",
+    question: "Who is plenz built for?",
     answer:
-      "PromptLens is built for founders, marketers, operators, support teams, and prompt-heavy developers who want clearer AI instructions without changing the tools they already use every day.",
+      "plenz is built for founders, marketers, operators, support teams, and prompt-heavy developers who want clearer AI instructions without changing the tools they already use every day.",
     links: [{ label: "Explore core features", href: "/#features" }],
   },
   {
-    question: "How quickly can I start using PromptLens?",
+    question: "How quickly can I start using plenz?",
     answer:
       "Most users can install the extension, connect a provider, and start refining prompts in a few minutes. The getting-started guide walks through installation, provider setup, and API key configuration step by step.",
     links: [
@@ -54,18 +54,18 @@ export const homepageFaqs = [
 ] as const satisfies readonly FaqItem[];
 
 export const siteConfig = {
-  name: "PromptLens",
-  shortName: "PromptLens",
-  defaultTitle: "PromptLens | AI Prompt Refinement in Your Browser",
+  name: "plenz",
+  shortName: "plenz",
+  defaultTitle: "plenz | AI Prompt Refinement in Your Browser",
   description:
     "Open-source browser extension that refines AI prompts in real time. Bring your own API key, keep prompt text local, and improve prompts before you send them.",
-  homeTitle: "PromptLens | Rewrite AI Prompts Before You Send Them",
+  homeTitle: "plenz | Rewrite AI Prompts Before You Send Them",
   homeDescription:
     "Refine AI prompts in real time inside ChatGPT, Claude, and Gemini. Bring your own API key, keep prompt text local, and improve every instruction before you send.",
-  gettingStartedTitle: "Getting Started | PromptLens",
+  gettingStartedTitle: "Getting Started | plenz",
   gettingStartedDescription:
-    "Install PromptLens, connect your AI provider, add an API key, and start refining prompts inside ChatGPT, Claude, Gemini, and more in just a few minutes.",
-  url: "https://promptlens-web.vercel.app",
+    "Install plenz, connect your AI provider, add an API key, and start refining prompts inside ChatGPT, Claude, Gemini, and more in just a few minutes.",
+  url: "https://plenz-web.vercel.app",
   locale: "en_US",
   ogImage: "/opengraph-image.png",
   logo: "/favicon.ico",
@@ -99,10 +99,10 @@ export const siteConfig = {
   },
   links: {
     chromeWebStore:
-      "https://chromewebstore.google.com/detail/promptlens/fdbjbkomedpokmfkmacjnbdnghkejihl",
-    github: "https://github.com/i-see-pixels/promptlens",
+      "https://chromewebstore.google.com/detail/plenz/fdbjbkomedpokmfkmacjnbdnghkejihl",
+    github: "https://github.com/i-see-pixels/plenz",
   },
-  sameAs: ["https://github.com/i-see-pixels/promptlens"],
+  sameAs: ["https://github.com/i-see-pixels/plenz"],
   supportedPlatforms: [
     "ChatGPT",
     "Claude",
@@ -127,6 +127,7 @@ export const siteConfig = {
     "Keyboard-friendly accept and dismiss flows for fast drafting",
   ],
   privacyPromise:
-    "API keys and prompt text stay in your browser storage. PromptLens does not route your prompt through a central relay service.",
+    "API keys and prompt text stay in your browser storage. plenz does not route your prompt through a central relay service.",
   homepageFaqs,
 } as const;
+

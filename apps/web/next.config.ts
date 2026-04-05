@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  transpilePackages: ["@promptlens/ui"],
+  transpilePackages: ["@plenz/ui"],
   images: {
     remotePatterns: [
       new URL("https://upload.wikimedia.org/**"),
@@ -13,3 +13,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

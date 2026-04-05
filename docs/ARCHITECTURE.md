@@ -1,8 +1,8 @@
-# PromptLens Architecture
+# plenz Architecture
 
 ## Overview
 
-PromptLens is a monorepo with three user-facing applications:
+plenz is a monorepo with three user-facing applications:
 - Browser extension (`apps/extension`)
 - Web app (`apps/web`)
 - VS Code extension (`apps/vscode`)
@@ -32,5 +32,6 @@ Shared logic lives in:
 ## Security Model
 
 - BYOK architecture with local key storage.
-- No centralized PromptLens prompt-processing server.
+- No centralized plenz prompt-processing server.
 - Extension outbound network access restricted in manifest CSP and host permissions.
+

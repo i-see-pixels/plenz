@@ -5,7 +5,7 @@ import {
   AnalysisResult,
   Suggestion,
   ModelOption,
-} from "@promptlens/types";
+} from "@plenz/types";
 
 export class MistralAdapter implements ProviderAdapter {
   id = "mistral";
@@ -171,3 +171,4 @@ export class MistralAdapter implements ProviderAdapter {
     };
   }
 }
+

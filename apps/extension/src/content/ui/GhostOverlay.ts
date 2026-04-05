@@ -8,7 +8,7 @@ export class GhostOverlay {
 	constructor(inputElement: HTMLElement) {
 		this.inputElement = inputElement
 		this.shadowHost = document.createElement("div")
-		this.shadowHost.id = "promptlens-ghost-host"
+		this.shadowHost.id = "plenz-ghost-host"
 
 		this.shadowRoot = this.shadowHost.attachShadow({ mode: "open" }) // Open for dev/debug
 
@@ -123,3 +123,4 @@ export class GhostOverlay {
 		return div.innerHTML
 	}
 }
+

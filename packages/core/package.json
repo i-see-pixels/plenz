@@ -1,14 +1,15 @@
 {
-  "name": "@promptlens/core",
+  "name": "@plenz/core",
   "version": "1.2.3",
   "private": true,
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@promptlens/types": "workspace:*",
-    "@promptlens/providers": "workspace:*"
+    "@plenz/types": "workspace:*",
+    "@plenz/providers": "workspace:*"
   },
   "devDependencies": {
-    "@promptlens/tsconfig": "workspace:*"
+    "@plenz/tsconfig": "workspace:*"
   }
 }
+

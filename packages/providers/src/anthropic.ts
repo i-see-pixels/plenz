@@ -5,7 +5,7 @@ import {
   AnalysisResult,
   Suggestion,
   ModelOption,
-} from "@promptlens/types";
+} from "@plenz/types";
 
 export class AnthropicAdapter implements ProviderAdapter {
   id = "anthropic";
@@ -209,3 +209,4 @@ export class AnthropicAdapter implements ProviderAdapter {
     };
   }
 }
+

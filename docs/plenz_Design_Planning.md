@@ -1,10 +1,10 @@
-# Design Planning Document — PromptLens
+# Design Planning Document — plenz
 
 | Field | Details |
 | --- | --- |
-| **Title/Initiative** | **PromptLens** — Open-Source AI Prompt Refinement Browser Extension |
+| **Title/Initiative** | **plenz** — Open-Source AI Prompt Refinement Browser Extension |
 | **Date & Version** | February 7, 2026 · v1.0 |
-| **Parent Document** | PromptLens PRD v1.0 (Feb 7, 2026) |
+| **Parent Document** | plenz PRD v1.0 (Feb 7, 2026) |
 | **Design POC** | *(To be assigned)* |
 | **Status** | Draft — Pending Design Review |
 
@@ -12,7 +12,7 @@
 
 ## 1. Design Vision & Principles
 
-PromptLens lives *inside* the user's existing AI workflow — it must feel like a natural extension of ChatGPT, Claude, Gemini, and every other platform it supports, not like a foreign overlay competing for attention. The design vision is:
+plenz lives *inside* the user's existing AI workflow — it must feel like a natural extension of ChatGPT, Claude, Gemini, and every other platform it supports, not like a foreign overlay competing for attention. The design vision is:
 
 > **"Invisible until useful, obvious when needed."**
 
@@ -26,7 +26,7 @@ PromptLens lives *inside* the user's existing AI workflow — it must feel like 
 | 4 | **Progressive disclosure** | Show the *what* (suggested prompt) first; reveal the *why* (rationale) only on hover or expand. Don't overwhelm casual users with analysis details. |
 | 5 | **Accessibility-first** | All interactive elements are keyboard-navigable, screen-reader compatible (ARIA labels), and meet WCAG 2.1 AA contrast standards. |
 | 6 | **Privacy is visible** | Wherever the user configures sensitive data (API keys), the UI reinforces trust — lock icons, "stored locally only" microcopy, masked inputs by default. |
-| 7 | **Zero learning curve** | A first-time user should understand what PromptLens does and how to accept a suggestion within 5 seconds of seeing it, without reading documentation. |
+| 7 | **Zero learning curve** | A first-time user should understand what plenz does and how to accept a suggestion within 5 seconds of seeing it, without reading documentation. |
 
 ---
 
@@ -48,7 +48,7 @@ Each persona from the PRD maps to specific design requirements:
 
 | Element | Specification |
 | --- | --- |
-| **Name** | PromptLens |
+| **Name** | plenz |
 | **Logo Concept** | A minimal lens/magnifying glass icon with a subtle lightning bolt accent — symbolizing clarity + speed |
 | **Logo Variants** | Full color (popup/settings), monochrome (toolbar icon), inverted (dark backgrounds) |
 | **Toolbar Icon** | 16×16, 32×32, 48×48, 128×128 px — clean silhouette, recognizable at small sizes |
@@ -56,7 +56,7 @@ Each persona from the PRD maps to specific design requirements:
 
 ### 3.2 Color Palette
 
-PromptLens uses a **neutral base** palette so the overlay blends with any host platform, plus a small set of **semantic accent colors** for interactive elements.
+plenz uses a **neutral base** palette so the overlay blends with any host platform, plus a small set of **semantic accent colors** for interactive elements.
 
 | Token | Light Mode | Dark Mode | Usage |
 | --- | --- | --- | --- |
@@ -128,7 +128,7 @@ PromptLens uses a **neutral base** palette so the overlay blends with any host p
 ┌─────────────────────────────────┐
 │                                 │
 │         [🔍 Logo/Icon]          │
-│         PromptLens              │
+│         plenz              │
 │                                 │
 │    Refine your AI prompts       │
 │    in real time.                │
@@ -175,7 +175,7 @@ PromptLens uses a **neutral base** palette so the overlay blends with any host p
 │  └─────────────────────────┘    │
 │                                 │
 │  ─────────────────────────────  │
-│  [Toggle: PromptLens ON/OFF]    │  ← Master enable/disable
+│  [Toggle: plenz ON/OFF]    │  ← Master enable/disable
 │                                 │
 └─────────────────────────────────┘
 ```
@@ -193,7 +193,7 @@ PromptLens uses a **neutral base** palette so the overlay blends with any host p
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  PromptLens Settings                                            [v1.0]  │
+│  plenz Settings                                            [v1.0]  │
 │                                                                         │
 │  ┌─────────────────┐  ┌───────────────────────────────────────────────┐ │
 │  │ Sidebar Nav      │  │                                               │ │
@@ -214,7 +214,7 @@ PromptLens uses a **neutral base** palette so the overlay blends with any host p
 │  │                  │  │  │ ••••••••••••••sk-xyz   [👁] [📋]  │      │ │
 │  │                  │  │  └─────────────────────────────────────┘      │ │
 │  │                  │  │  🔒 Stored locally on this device only.       │ │
-│  │                  │  │     Never sent to PromptLens servers.         │ │
+│  │                  │  │     Never sent to plenz servers.         │ │
 │  │                  │  │                                               │ │
 │  │                  │  │  ┌──────────────────┐  ┌──────────────┐      │ │
 │  │                  │  │  │ Test Connection   │  │    Save      │      │ │
@@ -288,7 +288,7 @@ PromptLens uses a **neutral base** palette so the overlay blends with any host p
 **Design notes:**
 - Sliders with visible numeric values let power users fine-tune behavior without typing.
 - "Ghost text" suggestion style renders the suggestion as greyed-out inline text (like GitHub Copilot). "Popover" is the default, floating card style.
-- Platform checkboxes let users disable PromptLens on specific platforms (e.g., if it conflicts with a platform's native prompt feature).
+- Platform checkboxes let users disable plenz on specific platforms (e.g., if it conflicts with a platform's native prompt feature).
 - Manual trigger shortcut (`Ctrl+Shift+L`) allows users to invoke analysis on demand, even on unsupported platforms via the context menu.
 
 ### 4.5 Options Page — Privacy & Analytics
@@ -300,10 +300,10 @@ PromptLens uses a **neutral base** palette so the overlay blends with any host p
 │  Your Data                                                     │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  🔒 API keys are stored locally on this device only.     │  │
-│  │     They are NEVER sent to PromptLens servers.           │  │
+│  │     They are NEVER sent to plenz servers.           │  │
 │  │                                                          │  │
 │  │  🔒 Your prompts are sent ONLY to your chosen LLM       │  │
-│  │     provider (e.g., OpenAI). PromptLens has no server    │  │
+│  │     provider (e.g., OpenAI). plenz has no server    │  │
 │  │     and cannot access your prompts.                      │  │
 │  │                                                          │  │
 │  │  [View network activity log →]                           │  │
@@ -321,7 +321,7 @@ PromptLens uses a **neutral base** palette so the overlay blends with any host p
 │                                                                │
 │  Anonymous Analytics (Opt-In)                                  │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Help improve PromptLens by sharing anonymous usage       │  │
+│  │  Help improve plenz by sharing anonymous usage       │  │
 │  │  data (e.g., suggestion acceptance rate, platforms used). │  │
 │  │                                                          │  │
 │  │  [Toggle: OFF]  ← Off by default                         │  │
@@ -527,7 +527,7 @@ This shows a starter template instead of a refinement — different visual treat
 | Overlay visible | `↑` | Move highlight to previous suggestion |
 | Overlay visible | `↓` | Move highlight to next suggestion |
 | Overlay visible | `Enter` | Does NOT accept (Enter submits the prompt on most platforms) |
-| Any page | `Ctrl+Shift+L` | Manually trigger PromptLens analysis on the focused input |
+| Any page | `Ctrl+Shift+L` | Manually trigger plenz analysis on the focused input |
 | Ghost text visible | `Tab` | Accept ghost text replacement |
 | Ghost text visible | Any other key | Dismiss ghost text; continue typing normally |
 
@@ -573,7 +573,7 @@ This shows a starter template instead of a refinement — different visual treat
 | **Color contrast** | All text meets 4.5:1 ratio (normal text) or 3:1 (large text) against backgrounds. Verified via Figma a11y plugin |
 | **Focus indicators** | All interactive elements have a visible 2px `--pl-accent` outline on `:focus-visible` |
 | **Keyboard navigation** | Complete overlay interaction via Tab/Esc/↑↓ without mouse |
-| **Screen reader support** | Overlay announced via `role="dialog"` + `aria-label="PromptLens suggestions"`. Each suggestion has `role="option"` |
+| **Screen reader support** | Overlay announced via `role="dialog"` + `aria-label="plenz suggestions"`. Each suggestion has `role="option"` |
 | **Reduced motion** | `prefers-reduced-motion: reduce` → disables all animations; overlay appears/disappears instantly |
 | **Focus trap** | When overlay is open, Tab cycles through suggestions (not the host page). Esc releases focus back to input |
 | **ARIA live region** | Badge count and status messages use `aria-live="polite"` to announce changes without interrupting |
@@ -582,18 +582,18 @@ This shows a starter template instead of a refinement — different visual treat
 
 | Event | Announcement |
 | --- | --- |
-| Suggestions available | "PromptLens: 3 prompt improvements available. Press Ctrl+Shift+L to review." |
-| Overlay opened | "PromptLens suggestions dialog. Use arrow keys to navigate, Tab to accept, Escape to dismiss." |
+| Suggestions available | "plenz: 3 prompt improvements available. Press Ctrl+Shift+L to review." |
+| Overlay opened | "plenz suggestions dialog. Use arrow keys to navigate, Tab to accept, Escape to dismiss." |
 | Suggestion highlighted | "Suggestion 1 of 3: [suggested text]. Rationale: [rationale]." |
 | Suggestion accepted | "Suggestion accepted. Prompt updated." |
 | Overlay dismissed | "Suggestions dismissed." |
-| Error | "PromptLens error: [error message]." |
+| Error | "plenz error: [error message]." |
 
 ---
 
 ## 8. Platform-Specific Adaptation
 
-The overlay must look at home on every supported AI platform. Rather than enforcing a single rigid style, PromptLens adapts subtle visual properties.
+The overlay must look at home on every supported AI platform. Rather than enforcing a single rigid style, plenz adapts subtle visual properties.
 
 | Platform | Background Match | Border Radius | Font Size Adjust | Special Notes |
 | --- | --- | --- | --- | --- |
@@ -623,11 +623,11 @@ themeOverrides?: {
 ```
 ┌──────────────────────────────────────────────────────┐
 │                                                      │
-│            [🔍 PromptLens Logo]                      │
+│            [🔍 plenz Logo]                      │
 │                                                      │
 │      Get better AI answers on the first try.         │
 │                                                      │
-│    PromptLens suggests improvements to your          │
+│    plenz suggests improvements to your          │
 │    prompts — right inside ChatGPT, Claude,           │
 │    Gemini, and more.                                 │
 │                                                      │
@@ -648,7 +648,7 @@ themeOverrides?: {
 │                                                      │
 │  Connect your AI model                               │
 │                                                      │
-│  PromptLens uses YOUR API key to analyze prompts.    │
+│  plenz uses YOUR API key to analyze prompts.    │
 │  Your key never leaves your browser.                 │
 │                                                      │
 │  Provider    [OpenAI ▾]                              │
@@ -676,7 +676,7 @@ themeOverrides?: {
 │  │  Try typing a prompt:                       │      │
 │  │  "write me an email"                        │      │
 │  │                                             │      │
-│  │  ⚡ PromptLens suggests:                    │      │
+│  │  ⚡ plenz suggests:                    │      │
 │  │  "Write a professional email to my          │      │
 │  │   manager requesting PTO. Use a polite,     │      │
 │  │   concise tone. Include subject line."      │      │
@@ -694,7 +694,7 @@ themeOverrides?: {
 
 **Design notes:**
 - The onboarding opens as a **full-tab page** (not a tiny popup) for better readability.
-- Step 3 includes a **live interactive demo** — a fake input field where PromptLens runs an actual analysis using the user's newly configured API key. This "aha moment" teaches the interaction pattern before the user encounters it in the wild.
+- Step 3 includes a **live interactive demo** — a fake input field where plenz runs an actual analysis using the user's newly configured API key. This "aha moment" teaches the interaction pattern before the user encounters it in the wild.
 - "Don't have an API key?" links go directly to the API key pages of each provider (not their homepage).
 - Progress indicator uses dot pagination (●○○) — clean, minimal, shows how close to done.
 - Users can skip any step — the extension works without sign-in and shows a persistent nudge to add an API key.
@@ -703,13 +703,13 @@ themeOverrides?: {
 
 ## 10. Competitor UX Gaps Addressed
 
-| Competitor UX Problem | PromptLens Design Solution |
+| Competitor UX Problem | plenz Design Solution |
 | --- | --- |
-| **AIPRM** injects a large UI directly into ChatGPT's interface, overwhelming the chat page | PromptLens uses a compact, floating overlay that doesn't modify the host page's layout |
-| **Prompt Perfect** requires clicking a button to trigger analysis | PromptLens triggers automatically on typing pause; zero additional clicks needed |
-| **PromptStorm** opens in a side panel, splitting the user's attention | PromptLens overlay is anchored directly to the input field — eyes stay in one place |
+| **AIPRM** injects a large UI directly into ChatGPT's interface, overwhelming the chat page | plenz uses a compact, floating overlay that doesn't modify the host page's layout |
+| **Prompt Perfect** requires clicking a button to trigger analysis | plenz triggers automatically on typing pause; zero additional clicks needed |
+| **PromptStorm** opens in a side panel, splitting the user's attention | plenz overlay is anchored directly to the input field — eyes stay in one place |
 | **Better Prompt** shows enhancement modes but no rationale | Every suggestion includes a one-line rationale explaining *why* the change improves the prompt |
-| **Superpower ChatGPT** has a cluttered interface with many features | PromptLens does one thing well — prompt refinement — with a minimal, focused UI |
+| **Superpower ChatGPT** has a cluttered interface with many features | plenz does one thing well — prompt refinement — with a minimal, focused UI |
 | **Multiple competitors** break keyboard workflow by requiring mouse clicks | Full keyboard-first interaction: Tab/Esc/↑↓; mouse is optional, never required |
 
 ---
@@ -748,7 +748,7 @@ themeOverrides?: {
 | Parameter | Detail |
 | --- | --- |
 | **Participants** | 20 beta users (from Chrome Web Store early adopters) |
-| **Method** | Unmoderated: in-extension feedback prompt ("How easy was it to use PromptLens today?") + optional 5-min survey |
+| **Method** | Unmoderated: in-extension feedback prompt ("How easy was it to use plenz today?") + optional 5-min survey |
 | **Metrics** | CSAT score, suggestion acceptance rate, "Report broken page" submissions, free-text feedback |
 
 ---
@@ -767,11 +767,12 @@ themeOverrides?: {
 
 ## Related Documents
 
-1. **PromptLens PRD v1.0** — Product requirements, user stories, and wireframes
-2. **PromptLens Tech Planning v1.0** — Architecture, tech stack, and sprint plan
+1. **plenz PRD v1.0** — Product requirements, user stories, and wireframes
+2. **plenz Tech Planning v1.0** — Architecture, tech stack, and sprint plan
 3. Go-to-Market / Community Launch Plan *(to be created)*
 4. Figma Design File *(to be created — link will be added here)*
 
 ---
 
 *Document Version: 1.0 · Date: February 7, 2026 · Status: Draft — Pending Design Review*
+

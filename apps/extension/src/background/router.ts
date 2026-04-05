@@ -1,10 +1,10 @@
 import { StorageManager } from "./storage";
-import { providers } from "@promptlens/providers";
+import { providers } from "@plenz/providers";
 import {
   buildSystemPrompt,
   IntentDetector,
   EntityExtractor,
-} from "@promptlens/core";
+} from "@plenz/core";
 import { AuthManager } from "./auth";
 
 export async function handleMessage(
@@ -136,3 +136,4 @@ export async function handleMessage(
       return null;
   }
 }
+

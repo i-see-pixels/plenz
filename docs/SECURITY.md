@@ -5,7 +5,7 @@ This document complements the root `SECURITY.md`.
 ## Key Principles
 
 - BYOK: users supply and store their own provider API keys.
-- Local-first: no PromptLens backend for prompt processing.
+- Local-first: no plenz backend for prompt processing.
 - Least privilege: extension host permissions are scoped to provider API domains.
 
 ## Browser Extension Controls
@@ -18,3 +18,4 @@ This document complements the root `SECURITY.md`.
 - Run dependency updates via Dependabot.
 - Enable GitHub CodeQL and secret scanning.
 - Perform security review before each beta or public release.
+

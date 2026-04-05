@@ -3,7 +3,7 @@
 import { useEffect, useId, useState, type RefObject } from "react"
 import { motion } from "motion/react"
 
-import { cn } from "@promptlens/ui/lib/utils"
+import { cn } from "@plenz/ui/lib/utils"
 
 export interface AnimatedBeamProps {
   className?: string
@@ -187,3 +187,4 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
     </svg>
   )
 }
+

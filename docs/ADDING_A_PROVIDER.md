@@ -2,7 +2,7 @@
 
 ## 1. Implement `ProviderAdapter`
 
-Create a new file under `packages/providers/src/` and implement the adapter interface from `@promptlens/types`.
+Create a new file under `packages/providers/src/` and implement the adapter interface from `@plenz/types`.
 
 Required methods:
 - `testConnection(config)`
@@ -35,3 +35,4 @@ Add adapter unit tests for:
 - Success path normalization.
 - Invalid JSON / malformed responses.
 - Error handling and auth failures.
+

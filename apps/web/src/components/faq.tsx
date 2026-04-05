@@ -13,7 +13,7 @@ export function FAQ() {
             Clear answers for setup, privacy, and fit.
           </h2>
           <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            PromptLens is built for people who refine prompts all day and want clearer output
+            plenz is built for people who refine prompts all day and want clearer output
             without changing their existing workflow. Start with the{" "}
             <Link
               href={siteConfig.routes.gettingStarted}
@@ -65,3 +65,4 @@ export function FAQ() {
     </section>
   );
 }
+

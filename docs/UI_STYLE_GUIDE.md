@@ -1,4 +1,4 @@
-# PromptLens UI Style Guide (TinyFish-Inspired)
+# plenz UI Style Guide (TinyFish-Inspired)
 
 This guide defines the baseline visual system for `apps/web` and `apps/extension`.
 
@@ -43,3 +43,4 @@ Use shared semantic tokens across both frontends:
 - glow gradients and pulse glows
 - soft glass cards
 - heavy motion patterns for core navigation and call-to-actions
+

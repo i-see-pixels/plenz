@@ -14,12 +14,13 @@
   "rtl": false,
   "aliases": {
     "components": "@/components",
-    "utils": "@promptlens/ui/lib/utils",
-    "ui": "@promptlens/ui/components",
-    "lib": "@promptlens/ui/lib",
-    "hooks": "@promptlens/ui/hooks"
+    "utils": "@plenz/ui/lib/utils",
+    "ui": "@plenz/ui/components",
+    "lib": "@plenz/ui/lib",
+    "hooks": "@plenz/ui/hooks"
   },
   "registries": {
     "@magicui": "https://magicui.design/r/{name}"
   }
 }
+

@@ -1,4 +1,4 @@
-# PromptLens Design Reference
+# plenz Design Reference
 
 Implementation-based design reference for future contributors.
 
@@ -12,7 +12,7 @@ Use this alongside:
 
 - `docs/UI_STYLE_GUIDE.md` for the intended style direction
 - `docs/ARCHITECTURE.md` for structural architecture
-- `docs/PromptLens_Design_Planning.md` for earlier aspirational planning
+- `docs/plenz_Design_Planning.md` for earlier aspirational planning
 
 If those documents disagree with the code, treat this file and the source files it references as the current truth.
 
@@ -39,7 +39,7 @@ The UI is intentionally operational. Most surfaces feel like tools or control pa
 
 ### 2. Light-first, flat, and border-defined
 
-PromptLens currently implements a light-first system across the web app and browser extension.
+plenz currently implements a light-first system across the web app and browser extension.
 
 - Main surfaces are warm off-white rather than pure white.
 - Borders do most of the separation work.
@@ -78,7 +78,7 @@ Privacy and storage choices are made visible in the interface instead of hidden 
 - `apps/web/src/app/globals.css`
 - `apps/extension/src/index.css`
 
-This means the primitives stay reusable while the PromptLens look remains centralized.
+This means the primitives stay reusable while the plenz look remains centralized.
 
 ## Visual System
 
@@ -87,12 +87,12 @@ This means the primitives stay reusable while the PromptLens look remains centra
 There are three token layers in the repo:
 
 1. Base primitive tokens in `packages/ui/src/styles.css`
-2. PromptLens overrides for web and extension app chrome in:
+2. plenz overrides for web and extension app chrome in:
    - `apps/web/src/app/globals.css`
    - `apps/extension/src/index.css`
 3. Content-script-only tokens in `apps/extension/src/content/ui/styles.css`
 
-### Core PromptLens app tokens
+### Core plenz app tokens
 
 These are the main product tokens used by the landing page and extension settings surfaces.
 
@@ -171,7 +171,7 @@ Current usage pattern:
 - `icon` and `icon-sm`: used for compact utility controls such as the popup settings button
 - `lg`: used for web CTAs
 
-PromptLens-specific conventions:
+plenz-specific conventions:
 
 - Primary buttons should be sparse and obvious.
 - Outline buttons are used for secondary actions, connection tests, and external links.
@@ -194,7 +194,7 @@ Source: `packages/ui/src/components/card.tsx`
 Current usage pattern:
 
 - Cards are the main container for popup sections, options sections, and web feature tiles.
-- PromptLens often overrides the primitive defaults to remove shadow and tighten spacing.
+- plenz often overrides the primitive defaults to remove shadow and tighten spacing.
 - Many cards use a header with a bottom border to create a control-panel feel.
 
 ### Inputs and selects
@@ -256,7 +256,7 @@ Implemented pattern:
 - CTA section uses the same bordered panel language rather than a distinct visual campaign treatment
 - Footer stays consistent with the rest of the system instead of switching style
 
-What makes the web surface feel like PromptLens:
+What makes the web surface feel like plenz:
 
 - Border grid background
 - Strong use of mono metadata labels
@@ -453,7 +453,7 @@ Those docs are still valuable for intent, but they are not the current UI source
 
 ### The shared primitive package still contains generic light and dark tokens
 
-`packages/ui/src/styles.css` includes generic shadcn-style light/dark tokens. PromptLens then overrides those tokens at the app level. When styling PromptLens surfaces, start from the app token files rather than the package defaults.
+`packages/ui/src/styles.css` includes generic shadcn-style light/dark tokens. plenz then overrides those tokens at the app level. When styling plenz surfaces, start from the app token files rather than the package defaults.
 
 ### The content overlay is visually close to the product system, but not identical
 
@@ -488,7 +488,7 @@ Treat Perplexity as in-progress in the live extension footprint unless the manif
 
 When changing or adding UI, use this checklist:
 
-1. Start with shared primitives from `@promptlens/ui` unless the surface is a content-script overlay.
+1. Start with shared primitives from `@plenz/ui` unless the surface is a content-script overlay.
 2. Prefer updating app tokens in `globals.css` or `index.css` before introducing one-off component colors.
 3. Keep panels flat, bordered, and legible at extension scale.
 4. Use mono uppercase metadata labels to preserve the control-panel feel.
@@ -515,7 +515,7 @@ When changing or adding UI, use this checklist:
 
 ## Summary
 
-PromptLens currently presents itself as a calm technical tool:
+plenz currently presents itself as a calm technical tool:
 
 - light-first
 - flat and border-led
@@ -524,3 +524,4 @@ PromptLens currently presents itself as a calm technical tool:
 - built from shared primitives with app-level token overrides
 
 Future design work should preserve that operational clarity even when new features add more complexity.
+

@@ -5,7 +5,7 @@ import {
   AnalysisResult,
   Suggestion,
   ModelOption,
-} from "@promptlens/types";
+} from "@plenz/types";
 
 export class CustomAdapter implements ProviderAdapter {
   id = "custom";
@@ -232,3 +232,4 @@ export class CustomAdapter implements ProviderAdapter {
     };
   }
 }
+

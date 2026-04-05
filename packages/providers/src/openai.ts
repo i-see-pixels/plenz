@@ -5,7 +5,7 @@ import {
 	AnalysisResult,
 	Suggestion,
 	ModelOption,
-} from "@promptlens/types"
+} from "@plenz/types"
 
 export class OpenAIAdapter implements ProviderAdapter {
 	id = "openai"
@@ -168,3 +168,4 @@ export class OpenAIAdapter implements ProviderAdapter {
 		}
 	}
 }
+

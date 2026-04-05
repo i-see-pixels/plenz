@@ -19,16 +19,16 @@ importers:
 
   apps/extension:
     dependencies:
-      '@promptlens/core':
+      '@plenz/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@promptlens/providers':
+      '@plenz/providers':
         specifier: workspace:*
         version: link:../../packages/providers
-      '@promptlens/types':
+      '@plenz/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@promptlens/ui':
+      '@plenz/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       firebase:
@@ -80,13 +80,13 @@ importers:
 
   apps/vscode:
     dependencies:
-      '@promptlens/core':
+      '@plenz/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@promptlens/providers':
+      '@plenz/providers':
         specifier: workspace:*
         version: link:../../packages/providers
-      '@promptlens/types':
+      '@plenz/types':
         specifier: workspace:*
         version: link:../../packages/types
     devDependencies:
@@ -102,7 +102,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@promptlens/ui':
+      '@plenz/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@vercel/analytics':
@@ -180,30 +180,30 @@ importers:
 
   packages/core:
     dependencies:
-      '@promptlens/providers':
+      '@plenz/providers':
         specifier: workspace:*
         version: link:../providers
-      '@promptlens/types':
+      '@plenz/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
-      '@promptlens/tsconfig':
+      '@plenz/tsconfig':
         specifier: workspace:*
         version: link:../config
 
   packages/providers:
     dependencies:
-      '@promptlens/types':
+      '@plenz/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
-      '@promptlens/tsconfig':
+      '@plenz/tsconfig':
         specifier: workspace:*
         version: link:../config
 
   packages/types:
     devDependencies:
-      '@promptlens/tsconfig':
+      '@plenz/tsconfig':
         specifier: workspace:*
         version: link:../config
 
@@ -240,7 +240,7 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
     devDependencies:
-      '@promptlens/tsconfig':
+      '@plenz/tsconfig':
         specifier: workspace:*
         version: link:../config
       '@types/react':

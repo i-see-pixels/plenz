@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@promptlens/ui/components/button";
+import { Button } from "@plenz/ui/components/button";
 import { ArrowRight } from "lucide-react";
 import { FaChrome } from "react-icons/fa";
 import { siteConfig } from "@/lib/site";
@@ -21,7 +21,7 @@ export function CTA() {
             Ship better prompts on the first draft.
           </h2>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            PromptLens is free, open source, and ready for immediate use with
+            plenz is free, open source, and ready for immediate use with
             your own provider key.
           </p>
 
@@ -65,3 +65,4 @@ export function CTA() {
     </section>
   );
 }
+

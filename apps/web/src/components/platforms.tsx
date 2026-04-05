@@ -3,8 +3,8 @@
 import React, { forwardRef, useRef } from "react";
 import { BrainCogIcon } from "lucide-react";
 import Image from "next/image";
-import { cn } from "@promptlens/ui/lib/utils";
-import { AnimatedBeam } from "@promptlens/ui/components/animated-beam";
+import { cn } from "@plenz/ui/lib/utils";
+import { AnimatedBeam } from "@plenz/ui/components/animated-beam";
 
 const platforms = [
   {
@@ -62,7 +62,7 @@ export function Platforms() {
   const div1Ref = useRef<HTMLDivElement>(null);
   const div2Ref = useRef<HTMLDivElement>(null);
   const div3Ref = useRef<HTMLDivElement>(null);
-  const div4Ref = useRef<HTMLDivElement>(null); // PromptLens center
+  const div4Ref = useRef<HTMLDivElement>(null); // plenz center
   const div5Ref = useRef<HTMLDivElement>(null);
   const div6Ref = useRef<HTMLDivElement>(null);
   const div7Ref = useRef<HTMLDivElement>(null);
@@ -81,7 +81,7 @@ export function Platforms() {
             Works in your existing AI tabs.
           </h2>
           <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            PromptLens detects target input areas and injects suggestions
+            plenz detects target input areas and injects suggestions
             without changing your host platform workflow.
           </p>
         </div>
@@ -128,7 +128,7 @@ export function Platforms() {
               >
                 <Image
                   src="/icon-512.png"
-                  alt="PromptLens"
+                  alt="plenz"
                   width={96}
                   height={96}
                   className="w-full h-full object-cover"
@@ -219,3 +219,4 @@ export function Platforms() {
     </section>
   );
 }
+

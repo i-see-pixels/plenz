@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent } from "@promptlens/ui/components/card";
+import { Card, CardContent } from "@plenz/ui/components/card";
 import { Code2, Globe, Key, Keyboard, ShieldCheck, Sparkles } from "lucide-react";
 
 const features = [
@@ -8,7 +8,7 @@ const features = [
     icon: Sparkles,
     title: "Inline suggestions",
     description:
-      "PromptLens flags vague phrasing in real time and offers stronger rewrites before you hit enter.",
+      "plenz flags vague phrasing in real time and offers stronger rewrites before you hit enter.",
   },
   {
     icon: Key,
@@ -20,7 +20,7 @@ const features = [
     icon: ShieldCheck,
     title: "Local-first privacy",
     description:
-      "API keys and prompt text stay in your browser storage. No PromptLens relay service in the middle.",
+      "API keys and prompt text stay in your browser storage. No plenz relay service in the middle.",
   },
   {
     icon: Globe,
@@ -81,3 +81,4 @@ export function Features() {
     </section>
   );
 }
+

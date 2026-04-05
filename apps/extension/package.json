@@ -10,10 +10,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@promptlens/core": "workspace:*",
-    "@promptlens/providers": "workspace:*",
-    "@promptlens/types": "workspace:*",
-    "@promptlens/ui": "workspace:*",
+    "@plenz/core": "workspace:*",
+    "@plenz/providers": "workspace:*",
+    "@plenz/types": "workspace:*",
+    "@plenz/ui": "workspace:*",
     "firebase": "^12.11.0",
     "lucide-react": "^1.0.1",
     "preact": "^10.28.4",
@@ -33,3 +33,4 @@
     "vite": "^7.3.1"
   }
 }
+

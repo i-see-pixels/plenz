@@ -104,7 +104,7 @@ export function HeroAnimation() {
         
         {/* Address Bar */}
         <rect x="250" y="8" width="300" height="24" rx="12" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
-        <text x="400" y="24" fontSize="12" fill="#94a3b8" textAnchor="middle" fontFamily="sans-serif">app.promptlens.com</text>
+        <text x="400" y="24" fontSize="12" fill="#94a3b8" textAnchor="middle" fontFamily="sans-serif">app.plenz.com</text>
 
         {/* Content Area - Chat Interface Mockup */}
         <rect x="40" y="80" width="720" height="380" rx="8" fill="#f8fafc" stroke="#e2e8f0" />
@@ -177,3 +177,4 @@ export function HeroAnimation() {
     </div>
   );
 }
+

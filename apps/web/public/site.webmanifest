@@ -1,6 +1,6 @@
 {
-  "name": "PromptLens",
-  "short_name": "PromptLens",
+  "name": "plenz",
+  "short_name": "plenz",
   "description": "Open-source browser extension for refining AI prompts in real time.",
   "start_url": "/",
   "display": "standalone",

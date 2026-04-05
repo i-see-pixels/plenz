@@ -19,9 +19,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@promptlens/ui/*": ["../../packages/ui/src/*"]
+      "@plenz/ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
+

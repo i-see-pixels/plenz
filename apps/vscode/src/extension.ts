@@ -1,9 +1,9 @@
 import * as vscode from "vscode"
-import { SYSTEM_PROMPT_TEMPLATE } from "@promptlens/core"
+import { SYSTEM_PROMPT_TEMPLATE } from "@plenz/core"
 
 export function activate(context: vscode.ExtensionContext) {
 	let disposable = vscode.commands.registerCommand(
-		"promptlens.refine",
+		"plenz.refine",
 		async () => {
 			const editor = vscode.window.activeTextEditor
 			if (editor) {
@@ -12,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showInformationMessage(
 					`Refining: ${text.substring(0, 20)}...`,
 				)
-				// Implementation using @promptlens/core would go here
+				// Implementation using @plenz/core would go here
 			}
 		},
 	)
@@ -21,3 +21,4 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
+

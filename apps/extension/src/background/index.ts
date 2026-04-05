@@ -10,4 +10,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	return true // Keep message channel open for async response
 })
 
-console.log("PromptLens Service Worker active")
+console.log("plenz Service Worker active")
+

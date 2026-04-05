@@ -13,7 +13,7 @@ Describe the bug clearly.
 ## Environment
 
 - Browser:
-- PromptLens version:
+- plenz version:
 - Platform: ChatGPT / Claude / Gemini / Perplexity / Other
 
 ## Steps to Reproduce
@@ -33,3 +33,4 @@ What happened instead?
 ## Screenshots / Logs
 
 Attach screenshots or console logs if available.
+

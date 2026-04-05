@@ -1,4 +1,4 @@
-# PromptLens Development Guide
+# plenz Development Guide
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@
 Clone the repository and install dependencies from the root of the monorepo:
 
 ```bash
-git clone https://github.com/i-see-pixels/promptlens.git
-cd promptlens
+git clone https://github.com/i-see-pixels/plenz.git
+cd plenz
 pnpm install
 ```
 
@@ -40,21 +40,21 @@ We use **Vite** and **CRXJS** for a fast development experience with Hot Module 
     > **Note:** Do not select the root `apps/extension` folder; select the `dist` folder inside it.
 
 3.  **Verify installation**:
-    - You should see the **PromptLens** card appear in your extensions list.
-    - The PromptLens icon should appear in your browser toolbar (you may need to pin it).
+    - You should see the **plenz** card appear in your extensions list.
+    - The plenz icon should appear in your browser toolbar (you may need to pin it).
 
 ## 3. Testing the Extension
 
 ### Popup UI
 
-- Click the PromptLens icon in the toolbar.
+- Click the plenz icon in the toolbar.
 - You should see the popup interface (Sign In / Status).
 
 ### Content Script (Inline Suggestions)
 
 - Navigate to a supported AI platform, for example: ChatGPT.
 - Open the browser's Developer Tools (`F12` or `Right Click > Inspect`).
-- Go to the **Console** tab to see logs from PromptLens.
+- Go to the **Console** tab to see logs from plenz.
 - Type a prompt in the chat input (e.g., "write an email").
 - _Note: In development mode, you might need to refresh the ChatGPT page after installing the extension for the content script to inject properly._
 
@@ -64,7 +64,7 @@ We use **Vite** and **CRXJS** for a fast development experience with Hot Module 
 
 ## 4. Shared UI (shadcn Monorepo)
 
-PromptLens now uses `@promptlens/ui` as the single source of truth for shadcn primitives.
+plenz now uses `@plenz/ui` as the single source of truth for shadcn primitives.
 
 - Add components from web context:
   - `pnpm dlx shadcn@latest add <component> -c apps/web`
@@ -74,9 +74,10 @@ PromptLens now uses `@promptlens/ui` as the single source of truth for shadcn pr
 Rules:
 
 - Do not add new primitive files under app-local `components/ui` folders.
-- Import primitives from `@promptlens/ui/components/*`.
+- Import primitives from `@plenz/ui/components/*`.
 - Keep app CSS entry points local (`apps/web/src/app/globals.css`, `apps/extension/src/index.css`).
 
 Guardrail check:
 
 - `pnpm lint:ui-primitives`
+

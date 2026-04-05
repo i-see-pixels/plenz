@@ -2,7 +2,7 @@ import { getActivePlatform, PlatformConfig } from "./platforms/registry";
 import { SuggestionOverlay } from "./ui/SuggestionOverlay";
 import { BadgeIndicator } from "./ui/BadgeIndicator";
 import { GhostOverlay } from "./ui/GhostOverlay";
-import { Suggestion } from "@promptlens/types";
+import { Suggestion } from "@plenz/types";
 
 const PREFERENCES_STORAGE_KEY = "preferences";
 const DEFAULT_DEBOUNCE_MS = 500;
@@ -75,7 +75,7 @@ class ExtensionContentScript {
         | undefined;
       this.debounceMs = sanitizeDebounceMs(preferences?.debounceMs);
     } catch (error) {
-      console.warn("PromptLens: failed to load preferences", error);
+      console.warn("plenz: failed to load preferences", error);
       this.debounceMs = DEFAULT_DEBOUNCE_MS;
     }
   }
@@ -230,7 +230,7 @@ class ExtensionContentScript {
         return;
       }
 
-      console.error("PromptLens Analysis Error:", error);
+      console.error("plenz Analysis Error:", error);
       this.badge?.showError((error as Error).message || "An error occurred");
       this.ghostOverlay?.hide();
     }
@@ -241,7 +241,7 @@ class ExtensionContentScript {
     if (!runtime?.id || typeof runtime.sendMessage !== "function") {
       if (!this.runtimeUnavailableLogged) {
         console.warn(
-          "PromptLens: extension runtime is unavailable. Reload the extension and page.",
+          "plenz: extension runtime is unavailable. Reload the extension and page.",
         );
         this.runtimeUnavailableLogged = true;
       }
@@ -358,3 +358,4 @@ class ExtensionContentScript {
 }
 
 new ExtensionContentScript();
+
