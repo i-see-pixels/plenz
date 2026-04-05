@@ -11,7 +11,7 @@
   --pl-radius-md: 6px;
   --pl-radius-lg: 8px;
   --pl-font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
-  --pl-font-mono: "IBM Plex Mono", "JetBrains Mono", "Cascadia Mono", monospace;
+  --pl-font-mono: "JetBrains Mono", "Cascadia Mono", monospace;
 
   font-family: var(--pl-font-family);
   color: var(--pl-text-primary);

@@ -6,6 +6,7 @@ import { Badge } from "@promptlens/ui/components/badge";
 import { ArrowRight } from "lucide-react";
 import { FaChrome, FaGithub } from "react-icons/fa";
 import { siteConfig } from "@/lib/site";
+import { HeroAnimation } from "./hero-animation";
 
 export function Hero() {
   return (
@@ -13,11 +14,11 @@ export function Hero() {
       id="top"
       className="border-b border-border px-4 py-14 sm:px-6 sm:py-20"
     >
-      <div className="mx-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
         <div className="flex flex-col gap-6">
           <Badge
             variant="outline"
-            className="rounded-sm border-accent-signal font-mono text-[10px] tracking-[0.15em] text-[color:var(--accent-signal)] uppercase"
+            className="rounded-sm border-accent-signal font-mono text-[10px] tracking-[0.15em] text-accent-signal uppercase lg:w-max"
           >
             Open source - Privacy first
           </Badge>
@@ -79,50 +80,9 @@ export function Hero() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-0 rounded-md border border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-              Live preview
-            </p>
-            <Badge
-              variant="outline"
-              className="rounded-sm border-accent-signal font-mono text-[10px] tracking-[0.12em] text-[color:var(--accent-signal)] uppercase"
-            >
-              Active
-            </Badge>
-          </div>
-
-          <div className="flex flex-col gap-3 px-4 py-4">
-            <div className="rounded-sm border border-border bg-background px-3 py-3">
-              <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-                Draft
-              </p>
-              <p className="mt-1 text-sm text-foreground">
-                write me an email to my manager
-              </p>
-            </div>
-
-            <div className="rounded-sm border border-accent-signal bg-muted px-3 py-3">
-              <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-[color:var(--accent-signal)] uppercase">
-                PromptLens recommendation
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-foreground">
-                Write a concise professional email to my manager requesting PTO
-                from March 10 to March 14. Include a clear subject line and
-                confirm coverage.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-[10px] tracking-[0.08em] text-muted-foreground uppercase">
-                <kbd className="rounded-sm border border-border bg-background px-1.5 py-0.5">
-                  Tab
-                </kbd>
-                accept
-                <kbd className="rounded-sm border border-border bg-background px-1.5 py-0.5">
-                  Esc
-                </kbd>
-                dismiss
-              </div>
-            </div>
-          </div>
+        <div className="flex w-full items-center justify-center relative">
+          {/* TODO: Replace with screenstudio video */}
+          <HeroAnimation />
         </div>
       </div>
     </section>

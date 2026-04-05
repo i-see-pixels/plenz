@@ -52,4 +52,3 @@ jobs:
           client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
           app-id: ${{ secrets.CHROME_EXTENSION_ID }}
           file-name: "./extension.zip"
-          publish: true

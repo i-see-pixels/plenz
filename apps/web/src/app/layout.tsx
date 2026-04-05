@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { createSiteGraphSchema, getAbsoluteUrl, serializeJsonLd } from "@/lib/seo";
+import {
+  createSiteGraphSchema,
+  getAbsoluteUrl,
+  serializeJsonLd,
+} from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
@@ -10,7 +14,7 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
+const jetBrainsMono = JetBrains_Mono({
   variable: "--font-mono-brand",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
@@ -55,10 +59,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} font-sans antialiased`}>
+      <body
+        className={`${spaceGrotesk.variable} ${jetBrainsMono.variable} font-sans antialiased`}
+      >
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: serializeJsonLd(siteStructuredData) }}
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(siteStructuredData),
+          }}
         />
         {children}
         <Analytics />

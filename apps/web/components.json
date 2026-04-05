@@ -19,5 +19,7 @@
     "lib": "@promptlens/ui/lib",
     "hooks": "@promptlens/ui/hooks"
   },
-  "registries": {}
+  "registries": {
+    "@magicui": "https://magicui.design/r/{name}"
+  }
 }
