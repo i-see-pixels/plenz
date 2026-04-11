@@ -1,6 +1,6 @@
 {
   "name": "@plenz/providers",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "private": true,
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -11,4 +11,3 @@
     "@plenz/tsconfig": "workspace:*"
   }
 }
-
