@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@plenz/ui/components/button";
@@ -15,29 +15,91 @@ const navLinks = [
   { label: "Platforms", href: "/#platforms" },
 ];
 
-const ExternalButtons = () => (
-  <>
-    <Button variant="outline" size="sm" asChild>
-      <Link
-        href={siteConfig.links.github}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <FaGithub data-icon="inline-start" />
-        GitHub
-      </Link>
-    </Button>
-    <Button size="sm" asChild>
-      <Link
-        href={siteConfig.links.chromeWebStore}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Add to Chrome
-      </Link>
-    </Button>
-  </>
-);
+const githubStarsFormatter = new Intl.NumberFormat("en", {
+  notation: "compact",
+  compactDisplay: "short",
+  maximumFractionDigits: 1,
+});
+
+function ExternalButtons() {
+  const [stars, setStars] = useState<number | null>(null);
+  const githubRepoPath = siteConfig.links.gitRepoPath;
+
+  useEffect(() => {
+    if (!githubRepoPath) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadGithubStars() {
+      try {
+        const response = await fetch(
+          `https://api.github.com/repos/${githubRepoPath}`,
+          {
+            headers: {
+              Accept: "application/vnd.github+json",
+            },
+            signal: controller.signal,
+          },
+        );
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data: { stargazers_count?: number } = await response.json();
+
+        if (typeof data.stargazers_count === "number") {
+          setStars(data.stargazers_count);
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+      }
+    }
+
+    void loadGithubStars();
+
+    return () => controller.abort();
+  }, []);
+
+  const githubStarsLabel =
+    stars === null || stars === 0 ? "Star" : githubStarsFormatter.format(stars);
+  const githubAriaLabel =
+    stars === null
+      ? "Open the plenz GitHub repository"
+      : `Open the plenz GitHub repository with ${stars.toLocaleString("en-US")} stars`;
+
+  return (
+    <>
+      <Button variant="outline" size="sm" asChild>
+        <Link
+          href={siteConfig.links.github}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={githubAriaLabel}
+          title={githubAriaLabel}
+        >
+          <FaGithub data-icon="inline-start" />
+          <span className="min-w-[3ch] text-center font-mono text-xs tabular-nums">
+            {githubStarsLabel}
+          </span>
+        </Link>
+      </Button>
+      <Button size="sm" asChild>
+        <Link
+          href={siteConfig.links.chromeWebStore}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Add to Chrome
+        </Link>
+      </Button>
+    </>
+  );
+}
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -48,9 +110,7 @@ export function Navbar() {
         <Link href="/" className="flex items-center gap-3">
           <Image src={logo} alt="plenz" width={26} height={26} />
           <div className="flex flex-col gap-0.5 leading-none">
-            <span className="text-lg font-semibold tracking-tight">
-              plenz
-            </span>
+            <span className="text-lg font-semibold tracking-tight">plenz</span>
           </div>
         </Link>
 
@@ -102,4 +162,3 @@ export function Navbar() {
     </header>
   );
 }
-

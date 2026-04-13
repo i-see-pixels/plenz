@@ -101,6 +101,7 @@ export const siteConfig = {
     chromeWebStore:
       "https://chromewebstore.google.com/detail/plenz/fdbjbkomedpokmfkmacjnbdnghkejihl",
     github: "https://github.com/i-see-pixels/plenz",
+    gitRepoPath: "i-see-pixels/plenz",
   },
   sameAs: ["https://github.com/i-see-pixels/plenz"],
   supportedPlatforms: [
@@ -130,4 +131,3 @@ export const siteConfig = {
     "API keys and prompt text stay in your browser storage. plenz does not route your prompt through a central relay service.",
   homepageFaqs,
 } as const;
-
