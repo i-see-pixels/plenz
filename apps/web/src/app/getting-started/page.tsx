@@ -133,7 +133,9 @@ export default function GettingStarted() {
       <main className="relative z-10 px-4 py-24 sm:px-6 lg:px-8">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbSchema) }}
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(breadcrumbSchema),
+          }}
         />
 
         <div className="mx-auto max-w-4xl space-y-16">
@@ -176,10 +178,10 @@ export default function GettingStarted() {
                   Install the Extension
                 </h2>
                 <p className="leading-relaxed text-muted-foreground">
-                  First, download the plenz extension from the Chrome Web
-                  Store. Once installed, be sure to pin it to your browser
-                  toolbar for quick access. This allows you to easily hop into
-                  settings or toggle extension status.
+                  First, download the plenz extension from the Chrome Web Store.
+                  Once installed, be sure to pin it to your browser toolbar for
+                  quick access. This allows you to easily hop into settings or
+                  toggle extension status.
                 </p>
                 <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border shadow-md flex flex-col items-center justify-center text-center">
                   <Image src={chromePage} alt="plenz Chrome Web Store page" />
@@ -199,11 +201,11 @@ export default function GettingStarted() {
                   Select your AI Provider
                 </h2>
                 <p className="leading-relaxed text-muted-foreground">
-                  plenz works with the major AI language models. Since we
-                  use a "BYOK" (Bring Your Own Key) model, you only pay for your
+                  plenz works with the major AI language models. Since we use a
+                  "BYOK" (Bring Your Own Key) model, you only pay for your
                   literal inference costs directly to the provider, with zero
-                  markup. Click on the plenz icon, open Settings, and
-                  select a provider from the dropdown.
+                  markup. Click on the plenz icon, open Settings, and select a
+                  provider from the dropdown.
                 </p>
                 <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border bg-muted/50 flex flex-col items-center justify-center text-center p-6">
                   <Image src={configPage} alt="plenz provider configuration" />
@@ -279,4 +281,3 @@ export default function GettingStarted() {
     </div>
   );
 }
-
