@@ -103,6 +103,24 @@ function getResponseError(value: unknown) {
   return undefined;
 }
 
+function getCustomProviderOriginPattern(baseUrl: string) {
+  const trimmed = baseUrl.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+
+    return `${url.origin}/*`;
+  } catch {
+    return null;
+  }
+}
+
 function getSyncStatusMeta(
   status: SyncStatus,
   storageBackend: StorageBackendPreference,
@@ -185,7 +203,9 @@ export function ModelConfig() {
     selectedProvider === "custom" || selectedProvider === "openrouter";
 
   const loadAuthStatus = async () => {
-    const response = await chrome.runtime.sendMessage({ type: "GET_AUTH_STATUS" });
+    const response = await chrome.runtime.sendMessage({
+      type: "GET_AUTH_STATUS",
+    });
     setIsSignedIn(isUserInfoResponse(response));
   };
 
@@ -193,13 +213,16 @@ export function ModelConfig() {
     const rawResponse = await chrome.runtime.sendMessage({
       type: "GET_STORAGE_SETTINGS",
     });
-    const response = isStorageSettingsResponse(rawResponse) ? rawResponse : null;
+    const response = isStorageSettingsResponse(rawResponse)
+      ? rawResponse
+      : null;
 
     if (!response) {
       setBackendState({
         loading: false,
         tone: "error",
-        message: getResponseError(rawResponse) || "Failed to load sync settings.",
+        message:
+          getResponseError(rawResponse) || "Failed to load sync settings.",
       });
       return;
     }
@@ -248,10 +271,7 @@ export function ModelConfig() {
 
     window.addEventListener("plenz-auth-status-changed", handleAuthChange);
     return () => {
-      window.removeEventListener(
-        "plenz-auth-status-changed",
-        handleAuthChange,
-      );
+      window.removeEventListener("plenz-auth-status-changed", handleAuthChange);
     };
   }, []);
 
@@ -261,10 +281,15 @@ export function ModelConfig() {
 
   useEffect(() => {
     const fetchModelsWithCache = async () => {
-      const p = providers.find((prov) => prov.id === selectedProvider) || providers[0];
+      const p =
+        providers.find((prov) => prov.id === selectedProvider) || providers[0];
       const cacheKey = `models_${selectedProvider}`;
-      
-      if (!apiKey && selectedProvider !== "openrouter" && selectedProvider !== "custom") {
+
+      if (
+        !apiKey &&
+        selectedProvider !== "openrouter" &&
+        selectedProvider !== "custom"
+      ) {
         chrome.storage.local.get([cacheKey], (res) => {
           setModels((res[cacheKey] as ModelOption[]) || []);
         });
@@ -298,6 +323,41 @@ export function ModelConfig() {
   const handleTest = async () => {
     setTestStatus({ loading: true });
     try {
+      if (selectedProvider === "custom") {
+        const originPattern = getCustomProviderOriginPattern(baseUrl);
+
+        if (!originPattern) {
+          setTestStatus({
+            loading: false,
+            result: {
+              success: false,
+              latencyMs: 0,
+              error: "Enter a valid http(s) Custom Provider URL.",
+            },
+          });
+          return;
+        }
+
+        if (originPattern) {
+          const granted = await chrome.permissions.request({
+            origins: [originPattern],
+          });
+
+          if (!granted) {
+            setTestStatus({
+              loading: false,
+              result: {
+                success: false,
+                latencyMs: 0,
+                error:
+                  "Permission denied for that provider host. Approve access and try again.",
+              },
+            });
+            return;
+          }
+        }
+      }
+
       const response = await chrome.runtime.sendMessage({
         type: "TEST_CONNECTION",
         payload: {
@@ -412,6 +472,31 @@ export function ModelConfig() {
     setSaveState({ status: "syncing" });
 
     try {
+      if (selectedProvider === "custom") {
+        const originPattern = getCustomProviderOriginPattern(baseUrl);
+
+        if (!originPattern) {
+          const errorMessage = "Enter a valid http(s) Custom Provider URL.";
+          setSaveState({ status: "error", error: errorMessage });
+          alert(`Error saving settings: ${errorMessage}`);
+          return;
+        }
+
+        if (originPattern) {
+          const granted = await chrome.permissions.request({
+            origins: [originPattern],
+          });
+
+          if (!granted) {
+            const errorMessage =
+              "Permission denied for that provider host. Approve access before saving.";
+            setSaveState({ status: "error", error: errorMessage });
+            alert(`Error saving settings: ${errorMessage}`);
+            return;
+          }
+        }
+      }
+
       const rawResponse = await chrome.runtime.sendMessage({
         type: "SAVE_MODEL_CONFIG",
         payload: {
@@ -455,20 +540,20 @@ export function ModelConfig() {
   };
 
   const syncMeta = getSyncStatusMeta(saveState.status, storageBackend);
-  const defaultBackendMessage =
-    !firebaseConfigured
-      ? "Cloud Sync is unavailable in this build. Add the VITE_FIREBASE_* environment variables and rebuild the extension."
-      : !isSignedIn
-        ? "Sign in with Google to enable Cloud Sync and access encrypted synced API keys."
-        : storageBackend === "firebase"
-          ? "Cloud Sync stores provider settings in Firebase, with API keys encrypted before upload. Browser-local copies are unchanged."
-          : "Chrome Sync uses Chrome's built-in sync storage and falls back to local storage when needed.";
+  const defaultBackendMessage = !firebaseConfigured
+    ? "Cloud Sync is unavailable in this build. Add the VITE_FIREBASE_* environment variables and rebuild the extension."
+    : !isSignedIn
+      ? "Sign in with Google to enable Cloud Sync and access encrypted synced API keys."
+      : storageBackend === "firebase"
+        ? "Cloud Sync stores provider settings in Firebase, with API keys encrypted before upload. Browser-local copies are unchanged."
+        : "Chrome Sync uses Chrome's built-in sync storage and falls back to local storage when needed.";
 
   return (
     <div className="flex flex-col gap-3">
       {!isSignedIn ? (
         <div className="rounded-sm border border-border bg-muted px-3 py-2 text-sm leading-relaxed text-muted-foreground">
-          Sign in with Google to unlock Cloud Sync and decrypt synced API keys on this device.
+          Sign in with Google to unlock Cloud Sync and decrypt synced API keys
+          on this device.
         </div>
       ) : null}
 
@@ -498,7 +583,9 @@ export function ModelConfig() {
                   isSelected
                     ? "border-accent-secondary bg-muted"
                     : "border-border bg-background hover:border-accent-secondary/50",
-                  isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+                  isDisabled
+                    ? "cursor-not-allowed opacity-60"
+                    : "cursor-pointer",
                 )}
                 onClick={() => void handleStorageBackendChange(value)}
                 disabled={isDisabled}
@@ -571,13 +658,21 @@ export function ModelConfig() {
                 setSelectedModel((e.target as HTMLInputElement).value)
               }
               placeholder={
-                fetchingModels ? "Fetching models..." :
-                selectedProvider === "openrouter"
-                  ? "e.g., anthropic/claude-3-opus"
-                  : "e.g., llama3"
+                fetchingModels
+                  ? "Fetching models..."
+                  : selectedProvider === "openrouter"
+                    ? "e.g., anthropic/claude-3-opus"
+                    : "e.g., deepseek-chat or llama3.1"
               }
               list={`${selectedProvider}-models`}
             />
+            {selectedProvider === "custom" ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Enter the exact model ID from your provider. Examples include{" "}
+                <code>deepseek-chat</code>, <code>deepseek-reasoner</code>, or{" "}
+                <code>llama3.1</code>.
+              </p>
+            ) : null}
             <datalist id={`${selectedProvider}-models`}>
               {models.map((model) => (
                 <option key={model.id} value={model.id}>
@@ -593,9 +688,13 @@ export function ModelConfig() {
             </SelectTrigger>
             <SelectContent>
               {models.length === 0 && fetchingModels ? (
-                <SelectItem value="..." disabled>Loading models...</SelectItem>
+                <SelectItem value="..." disabled>
+                  Loading models...
+                </SelectItem>
               ) : models.length === 0 ? (
-                <SelectItem value="none" disabled>Enter API Key to load models</SelectItem>
+                <SelectItem value="none" disabled>
+                  Enter API Key to load models
+                </SelectItem>
               ) : (
                 models.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
@@ -616,13 +715,22 @@ export function ModelConfig() {
           >
             Base URL
           </Label>
-          <Input
-            id="base-url"
-            type="text"
-            value={baseUrl}
-            onInput={(e) => setBaseUrl((e.target as HTMLInputElement).value)}
-            placeholder="http://localhost:11434/v1"
-          />
+          <div className="flex flex-col gap-2">
+            <Input
+              id="base-url"
+              type="text"
+              value={baseUrl}
+              onInput={(e) => setBaseUrl((e.target as HTMLInputElement).value)}
+              placeholder="https://your-provider.example/v1"
+            />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Enter the provider base URL or the full chat completions endpoint.
+              plenz appends <code>/chat/completions</code> automatically for
+              base URLs. DeepSeek works with{" "}
+              <code>https://api.deepseek.com</code> or{" "}
+              <code>https://api.deepseek.com/v1</code>.
+            </p>
+          </div>
         </div>
       ) : null}
 
@@ -710,4 +818,3 @@ export function ModelConfig() {
     </div>
   );
 }
-

@@ -110,6 +110,7 @@ const providers = [
       "Locate the host URL (e.g., http://localhost:1234/v1).",
       "In plenz Settings, select 'Custom'.",
       "Enter your host URL and optional API Key.",
+      "plenz accepts either a provider base URL or a full OpenAI-compatible chat completions URL. For DeepSeek, use https://api.deepseek.com or https://api.deepseek.com/v1 with deepseek-chat or deepseek-reasoner.",
       "Test the connection to ensure plenz can reach your server.",
     ],
     image: <Image src={customProvider} alt="Custom provider setup" />,
