@@ -88,14 +88,20 @@ export class CustomAdapter implements ProviderAdapter {
     if (formatted.endsWith("/")) {
       formatted = formatted.slice(0, -1);
     }
-    if (!formatted.endsWith("/chat/completions")) {
-      // Try to automatically append /chat/completions if it looks like a base URL only
-      // but if they provided the full path, use it.
-      if (formatted.endsWith("/v1")) {
-        formatted += "/chat/completions";
+
+    try {
+      const parsed = new URL(formatted);
+      const pathname = parsed.pathname.replace(/\/+$/, "");
+
+      if (pathname.endsWith("/chat/completions")) {
+        return formatted;
       }
+
+      // Treat any other URL as a base path for an OpenAI-compatible API.
+      return `${formatted}/chat/completions`;
+    } catch {
+      return formatted;
     }
-    return formatted;
   }
 
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
