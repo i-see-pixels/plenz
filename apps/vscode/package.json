@@ -2,7 +2,7 @@
   "name": "plenz-vscode",
   "displayName": "plenz",
   "description": "AI Prompt Refinement for VS Code",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "icon": "icon.svg",
   "engines": {
     "vscode": "^1.80.0"
