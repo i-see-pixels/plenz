@@ -1,4 +1,4 @@
-<a href="https://plenz-web.vercel.app" target="_blank" rel="noopener">
+<a href="https://plenz.siddsingh.dev" target="_blank" rel="noopener">
   <picture>
     <img alt="plenz" src="assets/banner.png" />
   </picture>
@@ -132,4 +132,3 @@ MIT. See `LICENSE`.
 ## Acknowledgments
 
 - Open-source maintainer community and early contributors.
-

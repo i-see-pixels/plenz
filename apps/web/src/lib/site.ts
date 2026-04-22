@@ -65,7 +65,7 @@ export const siteConfig = {
   gettingStartedTitle: "Getting Started | plenz",
   gettingStartedDescription:
     "Install plenz, connect your AI provider, add an API key, and start refining prompts inside ChatGPT, Claude, Gemini, and more in just a few minutes.",
-  url: "https://plenz-web.vercel.app",
+  url: "https://plenz.siddsingh.dev",
   locale: "en_US",
   ogImage: "/opengraph-image.png",
   logo: "/favicon.ico",
