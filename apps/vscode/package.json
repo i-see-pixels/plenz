@@ -26,7 +26,7 @@
     "@plenz/types": "workspace:*"
   },
   "devDependencies": {
-    "@types/vscode": "^1.80.0",
+    "@types/vscode": "^1.110.0",
     "@types/node": "25.x",
     "typescript": "^5.1.3"
   }
