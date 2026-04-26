@@ -39,7 +39,9 @@ export default function Home() {
       <main className="relative z-10">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: serializeJsonLd(softwareApplicationSchema) }}
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(softwareApplicationSchema),
+          }}
         />
         <script
           type="application/ld+json"

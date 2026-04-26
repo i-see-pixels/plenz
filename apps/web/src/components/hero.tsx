@@ -6,7 +6,7 @@ import { Badge } from "@plenz/ui/components/badge";
 import { ArrowRight } from "lucide-react";
 import { FaChrome, FaGithub } from "react-icons/fa";
 import { siteConfig } from "@/lib/site";
-import { HeroAnimation } from "./hero-animation";
+import PromoVideo from "./promo-video";
 
 export function Hero() {
   return (
@@ -14,6 +14,19 @@ export function Hero() {
       id="top"
       className="border-b border-border px-4 py-14 sm:px-6 sm:py-20"
     >
+      <a
+        href="https://www.producthunt.com/products/plenz?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-plenz"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex justify-center"
+      >
+        <img
+          alt="plenz - ai prompt refiner | Product Hunt"
+          width="250"
+          height="54"
+          src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1132810&amp;theme=light&amp;t=1777214886351"
+        />
+      </a>
       <div className="mx-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
         <div className="flex flex-col gap-6">
           <Badge
@@ -81,11 +94,9 @@ export function Hero() {
         </div>
 
         <div className="flex w-full items-center justify-center relative">
-          {/* TODO: Replace with screenstudio video */}
-          <HeroAnimation />
+          <PromoVideo />
         </div>
       </div>
     </section>
   );
 }
-
