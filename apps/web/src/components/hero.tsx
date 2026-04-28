@@ -18,7 +18,7 @@ export function Hero() {
         href="https://www.producthunt.com/products/plenz?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-plenz"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex justify-center"
+        className="flex justify-center mb-10"
       >
         <img
           alt="plenz - ai prompt refiner | Product Hunt"

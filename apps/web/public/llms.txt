@@ -1,0 +1,22 @@
+# plenz
+
+> Open-source browser extension that refines AI prompts in real time. Keep prompt text local and improve every instruction before you send.
+
+## Docs
+
+- [plenz | Rewrite AI Prompts Before You Send Them](https://plenz.siddsingh.dev/): Overview of plenz, an open-source browser extension that acts like Grammarly for AI prompts, offering real-time refinement across major AI chat platforms.
+- [Getting Started | plenz](https://plenz.siddsingh.dev/getting-started): Step-by-step guide to installing plenz, configuring your AI provider (OpenAI, Anthropic, Gemini, etc.), and adding an API key.
+
+## Key Facts
+
+- Core feature: Inline prompt rewrite suggestions before sending a message
+- Privacy: Local-first architecture (API keys and prompt text stay in browser storage)
+- Supported platforms: ChatGPT, Claude, Gemini, Mistral, OpenRouter, Custom AI surfaces
+- Supported providers: OpenAI, Anthropic, Google Gemini, Mistral, Groq, OpenRouter, Custom local and self-hosted models
+- Pricing: Bring Your Own Key (usage billed directly by your chosen model vendor)
+
+## Contact
+
+- Website: https://plenz.siddsingh.dev
+- GitHub: https://github.com/i-see-pixels/plenz
+- Chrome Web Store: https://chromewebstore.google.com/detail/plenz/fdbjbkomedpokmfkmacjnbdnghkejihl
