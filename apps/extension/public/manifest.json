@@ -39,8 +39,12 @@
   ],
   "permissions": [
     "storage",
-    "identity"
+    "identity",
+    "sidePanel"
   ],
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
   "optional_host_permissions": [
     "https://*/*",
     "http://*/*"

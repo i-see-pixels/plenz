@@ -96,6 +96,7 @@ export const siteConfig = {
   routes: {
     home: "/",
     gettingStarted: "/getting-started",
+    prompts: "/prompts",
   },
   links: {
     chromeWebStore:

@@ -51,6 +51,32 @@ export interface ModelOption {
 	tier: "premium" | "standard" | "budget"
 }
 
+export type PromptGalleryCategory = "trending" | "newest" | "saved"
+
+export interface PublicPrompt {
+	id: string
+	title: string
+	prompt: string
+	slug: string
+	trendScore: number | null
+	createdAt: string | null
+	updatedAt: string | null
+	canShare: boolean
+}
+
+export interface SavedPrompt {
+	id: string
+	title: string
+	prompt: string
+	sourceType: "catalog" | "custom"
+	catalogPromptId: string | null
+	catalogSlug: string | null
+	savedAt: string | null
+	createdAt: string | null
+	updatedAt: string | null
+	canShare: boolean
+}
+
 export interface ProviderAdapter {
 	id: string
 	name: string

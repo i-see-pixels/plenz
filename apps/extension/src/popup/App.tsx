@@ -3,7 +3,7 @@ import logo from "../assets/logo.svg";
 import { providers } from "@plenz/providers";
 import { AuthStatus } from "../components/AuthStatus";
 import type { ModelOption } from "@plenz/types";
-import { BarChart3, Settings, Users } from "lucide-react";
+import { BarChart3, BookOpen, Settings, Users } from "lucide-react";
 import { Badge } from "@plenz/ui/components/badge";
 import { Button } from "@plenz/ui/components/button";
 import {
@@ -34,6 +34,7 @@ export function App() {
     modelId: string | null;
   } | null>(null);
   const [providerModels, setProviderModels] = useState<Record<string, ModelOption[]>>({});
+  const [openingPromptGallery, setOpeningPromptGallery] = useState(false);
 
   useEffect(() => {
     fetchActiveModel();
@@ -88,6 +89,36 @@ export function App() {
 
   const openExternalPage = (url: string) => {
     void chrome.tabs.create({ url });
+  };
+
+  const openPromptGallery = async () => {
+    if (openingPromptGallery) {
+      return;
+    }
+
+    setOpeningPromptGallery(true);
+
+    try {
+      const currentWindow = await chrome.windows.getCurrent();
+
+      if (typeof currentWindow.id !== "number") {
+        throw new Error("Current browser window is unavailable.");
+      }
+
+      const response = (await chrome.runtime.sendMessage({
+        type: "OPEN_PROMPT_GALLERY_PANEL",
+        payload: { windowId: currentWindow.id },
+      })) as { success?: boolean; error?: string } | undefined;
+
+      if (!response?.success) {
+        throw new Error(response?.error || "Prompt gallery could not be opened.");
+      }
+
+      window.close();
+    } catch (error) {
+      console.error("Popup: failed to open prompt gallery", error);
+      setOpeningPromptGallery(false);
+    }
   };
 
   const handleModelChange = (newModelId: string) => {
@@ -206,6 +237,26 @@ export function App() {
             </>
           ) : null}
 
+          <Separator />
+          <section className="flex flex-col gap-3 px-4 py-3">
+            <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+              Prompt gallery
+            </p>
+            <Button
+              className="justify-start gap-2"
+              onClick={openPromptGallery}
+              disabled={openingPromptGallery}
+            >
+              <BookOpen data-icon="inline-start" />
+              {openingPromptGallery ? "Opening gallery..." : "Open prompt gallery"}
+            </Button>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Browse trending prompts, review newly added ideas, and keep your
+              saved prompts in one side panel.
+            </p>
+          </section>
+
+          <Separator />
           <section className="flex flex-col gap-2 px-4 py-3">
             <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
               Links

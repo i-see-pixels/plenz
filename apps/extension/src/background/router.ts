@@ -6,6 +6,7 @@ import {
   EntityExtractor,
 } from "@plenz/core";
 import { AuthManager } from "./auth";
+import { PromptGalleryManager } from "./prompt-gallery";
 
 export async function handleMessage(
   message: any,
@@ -130,6 +131,55 @@ export async function handleMessage(
 
     case "GET_AUTH_STATUS":
       return await AuthManager.getAuthStatus();
+
+    case "OPEN_PROMPT_GALLERY_PANEL": {
+      const windowId = message.payload?.windowId;
+
+      if (typeof windowId !== "number") {
+        return { success: false, error: "Current window is unavailable." };
+      }
+
+      await chrome.sidePanel.open({ windowId });
+      return { success: true };
+    }
+
+    case "LIST_PUBLIC_PROMPTS":
+      return {
+        prompts: await PromptGalleryManager.listPublicPrompts(
+          message.payload?.category === "newest" ? "newest" : "trending",
+        ),
+      };
+
+    case "LIST_SAVED_PROMPTS":
+      return {
+        prompts: await PromptGalleryManager.listSavedPrompts(),
+      };
+
+    case "CREATE_SAVED_PROMPT":
+      return {
+        prompt: await PromptGalleryManager.createCustomPrompt({
+          title: message.payload?.title ?? "",
+          prompt: message.payload?.prompt ?? "",
+        }),
+      };
+
+    case "UPDATE_SAVED_PROMPT":
+      return {
+        prompt: await PromptGalleryManager.updateSavedPrompt({
+          id: message.payload?.id ?? "",
+          title: message.payload?.title ?? "",
+          prompt: message.payload?.prompt ?? "",
+        }),
+      };
+
+    case "SAVE_PUBLIC_PROMPT":
+      return {
+        prompt: await PromptGalleryManager.savePublicPrompt(message.payload?.prompt),
+      };
+
+    case "DELETE_SAVED_PROMPT":
+      await PromptGalleryManager.deleteSavedPrompt(message.payload?.id ?? "");
+      return { success: true };
 
     default:
       console.warn("Unknown message type:", message.type);
