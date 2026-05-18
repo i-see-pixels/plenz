@@ -19,6 +19,7 @@ import {
   CopyIcon,
   Plus,
   Search,
+  Share2Icon,
   SquarePenIcon,
   Trash2Icon,
 } from "lucide-react"
@@ -306,19 +307,19 @@ function PromptGalleryPromptActions({
         <SavedPromptActions prompt={prompt} />
       )}
 
-      {/* <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => void actions.sharePrompt(prompt)}
-                disabled={!prompt.canShare}
-                title={
-                  prompt.canShare
-                    ? "Copy a public share link"
-                    : "Only editorial prompts can be shared"
-                }
-              >
-                <Share2Icon data-icon="inline-start" className="size-5" />
-              </Button> */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => void actions.sharePrompt(prompt)}
+        disabled={!prompt.canShare}
+        title={
+          prompt.canShare
+            ? "Copy a public share link"
+            : "Only editorial prompts can be shared"
+        }
+      >
+        <Share2Icon data-icon="inline-start" className="size-5" />
+      </Button>
 
       <Button
         variant="ghost"
