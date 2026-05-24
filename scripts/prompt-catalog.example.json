@@ -1,0 +1,20 @@
+[
+  {
+    "id": "product-launch-announcement",
+    "title": "Product Launch Announcement",
+    "slug": "product-launch-announcement",
+    "prompt": "Write a concise LinkedIn launch announcement for a new AI browser extension. Keep it under 180 words, lead with the main benefit, add one proof point, and end with a soft CTA.",
+    "category": ["Marketing", "Copywriting", "Launch"],
+    "trendScore": 92,
+    "shareEnabled": true
+  },
+  {
+    "id": "support-reply-tone-fix",
+    "title": "Support Reply Tone Fix",
+    "slug": "support-reply-tone-fix",
+    "prompt": "Rewrite this customer support reply so it sounds calm, clear, and confident. Keep the meaning intact, remove defensive phrasing, and end with one helpful next step.",
+    "category": ["Support", "Editing", "Tone"],
+    "trendScore": 74,
+    "shareEnabled": true
+  }
+]
