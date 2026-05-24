@@ -29,7 +29,6 @@ import type { GalleryFilter, PromptGalleryActions } from "./prompt-gallery.types
 import {
   formatDateLabel,
   formatPromptPreview,
-  getCatalogSourceLabel,
   isPublicPrompt,
 } from "./prompt-gallery.utils"
 import { cn } from "@plenz/ui/index"
@@ -273,6 +272,7 @@ function PromptGalleryPromptCard({
                 : prompt.createdAt || prompt.updatedAt,
             )}
           </div>
+          <PromptGalleryPromptBadges prompt={prompt} />
         </CardTitle>
       </CardHeader>
 
@@ -338,14 +338,19 @@ function PromptGalleryPromptBadges({
 }: {
   prompt: PublicPrompt | SavedPrompt
 }) {
+  const categories = prompt.category
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Badge
-        variant="outline"
-        className="rounded-sm font-mono text-[10px] tracking-[0.12em] uppercase"
-      >
-        {getCatalogSourceLabel(prompt)}
-      </Badge>
+      {categories.map((entry) => (
+        <Badge
+          key={`${prompt.id}-${entry}`}
+          variant="outline"
+          className="rounded-sm border-border font-mono text-[10px] tracking-[0.12em] text-muted-foreground"
+        >
+          {entry}
+        </Badge>
+      ))}
 
       {"savedAt" in prompt && prompt.sourceType === "custom" ? (
         <Badge

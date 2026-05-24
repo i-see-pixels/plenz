@@ -17,7 +17,7 @@ import { getFirebaseUserId } from "./firebase-user";
 
 const PROMPT_CATALOG_COLLECTION = "prompt_catalog";
 const SAVED_PROMPTS_COLLECTION = "saved_prompts";
-const PUBLIC_PROMPT_LIMIT = 24;
+// const PUBLIC_PROMPT_LIMIT = 24;
 const firebaseProjectId = readEnvVar("VITE_FIREBASE_PROJECT_ID");
 const firebaseApiKey = readEnvVar("VITE_FIREBASE_API_KEY");
 
@@ -27,6 +27,7 @@ interface PromptCatalogDocument {
   title?: string;
   prompt?: string;
   slug?: string;
+  category?: unknown;
   trendScore?: number;
   createdAt?: unknown;
   updatedAt?: unknown;
@@ -36,6 +37,7 @@ interface PromptCatalogDocument {
 interface SavedPromptDocument {
   title?: string;
   prompt?: string;
+  category?: unknown;
   sourceType?: "catalog" | "custom";
   catalogPromptId?: string | null;
   catalogSlug?: string | null;
@@ -50,6 +52,9 @@ interface FirestoreFieldValue {
   doubleValue?: number;
   booleanValue?: boolean;
   timestampValue?: string;
+  arrayValue?: {
+    values?: FirestoreFieldValue[];
+  };
 }
 
 interface FirestoreDocument {
@@ -67,7 +72,9 @@ function assertFirebaseConfigured() {
 
 function readEnvVar(key: keyof ImportMetaEnv) {
   const value = import.meta.env[key];
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : "";
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : "";
 }
 
 function normalizeText(value: string, field: string) {
@@ -100,6 +107,17 @@ function toIsoString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
+function toCategoryList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
 function toPublicPrompt(
   id: string,
   data: PromptCatalogDocument,
@@ -116,6 +134,7 @@ function toPublicPrompt(
       typeof data.slug === "string" && data.slug.trim().length > 0
         ? data.slug.trim()
         : id,
+    category: toCategoryList(data.category),
     trendScore: typeof data.trendScore === "number" ? data.trendScore : null,
     createdAt: toIsoString(data.createdAt),
     updatedAt: toIsoString(data.updatedAt),
@@ -123,7 +142,10 @@ function toPublicPrompt(
   };
 }
 
-function toSavedPrompt(id: string, data: SavedPromptDocument): SavedPrompt | null {
+function toSavedPrompt(
+  id: string,
+  data: SavedPromptDocument,
+): SavedPrompt | null {
   if (typeof data.title !== "string" || typeof data.prompt !== "string") {
     return null;
   }
@@ -137,9 +159,11 @@ function toSavedPrompt(id: string, data: SavedPromptDocument): SavedPrompt | nul
     id,
     title: data.title,
     prompt: data.prompt,
+    category: toCategoryList(data.category),
     sourceType: data.sourceType === "catalog" ? "catalog" : "custom",
     catalogPromptId:
-      typeof data.catalogPromptId === "string" && data.catalogPromptId.trim().length > 0
+      typeof data.catalogPromptId === "string" &&
+      data.catalogPromptId.trim().length > 0
         ? data.catalogPromptId.trim()
         : null,
     catalogSlug,
@@ -161,11 +185,22 @@ async function requireSignedInUser(actionLabel: string) {
 }
 
 function getSavedPromptRef(userId: string, savedPromptId: string) {
-  return doc(getFirestoreDb(), "users", userId, SAVED_PROMPTS_COLLECTION, savedPromptId);
+  return doc(
+    getFirestoreDb(),
+    "users",
+    userId,
+    SAVED_PROMPTS_COLLECTION,
+    savedPromptId,
+  );
 }
 
 function getSavedPromptsCollection(userId: string) {
-  return collection(getFirestoreDb(), "users", userId, SAVED_PROMPTS_COLLECTION);
+  return collection(
+    getFirestoreDb(),
+    "users",
+    userId,
+    SAVED_PROMPTS_COLLECTION,
+  );
 }
 
 function buildFirestoreRestUrl(path: string) {
@@ -222,11 +257,27 @@ function getFirestoreTimestampField(
   return document.fields?.[fieldName]?.timestampValue;
 }
 
+function getFirestoreStringArrayField(
+  document: FirestoreDocument,
+  fieldName: string,
+): string[] {
+  const values = document.fields?.[fieldName]?.arrayValue?.values;
+
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return values
+    .map((value) => value.stringValue?.trim() ?? "")
+    .filter((value) => value.length > 0);
+}
+
 function toPublicPromptFromFirestoreDocument(document: FirestoreDocument) {
   return toPublicPrompt(getFirestoreDocumentId(document.name), {
     title: getFirestoreStringField(document, "title"),
     prompt: getFirestoreStringField(document, "prompt"),
     slug: getFirestoreStringField(document, "slug"),
+    category: getFirestoreStringArrayField(document, "category"),
     trendScore: getFirestoreNumberField(document, "trendScore"),
     createdAt: getFirestoreTimestampField(document, "createdAt"),
     updatedAt: getFirestoreTimestampField(document, "updatedAt"),
@@ -265,7 +316,7 @@ async function listPublicPromptsViaRest(
             direction: "DESCENDING",
           },
         ],
-        limit: PUBLIC_PROMPT_LIMIT,
+        // limit: PUBLIC_PROMPT_LIMIT,
       },
     }),
   });
@@ -307,7 +358,7 @@ async function listPublicPromptsViaFirestore(
   const promptQuery = query(
     collection(getFirestoreDb(), PROMPT_CATALOG_COLLECTION),
     orderBy(sortField, "desc"),
-    limit(PUBLIC_PROMPT_LIMIT),
+    // limit(PUBLIC_PROMPT_LIMIT),
   );
   const snapshot = await getDocs(promptQuery);
   const prompts: PublicPrompt[] = [];
@@ -392,6 +443,7 @@ export const PromptGalleryManager = {
     await setDoc(promptDoc, {
       title,
       prompt: promptText,
+      category: [],
       sourceType: "custom",
       catalogPromptId: null,
       catalogSlug: null,
@@ -492,6 +544,7 @@ export const PromptGalleryManager = {
       {
         title,
         prompt: promptText,
+        category: prompt.category,
         sourceType: "catalog",
         catalogPromptId: prompt.id,
         catalogSlug: normalizeText(prompt.slug, "Share link"),

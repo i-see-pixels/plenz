@@ -4,6 +4,9 @@ interface FirestoreFieldValue {
   doubleValue?: number;
   booleanValue?: boolean;
   timestampValue?: string;
+  arrayValue?: {
+    values?: FirestoreFieldValue[];
+  };
 }
 
 interface FirestoreDocument {
@@ -16,6 +19,7 @@ export interface PublicPromptRecord {
   title: string;
   prompt: string;
   slug: string;
+  category: string[];
   trendScore: number | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -96,6 +100,18 @@ function getTimestampField(document: FirestoreDocument, fieldName: string) {
   return document.fields?.[fieldName]?.timestampValue ?? null;
 }
 
+function getStringArrayField(document: FirestoreDocument, fieldName: string) {
+  const values = document.fields?.[fieldName]?.arrayValue?.values;
+
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return values
+    .map((value) => value.stringValue?.trim() ?? "")
+    .filter((value) => value.length > 0);
+}
+
 function toPublicPrompt(document: FirestoreDocument): PublicPromptRecord | null {
   const id = getDocumentId(document.name);
   const title = getStringField(document, "title");
@@ -110,6 +126,7 @@ function toPublicPrompt(document: FirestoreDocument): PublicPromptRecord | null 
     title,
     prompt,
     slug: getStringField(document, "slug") ?? id,
+    category: getStringArrayField(document, "category"),
     trendScore: getNumberField(document, "trendScore"),
     createdAt: getTimestampField(document, "createdAt"),
     updatedAt: getTimestampField(document, "updatedAt"),

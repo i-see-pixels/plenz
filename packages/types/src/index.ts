@@ -58,6 +58,7 @@ export interface PublicPrompt {
 	title: string
 	prompt: string
 	slug: string
+	category: string[]
 	trendScore: number | null
 	createdAt: string | null
 	updatedAt: string | null
@@ -68,6 +69,7 @@ export interface SavedPrompt {
 	id: string
 	title: string
 	prompt: string
+	category: string[]
 	sourceType: "catalog" | "custom"
 	catalogPromptId: string | null
 	catalogSlug: string | null

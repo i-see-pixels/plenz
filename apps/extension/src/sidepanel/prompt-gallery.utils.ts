@@ -62,16 +62,6 @@ export function getCatalogShareSlug(prompt: PublicPrompt | SavedPrompt) {
   return isPublicPrompt(prompt) ? prompt.slug : prompt.catalogSlug;
 }
 
-export function getCatalogSourceLabel(prompt: PublicPrompt | SavedPrompt) {
-  if (isPublicPrompt(prompt)) {
-    return "Editorial catalog";
-  }
-
-  return prompt.sourceType === "catalog"
-    ? "Saved catalog prompt"
-    : "Private saved prompt";
-}
-
 export function getSearchablePromptCollection(
   filter: GalleryFilter,
   publicTrendingPrompts: PublicPrompt[],
@@ -101,7 +91,10 @@ export function matchesSearch(
 
   return (
     prompt.title.toLowerCase().includes(normalizedSearchTerm) ||
-    prompt.prompt.toLowerCase().includes(normalizedSearchTerm)
+    prompt.prompt.toLowerCase().includes(normalizedSearchTerm) ||
+    prompt.category.some((entry) =>
+      entry.toLowerCase().includes(normalizedSearchTerm),
+    )
   );
 }
 
