@@ -30,7 +30,6 @@ export class GroqAdapter implements ProviderAdapter {
       });
       if (!res.ok) return [];
       const data = await res.json();
-      console.log("MODELS", data);
       return data.data.map((m: any) => ({
         id: m.id,
         name: m.id,
@@ -162,7 +161,10 @@ export class GroqAdapter implements ProviderAdapter {
     const latency = Math.round(performance.now() - start);
 
     if (!res.ok) {
-      throw createProviderHttpError(data.error?.message || "Groq API error", res.status);
+      throw createProviderHttpError(
+        data.error?.message || "Groq API error",
+        res.status,
+      );
     }
 
     const content = data.choices?.[0]?.message?.content;
@@ -188,4 +190,3 @@ export class GroqAdapter implements ProviderAdapter {
     };
   }
 }
-

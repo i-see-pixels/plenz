@@ -262,7 +262,6 @@ export class GoogleAdapter implements ProviderAdapter {
     });
 
     const data = await res.json();
-    console.log("Res GOogle: ", data);
     const latency = Math.round(performance.now() - start);
 
     if (!res.ok) {

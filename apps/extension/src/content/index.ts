@@ -128,6 +128,7 @@ class ExtensionContentScript {
     this.inputElement = null;
     this.overlay?.hide();
     this.badge?.hide();
+    this.badge?.destroy();
     this.ghostOverlay?.hide();
     this.overlay = null;
     this.badge = null;

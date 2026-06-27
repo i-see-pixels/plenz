@@ -26,10 +26,7 @@
 }
 
 .pl-badge {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: static;
   background: color-mix(in srgb, var(--pl-accent) 12%, white);
   color: var(--pl-accent);
   padding: 3px 8px;
@@ -43,8 +40,11 @@
   align-items: center;
   gap: 4px;
   cursor: pointer;
+  pointer-events: auto;
+  white-space: nowrap;
   transition: background-color 0.15s ease;
   border: 1px solid color-mix(in srgb, var(--pl-accent) 45%, white);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
 }
 
 .pl-badge:hover {
