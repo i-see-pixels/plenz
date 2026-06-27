@@ -1,12 +1,8 @@
 import { StorageManager } from "./storage";
 import { providers } from "@plenz/providers";
-import {
-  buildSystemPrompt,
-  IntentDetector,
-  EntityExtractor,
-} from "@plenz/core";
 import { AuthManager } from "./auth";
 import { PromptGalleryManager } from "./prompt-gallery";
+import { analyzePromptWithOrchestration } from "./prompt-orchestrator";
 
 export async function handleMessage(
   message: any,
@@ -34,6 +30,13 @@ export async function handleMessage(
 
     case "GET_STORAGE_SETTINGS":
       return await StorageManager.getStorageSettings();
+
+    case "GET_PREFERENCES":
+      return await StorageManager.getPreferences();
+
+    case "SET_PREFERENCES":
+      await StorageManager.setPreferences(message.payload?.preferences ?? {});
+      return { success: true, preferences: await StorageManager.getPreferences() };
 
     case "SET_STORAGE_BACKEND": {
       const nextBackend = message.payload?.backend;
@@ -80,43 +83,8 @@ export async function handleMessage(
     case "ANALYZE_PROMPT": {
       const { prompt, context } = message.payload;
 
-      const intentDetector = new IntentDetector();
-      const entityExtractor = new EntityExtractor();
-
-      const intentMatch = intentDetector.detect(prompt);
-      const entities = entityExtractor.extract(prompt, context);
-      const systemPrompt = buildSystemPrompt(intentMatch, entities);
-
       try {
-        const configResult = await StorageManager.getActiveModelConfig();
-        const config = configResult.data;
-        const prefs = await StorageManager.getPreferences();
-
-        if (!config || !config.apiKey) {
-          return {
-            error:
-              "LLM Provider not configured. Please set an API key in the extension options.",
-          };
-        }
-
-        const provider = providers.find((p) => p.id === prefs.activeProviderId);
-        if (!provider) {
-          return {
-            error:
-              "Active LLM Provider not found. Please review your settings.",
-          };
-        }
-
-        const remoteResult = await provider.analyze(
-          prompt,
-          systemPrompt,
-          config,
-          context,
-        );
-        return {
-          suggestions: remoteResult.suggestions.slice(0, 5),
-          latencyMs: remoteResult.latencyMs,
-        };
+        return await analyzePromptWithOrchestration(prompt, context);
       } catch (e: any) {
         console.error("Remote analysis failed:", e);
         return { error: e.message || "Failed to analyze prompt." };

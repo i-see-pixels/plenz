@@ -23,9 +23,18 @@ import {
 } from "@plenz/ui/components/select";
 import { Separator } from "@plenz/ui/components/separator";
 import { Skeleton } from "@plenz/ui/components/skeleton";
+import { Switch } from "@plenz/ui/components/switch";
 
 const PROJECT_URL = "https://github.com/i-see-pixels/plenz";
 const COMMUNITY_URL = "https://github.com/i-see-pixels/plenz/discussions";
+const PREFERENCES_STORAGE_KEY = "preferences";
+
+type Preferences = {
+  debounceMs?: number;
+  debounceTime?: number;
+  suggestionsEnabled?: boolean;
+  chatContextEnabled?: boolean;
+};
 
 export function App() {
   const extensionVersion = chrome.runtime.getManifest().version;
@@ -35,16 +44,24 @@ export function App() {
   } | null>(null);
   const [providerModels, setProviderModels] = useState<Record<string, ModelOption[]>>({});
   const [openingPromptGallery, setOpeningPromptGallery] = useState(false);
+  const [preferences, setPreferences] = useState<Preferences>({
+    suggestionsEnabled: true,
+    chatContextEnabled: false,
+  });
+  const [savingSuggestions, setSavingSuggestions] = useState(false);
+  const [savingChatContext, setSavingChatContext] = useState(false);
 
   useEffect(() => {
     fetchActiveModel();
     fetchProviderModels();
+    void fetchPreferences();
 
     const handleStorageChange = (changes: {
       [key: string]: chrome.storage.StorageChange;
     }) => {
       if (changes.preferences) {
         fetchActiveModel();
+        void fetchPreferences();
       }
       // Reload models if cached models change
       const changedKeys = Object.keys(changes);
@@ -81,6 +98,97 @@ export function App() {
       });
       setProviderModels(pm);
     });
+  };
+
+  const fetchPreferences = async () => {
+    try {
+      const runtimePreferences = (await chrome.runtime.sendMessage({
+        type: "GET_PREFERENCES",
+      })) as Preferences | undefined;
+      const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
+      const localPreferences = stored[PREFERENCES_STORAGE_KEY] as
+        | Preferences
+        | undefined;
+      setPreferences(runtimePreferences ?? localPreferences ?? {});
+    } catch (error) {
+      console.error("Popup: failed to load preferences", error);
+    }
+  };
+
+  const updateSuggestionsEnabled = async (enabled: boolean) => {
+    const previousPreferences = preferences;
+    setSavingSuggestions(true);
+    setPreferences((current) => ({
+      ...current,
+      suggestionsEnabled: enabled,
+    }));
+
+    try {
+      const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
+      const currentPreferences =
+        (stored[PREFERENCES_STORAGE_KEY] as Preferences | undefined) ?? {};
+      const nextPreferences = {
+        ...currentPreferences,
+        ...previousPreferences,
+        suggestionsEnabled: enabled,
+      };
+
+      await chrome.runtime.sendMessage({
+        type: "SET_PREFERENCES",
+        payload: {
+          preferences: {
+            suggestionsEnabled: enabled,
+          },
+        },
+      });
+
+      await chrome.storage.local.set({
+        [PREFERENCES_STORAGE_KEY]: nextPreferences,
+      });
+    } catch (error) {
+      console.error("Popup: failed to update suggestions preference", error);
+      setPreferences(previousPreferences);
+    } finally {
+      setSavingSuggestions(false);
+    }
+  };
+
+  const updateChatContextEnabled = async (enabled: boolean) => {
+    const previousPreferences = preferences;
+    setSavingChatContext(true);
+    setPreferences((current) => ({
+      ...current,
+      chatContextEnabled: enabled,
+    }));
+
+    try {
+      const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
+      const currentPreferences =
+        (stored[PREFERENCES_STORAGE_KEY] as Preferences | undefined) ?? {};
+      const nextPreferences = {
+        ...currentPreferences,
+        ...previousPreferences,
+        chatContextEnabled: enabled,
+      };
+
+      await chrome.runtime.sendMessage({
+        type: "SET_PREFERENCES",
+        payload: {
+          preferences: {
+            chatContextEnabled: enabled,
+          },
+        },
+      });
+
+      await chrome.storage.local.set({
+        [PREFERENCES_STORAGE_KEY]: nextPreferences,
+      });
+    } catch (error) {
+      console.error("Popup: failed to update chat context preference", error);
+      setPreferences(previousPreferences);
+    } finally {
+      setSavingChatContext(false);
+    }
   };
 
   const openSettings = () => {
@@ -143,8 +251,11 @@ export function App() {
     );
   };
 
+  const suggestionsEnabled = preferences.suggestionsEnabled !== false;
+  const chatContextEnabled = preferences.chatContextEnabled === true;
+
   return (
-    <div className="w-80 border border-border bg-background">
+    <div className="plenz-popup-scrollbar max-h-[600px] w-80 overflow-y-auto border border-border bg-background">
       <Card className="gap-0 rounded-none border-0 bg-transparent py-0 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
@@ -236,6 +347,45 @@ export function App() {
               </section>
             </>
           ) : null}
+
+          <Separator />
+          <section className="flex flex-col gap-3 px-4 py-3">
+            <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+              Suggestions
+            </p>
+            <div className="flex items-center justify-between gap-3 rounded-sm border border-border px-3 py-3">
+              <label
+                htmlFor="suggestions-enabled"
+                className="text-sm font-medium leading-none"
+              >
+                Enable suggestions
+              </label>
+              <Switch
+                id="suggestions-enabled"
+                checked={suggestionsEnabled}
+                disabled={savingSuggestions}
+                onCheckedChange={(checked) =>
+                  void updateSuggestionsEnabled(checked)
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-sm border border-border px-3 py-3">
+              <label
+                htmlFor="chat-context-enabled"
+                className="text-sm font-medium leading-none"
+              >
+                Use chat conversation
+              </label>
+              <Switch
+                id="chat-context-enabled"
+                checked={chatContextEnabled}
+                disabled={savingChatContext}
+                onCheckedChange={(checked) =>
+                  void updateChatContextEnabled(checked)
+                }
+              />
+            </div>
+          </section>
 
           <Separator />
           <section className="flex flex-col gap-3 px-4 py-3">
