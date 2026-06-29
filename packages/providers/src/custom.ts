@@ -1,11 +1,19 @@
 import {
   ProviderAdapter,
+  ProviderAnalyzeContext,
+  ProviderAnalyzeOptions,
   ProviderConfig,
   ConnectionTestResult,
   AnalysisResult,
   Suggestion,
   ModelOption,
 } from "@plenz/types";
+import {
+  createProviderHttpError,
+  DEFAULT_ANALYSIS_MAX_TOKENS,
+  DEFAULT_ANALYSIS_TEMPERATURE,
+  formatAnalysisUserPrompt,
+} from "./analysis-context";
 
 export class CustomAdapter implements ProviderAdapter {
   id = "custom";
@@ -172,7 +180,8 @@ export class CustomAdapter implements ProviderAdapter {
     prompt: string,
     systemPrompt: string,
     config: ProviderConfig,
-    context?: { active_website?: string }
+    context?: ProviderAnalyzeContext,
+    options?: ProviderAnalyzeOptions
   ): Promise<AnalysisResult> {
     const start = performance.now();
     const endpoint = this.getEndpoint(config.baseUrl);
@@ -191,15 +200,14 @@ export class CustomAdapter implements ProviderAdapter {
         messages: [
           { role: "system", content: systemPrompt },
           {
-            role: "user", content: context?.active_website
-              ? `[Context: ${context.active_website}]\n\n${prompt}`
-              : prompt
+            role: "user", content: formatAnalysisUserPrompt(prompt, context)
           },
         ],
-        max_tokens: config.maxTokens ?? 1024,
-        temperature: config.temperature ?? 0.3,
+        max_tokens: config.maxTokens ?? DEFAULT_ANALYSIS_MAX_TOKENS,
+        temperature: config.temperature ?? DEFAULT_ANALYSIS_TEMPERATURE,
         // Do not enforce strict response_format as custom providers may not support it universally
       }),
+      signal: options?.signal,
     });
 
     let data;
@@ -212,7 +220,7 @@ export class CustomAdapter implements ProviderAdapter {
     const latency = Math.round(performance.now() - start);
 
     if (!res.ok) {
-      throw new Error(data.error?.message || "Custom Provider API error");
+      throw createProviderHttpError(data.error?.message || "Custom Provider API error", res.status);
     }
 
     const content = data.choices?.[0]?.message?.content;

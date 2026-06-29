@@ -14,12 +14,36 @@ export interface Suggestion {
 	position?: { start: number; end: number }
 }
 
+export interface ChatMessage {
+	role: "user" | "assistant" | "unknown"
+	text: string
+	timestamp?: number
+}
+
+export interface ConversationContext {
+	platform: string
+	activeWebsite: string
+	recentMessages: ChatMessage[]
+	rollingSummary?: string
+	tokenEstimate: number
+	truncated: boolean
+}
+
 export interface ProviderConfig {
 	apiKey: string
 	model: string
 	baseUrl?: string
 	maxTokens?: number
 	temperature?: number
+}
+
+export interface ProviderAnalyzeContext {
+	active_website?: string
+	conversation?: ConversationContext
+}
+
+export interface ProviderAnalyzeOptions {
+	signal?: AbortSignal
 }
 
 /** Status of key sync with the user's account */
@@ -51,6 +75,34 @@ export interface ModelOption {
 	tier: "premium" | "standard" | "budget"
 }
 
+export type PromptGalleryCategory = "trending" | "newest" | "saved"
+
+export interface PublicPrompt {
+	id: string
+	title: string
+	prompt: string
+	slug: string
+	category: string[]
+	trendScore: number | null
+	createdAt: string | null
+	updatedAt: string | null
+	canShare: boolean
+}
+
+export interface SavedPrompt {
+	id: string
+	title: string
+	prompt: string
+	category: string[]
+	sourceType: "catalog" | "custom"
+	catalogPromptId: string | null
+	catalogSlug: string | null
+	savedAt: string | null
+	createdAt: string | null
+	updatedAt: string | null
+	canShare: boolean
+}
+
 export interface ProviderAdapter {
 	id: string
 	name: string
@@ -60,6 +112,7 @@ export interface ProviderAdapter {
 		prompt: string,
 		systemPrompt: string,
 		config: ProviderConfig,
-		context?: { active_website?: string }
+		context?: ProviderAnalyzeContext,
+		options?: ProviderAnalyzeOptions
 	): Promise<AnalysisResult>
 }

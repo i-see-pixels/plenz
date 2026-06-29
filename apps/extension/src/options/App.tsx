@@ -19,6 +19,9 @@ const DEFAULT_DEBOUNCE_MS = 500;
 
 type Preferences = {
   debounceMs?: number;
+  debounceTime?: number;
+  suggestionsEnabled?: boolean;
+  chatContextEnabled?: boolean;
 };
 
 function sanitizeDebounceMs(value: unknown) {
@@ -33,6 +36,8 @@ export function App() {
   const [debounceInput, setDebounceInput] = useState(
     String(DEFAULT_DEBOUNCE_MS),
   );
+  const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
+  const [chatContextEnabled, setChatContextEnabled] = useState(false);
   const [preferencesState, setPreferencesState] = useState<{
     status: "idle" | "saving" | "saved" | "error";
     message?: string;
@@ -41,11 +46,23 @@ export function App() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
+        const runtimePreferences = (await chrome.runtime.sendMessage({
+          type: "GET_PREFERENCES",
+        })) as Preferences | undefined;
         const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
-        const preferences = stored[PREFERENCES_STORAGE_KEY] as
+        const localPreferences = stored[PREFERENCES_STORAGE_KEY] as
           | Preferences
           | undefined;
-        setDebounceInput(String(sanitizeDebounceMs(preferences?.debounceMs)));
+        const preferences = runtimePreferences ?? localPreferences;
+        setDebounceInput(
+          String(
+            sanitizeDebounceMs(
+              preferences?.debounceMs ?? preferences?.debounceTime,
+            ),
+          ),
+        );
+        setSuggestionsEnabled(preferences?.suggestionsEnabled !== false);
+        setChatContextEnabled(preferences?.chatContextEnabled === true);
       } catch (error) {
         setPreferencesState({
           status: "error",
@@ -66,12 +83,27 @@ export function App() {
       const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
       const currentPreferences =
         (stored[PREFERENCES_STORAGE_KEY] as Preferences | undefined) ?? {};
+      const nextPreferences = {
+        ...currentPreferences,
+        debounceMs: nextDebounceMs,
+        debounceTime: nextDebounceMs,
+        suggestionsEnabled,
+        chatContextEnabled,
+      };
+
+      await chrome.runtime.sendMessage({
+        type: "SET_PREFERENCES",
+        payload: {
+          preferences: {
+            debounceTime: nextDebounceMs,
+            suggestionsEnabled,
+            chatContextEnabled,
+          },
+        },
+      });
 
       await chrome.storage.local.set({
-        [PREFERENCES_STORAGE_KEY]: {
-          ...currentPreferences,
-          debounceMs: nextDebounceMs,
-        },
+        [PREFERENCES_STORAGE_KEY]: nextPreferences,
       });
 
       setDebounceInput(String(nextDebounceMs));
@@ -147,6 +179,46 @@ export function App() {
                   }
                 />
               </div>
+              <label className="grid cursor-pointer gap-3 rounded-sm border border-border px-3 py-3 sm:grid-cols-[auto_1fr]">
+                <input
+                  type="checkbox"
+                  checked={suggestionsEnabled}
+                  onChange={(event) =>
+                    setSuggestionsEnabled(
+                      (event.currentTarget as HTMLInputElement).checked,
+                    )
+                  }
+                  className="mt-0.5 size-4"
+                />
+                <span className="flex flex-col gap-1">
+                  <span className="font-mono text-[11px] tracking-[0.14em] uppercase">
+                    Enable suggestions
+                  </span>
+                  <span className="text-xs leading-relaxed text-muted-foreground">
+                    Turn off all inline analysis, badges, overlays, and ghost suggestions.
+                  </span>
+                </span>
+              </label>
+              <label className="grid cursor-pointer gap-3 rounded-sm border border-border px-3 py-3 sm:grid-cols-[auto_1fr]">
+                <input
+                  type="checkbox"
+                  checked={chatContextEnabled}
+                  onChange={(event) =>
+                    setChatContextEnabled(
+                      (event.currentTarget as HTMLInputElement).checked,
+                    )
+                  }
+                  className="mt-0.5 size-4"
+                />
+                <span className="flex flex-col gap-1">
+                  <span className="font-mono text-[11px] tracking-[0.14em] uppercase">
+                    Use current chat context
+                  </span>
+                  <span className="text-xs leading-relaxed text-muted-foreground">
+                    Opt in to sending relevant recent messages and a local summary with each refinement request.
+                  </span>
+                </span>
+              </label>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   onClick={savePreferences}

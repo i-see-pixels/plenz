@@ -18,11 +18,10 @@ import {
   type FirestoreProviderConfig,
 } from "./encryption";
 import {
-  getFirebaseAuth,
   getFirestoreDb,
   isFirebaseConfigured,
-  signInToFirebase,
 } from "./firebase";
+import { getFirebaseUserId } from "./firebase-user";
 
 export const MODEL_CONFIG_KEY_PREFIX = "model_config_";
 export type StorageBackendPreference = "chrome-sync" | "firebase";
@@ -252,34 +251,12 @@ export class ChromeSyncBackend implements StorageBackend {
 export class FirebaseBackend implements StorageBackend {
   private readonly syncFallback = new ChromeSyncBackend();
 
-  private async getFirebaseUserId() {
-    if (!isFirebaseConfigured()) {
-      throw new Error(
-        "Firebase is not configured in this build. Add the VITE_FIREBASE_* environment variables before enabling Cloud Sync.",
-      );
-    }
-
-    const firebaseAuth = getFirebaseAuth();
-    const cachedUser = await AuthManager.getCachedUser();
-    if (
-      firebaseAuth.currentUser &&
-      cachedUser?.email &&
-      firebaseAuth.currentUser.email === cachedUser.email
-    ) {
-      return firebaseAuth.currentUser.uid;
-    }
-
-    const token = await AuthManager.getAuthToken(false);
-    const credential = await signInToFirebase(token);
-    return credential.user.uid;
-  }
-
   private async withFirebaseFallback<T>(
     operation: (userId: string) => Promise<StorageResult<T>>,
     fallback: () => Promise<StorageResult<T>>,
   ): Promise<StorageResult<T>> {
     try {
-      const userId = await this.getFirebaseUserId();
+      const userId = await getFirebaseUserId();
       return await operation(userId);
     } catch (error) {
       return appendFallbackMessage(await fallback(), error);

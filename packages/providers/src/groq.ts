@@ -1,11 +1,19 @@
 import {
   ProviderAdapter,
+  ProviderAnalyzeContext,
+  ProviderAnalyzeOptions,
   ProviderConfig,
   ConnectionTestResult,
   AnalysisResult,
   Suggestion,
   ModelOption,
 } from "@plenz/types";
+import {
+  createProviderHttpError,
+  DEFAULT_ANALYSIS_MAX_TOKENS,
+  DEFAULT_ANALYSIS_TEMPERATURE,
+  formatAnalysisUserPrompt,
+} from "./analysis-context";
 
 export class GroqAdapter implements ProviderAdapter {
   id = "groq";
@@ -22,7 +30,6 @@ export class GroqAdapter implements ProviderAdapter {
       });
       if (!res.ok) return [];
       const data = await res.json();
-      console.log("MODELS", data);
       return data.data.map((m: any) => ({
         id: m.id,
         name: m.id,
@@ -125,7 +132,8 @@ export class GroqAdapter implements ProviderAdapter {
     prompt: string,
     systemPrompt: string,
     config: ProviderConfig,
-    context?: { active_website?: string },
+    context?: ProviderAnalyzeContext,
+    options?: ProviderAnalyzeOptions,
   ): Promise<AnalysisResult> {
     const start = performance.now();
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -140,21 +148,23 @@ export class GroqAdapter implements ProviderAdapter {
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: context?.active_website
-              ? `[Context: ${context.active_website}]\n\n${prompt}`
-              : prompt,
+            content: formatAnalysisUserPrompt(prompt, context),
           },
         ],
-        max_tokens: config.maxTokens ?? 1024,
-        temperature: config.temperature ?? 0.3,
+        max_tokens: config.maxTokens ?? DEFAULT_ANALYSIS_MAX_TOKENS,
+        temperature: config.temperature ?? DEFAULT_ANALYSIS_TEMPERATURE,
         response_format: { type: "json_object" },
       }),
+      signal: options?.signal,
     });
     const data = await res.json();
     const latency = Math.round(performance.now() - start);
 
     if (!res.ok) {
-      throw new Error(data.error?.message || "Groq API error");
+      throw createProviderHttpError(
+        data.error?.message || "Groq API error",
+        res.status,
+      );
     }
 
     const content = data.choices?.[0]?.message?.content;
@@ -180,4 +190,3 @@ export class GroqAdapter implements ProviderAdapter {
     };
   }
 }
-

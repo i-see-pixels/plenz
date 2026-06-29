@@ -1,11 +1,8 @@
 import { StorageManager } from "./storage";
 import { providers } from "@plenz/providers";
-import {
-  buildSystemPrompt,
-  IntentDetector,
-  EntityExtractor,
-} from "@plenz/core";
 import { AuthManager } from "./auth";
+import { PromptGalleryManager } from "./prompt-gallery";
+import { analyzePromptWithOrchestration } from "./prompt-orchestrator";
 
 export async function handleMessage(
   message: any,
@@ -33,6 +30,13 @@ export async function handleMessage(
 
     case "GET_STORAGE_SETTINGS":
       return await StorageManager.getStorageSettings();
+
+    case "GET_PREFERENCES":
+      return await StorageManager.getPreferences();
+
+    case "SET_PREFERENCES":
+      await StorageManager.setPreferences(message.payload?.preferences ?? {});
+      return { success: true, preferences: await StorageManager.getPreferences() };
 
     case "SET_STORAGE_BACKEND": {
       const nextBackend = message.payload?.backend;
@@ -79,43 +83,8 @@ export async function handleMessage(
     case "ANALYZE_PROMPT": {
       const { prompt, context } = message.payload;
 
-      const intentDetector = new IntentDetector();
-      const entityExtractor = new EntityExtractor();
-
-      const intentMatch = intentDetector.detect(prompt);
-      const entities = entityExtractor.extract(prompt, context);
-      const systemPrompt = buildSystemPrompt(intentMatch, entities);
-
       try {
-        const configResult = await StorageManager.getActiveModelConfig();
-        const config = configResult.data;
-        const prefs = await StorageManager.getPreferences();
-
-        if (!config || !config.apiKey) {
-          return {
-            error:
-              "LLM Provider not configured. Please set an API key in the extension options.",
-          };
-        }
-
-        const provider = providers.find((p) => p.id === prefs.activeProviderId);
-        if (!provider) {
-          return {
-            error:
-              "Active LLM Provider not found. Please review your settings.",
-          };
-        }
-
-        const remoteResult = await provider.analyze(
-          prompt,
-          systemPrompt,
-          config,
-          context,
-        );
-        return {
-          suggestions: remoteResult.suggestions.slice(0, 5),
-          latencyMs: remoteResult.latencyMs,
-        };
+        return await analyzePromptWithOrchestration(prompt, context);
       } catch (e: any) {
         console.error("Remote analysis failed:", e);
         return { error: e.message || "Failed to analyze prompt." };
@@ -130,6 +99,55 @@ export async function handleMessage(
 
     case "GET_AUTH_STATUS":
       return await AuthManager.getAuthStatus();
+
+    case "OPEN_PROMPT_GALLERY_PANEL": {
+      const windowId = message.payload?.windowId;
+
+      if (typeof windowId !== "number") {
+        return { success: false, error: "Current window is unavailable." };
+      }
+
+      await chrome.sidePanel.open({ windowId });
+      return { success: true };
+    }
+
+    case "LIST_PUBLIC_PROMPTS":
+      return {
+        prompts: await PromptGalleryManager.listPublicPrompts(
+          message.payload?.category === "newest" ? "newest" : "trending",
+        ),
+      };
+
+    case "LIST_SAVED_PROMPTS":
+      return {
+        prompts: await PromptGalleryManager.listSavedPrompts(),
+      };
+
+    case "CREATE_SAVED_PROMPT":
+      return {
+        prompt: await PromptGalleryManager.createCustomPrompt({
+          title: message.payload?.title ?? "",
+          prompt: message.payload?.prompt ?? "",
+        }),
+      };
+
+    case "UPDATE_SAVED_PROMPT":
+      return {
+        prompt: await PromptGalleryManager.updateSavedPrompt({
+          id: message.payload?.id ?? "",
+          title: message.payload?.title ?? "",
+          prompt: message.payload?.prompt ?? "",
+        }),
+      };
+
+    case "SAVE_PUBLIC_PROMPT":
+      return {
+        prompt: await PromptGalleryManager.savePublicPrompt(message.payload?.prompt),
+      };
+
+    case "DELETE_SAVED_PROMPT":
+      await PromptGalleryManager.deleteSavedPrompt(message.payload?.id ?? "");
+      return { success: true };
 
     default:
       console.warn("Unknown message type:", message.type);

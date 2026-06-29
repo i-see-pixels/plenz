@@ -23,6 +23,8 @@ export interface UserPreferences {
   activeProviderId: string | null;
   theme: "light" | "dark" | "system";
   storageBackend: StorageBackendPreference;
+  suggestionsEnabled: boolean;
+  chatContextEnabled: boolean;
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -31,6 +33,8 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   activeProviderId: null,
   theme: "system",
   storageBackend: "chrome-sync",
+  suggestionsEnabled: true,
+  chatContextEnabled: false,
 };
 
 function getErrorMessage(error: unknown) {
@@ -62,6 +66,14 @@ function normalizePreferences(value: unknown): UserPreferences {
         : DEFAULT_PREFERENCES.debounceTime;
   const storageBackend =
     prefs.storageBackend === "firebase" ? "firebase" : "chrome-sync";
+  const suggestionsEnabled =
+    typeof prefs.suggestionsEnabled === "boolean"
+      ? prefs.suggestionsEnabled
+      : DEFAULT_PREFERENCES.suggestionsEnabled;
+  const chatContextEnabled =
+    typeof prefs.chatContextEnabled === "boolean"
+      ? prefs.chatContextEnabled
+      : DEFAULT_PREFERENCES.chatContextEnabled;
 
   return {
     debounceTime,
@@ -69,6 +81,8 @@ function normalizePreferences(value: unknown): UserPreferences {
     activeProviderId,
     theme,
     storageBackend,
+    suggestionsEnabled,
+    chatContextEnabled,
   };
 }
 

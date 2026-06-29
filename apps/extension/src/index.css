@@ -95,3 +95,28 @@
   color: var(--background);
 }
 
+.plenz-popup-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 38%, transparent)
+    transparent;
+}
+
+.plenz-popup-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.plenz-popup-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.plenz-popup-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--muted-foreground) 32%, transparent);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.plenz-popup-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--muted-foreground) 54%, transparent);
+  background-clip: content-box;
+}

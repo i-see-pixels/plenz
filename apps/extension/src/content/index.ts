@@ -2,13 +2,17 @@ import { getActivePlatform, PlatformConfig } from "./platforms/registry";
 import { SuggestionOverlay } from "./ui/SuggestionOverlay";
 import { BadgeIndicator } from "./ui/BadgeIndicator";
 import { GhostOverlay } from "./ui/GhostOverlay";
-import { Suggestion } from "@plenz/types";
+import { buildConversationContext } from "@plenz/core";
+import type { ChatMessage, ConversationContext, Suggestion } from "@plenz/types";
 
 const PREFERENCES_STORAGE_KEY = "preferences";
 const DEFAULT_DEBOUNCE_MS = 500;
 
 type Preferences = {
   debounceMs?: number;
+  debounceTime?: number;
+  suggestionsEnabled?: boolean;
+  chatContextEnabled?: boolean;
 };
 
 function sanitizeDebounceMs(value: unknown) {
@@ -31,7 +35,11 @@ class ExtensionContentScript {
   private readonly boundHandleInput = this.handleInput.bind(this);
   private debounceTimer: number | null = null;
   private debounceMs = DEFAULT_DEBOUNCE_MS;
+  private suggestionsEnabled = true;
+  private chatContextEnabled = false;
   private activeAnalysisRequestId = 0;
+  private rollingSummary = "";
+  private conversationUrl = window.location.href;
 
   constructor() {
     this.platform = getActivePlatform();
@@ -69,11 +77,15 @@ class ExtensionContentScript {
 
   private async loadPreferences() {
     try {
+      const runtimePreferences = await this.sendRuntimeMessage<Preferences>({
+        type: "GET_PREFERENCES",
+      });
       const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
-      const preferences = stored[PREFERENCES_STORAGE_KEY] as
+      const localPreferences = stored[PREFERENCES_STORAGE_KEY] as
         | Preferences
         | undefined;
-      this.debounceMs = sanitizeDebounceMs(preferences?.debounceMs);
+      const preferences = runtimePreferences ?? localPreferences;
+      this.applyPreferences(preferences);
     } catch (error) {
       console.warn("plenz: failed to load preferences", error);
       this.debounceMs = DEFAULT_DEBOUNCE_MS;
@@ -89,10 +101,23 @@ class ExtensionContentScript {
       const updatedPreferences = changes[PREFERENCES_STORAGE_KEY].newValue as
         | Preferences
         | undefined;
-      this.debounceMs = sanitizeDebounceMs(
-        updatedPreferences?.debounceMs,
-      );
+      this.applyPreferences(updatedPreferences);
     });
+  }
+
+  private applyPreferences(preferences: Preferences | undefined) {
+    this.debounceMs = sanitizeDebounceMs(
+      preferences?.debounceMs ?? preferences?.debounceTime,
+    );
+    this.suggestionsEnabled = preferences?.suggestionsEnabled !== false;
+    this.chatContextEnabled = preferences?.chatContextEnabled === true;
+
+    if (!this.suggestionsEnabled) {
+      this.currentSuggestions = [];
+      this.overlay?.hide();
+      this.badge?.hide();
+      this.ghostOverlay?.hide();
+    }
   }
 
   private detachInput() {
@@ -103,6 +128,7 @@ class ExtensionContentScript {
     this.inputElement = null;
     this.overlay?.hide();
     this.badge?.hide();
+    this.badge?.destroy();
     this.ghostOverlay?.hide();
     this.overlay = null;
     this.badge = null;
@@ -163,6 +189,14 @@ class ExtensionContentScript {
       return;
     }
 
+    if (!this.suggestionsEnabled) {
+      this.currentSuggestions = [];
+      this.badge?.hide();
+      this.overlay?.hide();
+      this.ghostOverlay?.hide();
+      return;
+    }
+
     // Clear existing timer
     if (this.debounceTimer) {
       window.clearTimeout(this.debounceTimer);
@@ -179,6 +213,9 @@ class ExtensionContentScript {
 
   private async analyzePrompt(text: string) {
     const requestId = ++this.activeAnalysisRequestId;
+    const conversation = this.chatContextEnabled
+      ? this.collectConversationContext(text)
+      : undefined;
 
     try {
       this.badge?.showSaving();
@@ -191,7 +228,7 @@ class ExtensionContentScript {
           prompt: text,
           context: {
             active_website: window.location.hostname,
-            // More context could be added here if needed
+            conversation,
           }
         },
       });
@@ -234,6 +271,71 @@ class ExtensionContentScript {
       this.badge?.showError((error as Error).message || "An error occurred");
       this.ghostOverlay?.hide();
     }
+  }
+
+  private getElementVisibleText(element: Element) {
+    const rect = element.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return "";
+    return (element.textContent || "").replace(/\s+/g, " ").trim();
+  }
+
+  private collectRawChatMessages() {
+    if (!this.platform) return [];
+
+    const entries: Array<ChatMessage & { element: Element }> = [];
+    const seenElements = new Set<Element>();
+
+    for (const { selector, role } of this.platform.messageSelectors) {
+      for (const element of Array.from(document.querySelectorAll(selector))) {
+        if (seenElements.has(element) || element === this.inputElement) continue;
+        seenElements.add(element);
+
+        const text = this.getElementVisibleText(element);
+        if (!text) continue;
+
+        entries.push({
+          role,
+          text,
+          timestamp: Date.now(),
+          element,
+        });
+      }
+    }
+
+    return entries
+      .sort((a, b) =>
+        a.element.compareDocumentPosition(b.element) &
+        Node.DOCUMENT_POSITION_PRECEDING
+          ? 1
+          : -1,
+      )
+      .map(({ element, ...message }) => message);
+  }
+
+  private collectConversationContext(
+    currentDraft: string,
+  ): ConversationContext | undefined {
+    if (!this.platform) return undefined;
+
+    if (this.conversationUrl !== window.location.href) {
+      this.conversationUrl = window.location.href;
+      this.rollingSummary = "";
+    }
+
+    const messages = this.collectRawChatMessages();
+    const conversation = buildConversationContext({
+      platform: this.platform.name,
+      activeWebsite: window.location.hostname,
+      currentDraft,
+      messages,
+      previousSummary: this.rollingSummary,
+    });
+
+    this.rollingSummary = conversation.rollingSummary ?? "";
+
+    return conversation.recentMessages.length > 0 || conversation.rollingSummary
+      ? conversation
+      : undefined;
   }
 
   private async sendRuntimeMessage<T>(message: unknown): Promise<T | null> {
