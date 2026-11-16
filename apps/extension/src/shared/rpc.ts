@@ -4,9 +4,7 @@
 // same definitions.
 
 import type {
-  AnalysisResult,
   ConnectionTestResult,
-  ProviderAnalyzeContext,
   ProviderConfig,
   PublicPrompt,
   SavedPrompt,
@@ -20,21 +18,13 @@ import type { StorageBackendPreference } from "../background/storage-backend";
 /** Any handler may reply with this instead (rejected sender, thrown error). */
 export type RpcFailure = { error: string };
 
-export type AnalyzeReply =
-  | (Pick<AnalysisResult, "suggestions" | "latencyMs"> & { providerId: string })
-  | { error: string; cancelled?: boolean };
-
 type Success = { success: true };
 type ActionResult = { success: boolean; error?: string };
 type MigrationResult = { migrated: number; errors: string[] };
 
 export type RpcMap = {
-  // Content scripts (also allowed from extension pages)
-  ANALYZE_PROMPT: {
-    payload: { prompt: string; context?: ProviderAnalyzeContext };
-    reply: AnalyzeReply;
-  };
-  CANCEL_ANALYSIS: { payload: void; reply: Success };
+  // Content scripts (also allowed from extension pages). Refines stream over
+  // a port instead; see ./refine-port.ts.
   GET_PREFERENCES: { payload: void; reply: UserPreferences };
 
   // Extension pages only
@@ -117,8 +107,6 @@ export type RpcMessage = {
  * Keys and configs stay out of reach of a compromised page.
  */
 export const CONTENT_SCRIPT_RPC: ReadonlySet<RpcType> = new Set<RpcType>([
-  "ANALYZE_PROMPT",
-  "CANCEL_ANALYSIS",
   "GET_PREFERENCES",
 ]);
 

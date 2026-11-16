@@ -8,7 +8,7 @@ plenz is a monorepo with three user-facing applications:
 - VS Code extension (`apps/vscode`)
 
 Shared logic lives in:
-- `packages/core`: prompt analysis orchestration and system prompt templates
+- `packages/core`: the local prompt linter, refine-mode prompts and output cleanup, and chat-context building
 - `packages/providers`: LLM provider adapters
 - `packages/types`: shared TypeScript contracts
 
@@ -16,18 +16,19 @@ Shared logic lives in:
 
 1. Content script detects supported platform input areas.
 2. As the user types, the content script lints the draft locally (`lintPrompt` in `@plenz/core`): deterministic rubric checks with a score and up to three chips on the badge. No network call.
-3. On request (badge click or Ctrl/Cmd+Shift+Enter), or after a debounced pause when "Refine automatically while typing" is on, the content script sends `ANALYZE_PROMPT` to the background worker. Typing again sends `CANCEL_ANALYSIS`, and a newer request from the same tab/frame aborts the older one, so outdated provider calls stop.
-4. Background routes request through configured provider adapter. Other configured providers are tried only if the user enables "Fall back to other providers".
-5. Provider returns normalized suggestions.
-6. Content script shows a badge with the suggestion count. Clicking it or pressing Tab in the chat input opens the popover; while it is open, Tab applies, Esc dismisses and ↑/↓ navigate. Typing closes it.
+3. Clicking the badge opens the refine panel's mode picker (Improve, Tighten, Structure, Ask me) without calling the provider. Picking a mode, or pressing Ctrl/Cmd+Shift+Enter for Improve, starts a refine. With "Refine automatically while typing" on, Improve also runs in the background after a debounced pause and the badge shows "Ready" when it finishes.
+4. Each refine opens a `chrome.runtime.Port` (`apps/extension/src/shared/refine-port.ts`) and sends `START`. The background builds the mode's prompt (`buildRefineRequest` in `@plenz/core`) and streams the provider's reply back as `DELTA` chunks, then one `DONE` (cleaned text), `QUESTIONS` (Ask me) or `ERROR`.
+5. Closing the port (typing, Esc, switching mode, navigating away) aborts the provider request. Retries and the opt-in fallback to other providers only happen before the first chunk reaches the user; a stalled stream times out.
+6. Ask me is two steps: the questions come back first, the user answers what they can, and a `compose` refine writes the prompt from the answers.
+7. The finished prompt replaces the draft via "Replace prompt" or Tab in the chat input. Esc closes the panel.
 
 ## Provider Layer
 
-- Three adapters implement `ProviderAdapter`:
-  - OpenAI-compatible, with presets for OpenAI, Mistral, Groq, OpenRouter and Custom (any OpenAI-compatible base URL, Ollama by default)
-  - Anthropic, using forced tool use so suggestions come back as structured input
-  - Google Gemini, with a system instruction and JSON response mode
-- All three share one parse step (`response-parsing.ts`): JSON extraction, recovery of complete suggestions from truncated output, and normalization. `@plenz/core` then filters for quality.
+- Three adapters implement `ProviderAdapter`, whose core method is `streamCompletion({ system, user }, config, { signal, onDelta })`:
+  - OpenAI-compatible, with presets for OpenAI, Mistral, Groq, OpenRouter and Custom (any OpenAI-compatible base URL, Ollama by default). Servers that ignore `stream` are read as a single reply.
+  - Anthropic Messages API streaming
+  - Google Gemini `streamGenerateContent`, with a system instruction
+- Adapters know nothing about modes; they share one server-sent-events parser (`sse.ts`).
 
 ## Messaging
 
@@ -38,6 +39,6 @@ Shared logic lives in:
 
 - BYOK architecture with local key storage.
 - No centralized plenz prompt-processing server.
-- The background router only accepts `ANALYZE_PROMPT`, `CANCEL_ANALYSIS` and `GET_PREFERENCES` from content scripts. Everything else (model configs, keys, auth, gallery) is limited to extension pages.
+- Content scripts can only read preferences over messaging and open refine ports; the port validates every `START` and never returns keys or configs. Everything else (model configs, keys, auth, gallery) is limited to extension pages.
 - Extension outbound network access restricted in manifest CSP and host permissions.
 

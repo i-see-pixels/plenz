@@ -1,26 +1,16 @@
 import type {
-  AnalysisResult,
+  CompletionRequest,
+  CompletionResult,
   ConnectionTestResult,
   ModelOption,
   ProviderAdapter,
-  ProviderAnalyzeContext,
-  ProviderAnalyzeOptions,
   ProviderConfig,
+  StreamOptions,
 } from "@plenz/types";
-import {
-  createProviderHttpError,
-  DEFAULT_ANALYSIS_MAX_TOKENS,
-  DEFAULT_ANALYSIS_TEMPERATURE,
-  formatAnalysisUserPrompt,
-} from "./analysis-context";
-import {
-  normalizeSuggestions,
-  parseSuggestionsText,
-  SUGGESTIONS_JSON_SCHEMA,
-} from "./response-parsing";
+import { createProviderHttpError, parseJson, readErrorMessage } from "./http";
+import { readSSE } from "./sse";
 
 const API_URL = "https://api.anthropic.com/v1";
-const SUGGESTIONS_TOOL = "submit_suggestions";
 
 function headers(apiKey: string): Record<string, string> {
   return {
@@ -30,11 +20,6 @@ function headers(apiKey: string): Record<string, string> {
     "anthropic-dangerous-direct-browser-access": "true",
   };
 }
-
-type ContentBlock =
-  | { type: "text"; text: string }
-  | { type: "tool_use"; name: string; input: Record<string, unknown> }
-  | { type: string };
 
 export class AnthropicAdapter implements ProviderAdapter {
   id = "anthropic";
@@ -83,61 +68,55 @@ export class AnthropicAdapter implements ProviderAdapter {
     }
   }
 
-  async analyze(
-    prompt: string,
-    systemPrompt: string,
+  async streamCompletion(
+    request: CompletionRequest,
     config: ProviderConfig,
-    context?: ProviderAnalyzeContext,
-    options?: ProviderAnalyzeOptions,
-  ): Promise<AnalysisResult> {
+    options: StreamOptions = {},
+  ): Promise<CompletionResult> {
     const start = performance.now();
     const res = await fetch(`${API_URL}/messages`, {
       method: "POST",
       headers: headers(config.apiKey),
       body: JSON.stringify({
         model: config.model,
-        system: systemPrompt,
-        messages: [{ role: "user", content: formatAnalysisUserPrompt(prompt, context) }],
-        max_tokens: config.maxTokens ?? DEFAULT_ANALYSIS_MAX_TOKENS,
-        temperature: config.temperature ?? DEFAULT_ANALYSIS_TEMPERATURE,
-        // Forcing the tool makes the reply structured input instead of JSON-in-text.
-        tools: [
-          {
-            name: SUGGESTIONS_TOOL,
-            description: "Return the refined prompt suggestions.",
-            input_schema: SUGGESTIONS_JSON_SCHEMA,
-          },
-        ],
-        tool_choice: { type: "tool", name: SUGGESTIONS_TOOL },
+        system: request.system,
+        messages: [{ role: "user", content: request.user }],
+        max_tokens: config.maxTokens ?? request.maxTokens,
+        temperature: config.temperature ?? request.temperature,
+        stream: true,
       }),
-      signal: options?.signal,
+      signal: options.signal,
     });
-    const data = await res.json();
-    const latencyMs = Math.round(performance.now() - start);
 
-    if (!res.ok) {
-      throw createProviderHttpError(data.error?.message || "Anthropic API error", res.status);
+    if (!res.ok || !res.body) {
+      throw createProviderHttpError(
+        await readErrorMessage(res, "Anthropic API error"),
+        res.status,
+      );
     }
 
-    const blocks: ContentBlock[] = Array.isArray(data.content) ? data.content : [];
-    const toolUse = blocks.find(
-      (block): block is Extract<ContentBlock, { type: "tool_use" }> =>
-        block.type === "tool_use" && "name" in block && block.name === SUGGESTIONS_TOOL,
-    );
-    const toolSuggestions = normalizeSuggestions(toolUse?.input?.suggestions);
-    const text = blocks
-      .map((block) => (block.type === "text" && "text" in block ? block.text : ""))
-      .join("\n");
+    let text = "";
+    const tokensUsed = { prompt: 0, completion: 0 };
+    await readSSE(res.body, ({ data }) => {
+      const event = parseJson(data);
+      switch (event?.type) {
+        case "message_start":
+          tokensUsed.prompt = event.message?.usage?.input_tokens ?? 0;
+          break;
+        case "content_block_delta":
+          if (event.delta?.type === "text_delta" && event.delta.text) {
+            text += event.delta.text;
+            options.onDelta?.(event.delta.text);
+          }
+          break;
+        case "message_delta":
+          tokensUsed.completion = event.usage?.output_tokens ?? tokensUsed.completion;
+          break;
+        case "error":
+          throw new Error(event.error?.message || "Anthropic stream error");
+      }
+    });
 
-    return {
-      suggestions:
-        toolSuggestions.length > 0 ? toolSuggestions : parseSuggestionsText(text, this.name),
-      rawResponse: JSON.stringify(data),
-      tokensUsed: {
-        prompt: data.usage?.input_tokens ?? 0,
-        completion: data.usage?.output_tokens ?? 0,
-      },
-      latencyMs,
-    };
+    return { text, tokensUsed, latencyMs: Math.round(performance.now() - start) };
   }
 }

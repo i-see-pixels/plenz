@@ -1,7 +1,6 @@
 import { getActivePlatform, PlatformConfig } from "./platforms/registry";
-import { SuggestionOverlay } from "./ui/SuggestionOverlay";
 import { BadgeIndicator } from "./ui/BadgeIndicator";
-import { GhostOverlay } from "./ui/GhostOverlay";
+import { RefinePanel } from "./ui/RefinePanel";
 import {
   createContentModel,
   keyToEvent,
@@ -14,7 +13,13 @@ import {
   type ContentView,
   type LintSummary,
 } from "./machine";
-import { lintPrompt } from "@plenz/core";
+import { buildConversationContext, lintPrompt } from "@plenz/core";
+import {
+  MAX_REFINE_DRAFT_CHARS,
+  REFINE_PORT,
+  type RefineServerMessage,
+  type RefineStart,
+} from "../shared/refine-port";
 import {
   isRpcFailure,
   sendRpc,
@@ -23,7 +28,6 @@ import {
   type RpcReply,
   type RpcType,
 } from "../shared/rpc";
-import { buildConversationContext } from "@plenz/core";
 import type { ChatMessage, ConversationContext } from "@plenz/types";
 
 const PREFERENCES_STORAGE_KEY = "preferences";
@@ -47,7 +51,6 @@ function sanitizeDebounceMs(value: unknown) {
 
 function sameBadge(a: BadgeView, b: BadgeView) {
   if (a.kind !== b.kind) return false;
-  if (a.kind === "count" && b.kind === "count") return a.count === b.count;
   if (a.kind === "error" && b.kind === "error") return a.message === b.message;
   if (a.kind === "lint" && b.kind === "lint") {
     return (
@@ -62,14 +65,14 @@ function sameBadge(a: BadgeView, b: BadgeView) {
 /**
  * Driver for the content-script state machine (see ./machine.ts).
  * It turns DOM and runtime activity into machine events, runs the effects
- * each transition returns, and renders the badge, popover and ghost text
- * from the current state.
+ * each transition returns, and renders the badge and refine panel from the
+ * current state.
  */
 class ExtensionContentScript {
   private platform: PlatformConfig | null = null;
   private inputElement: HTMLElement | null = null;
-  private overlay: SuggestionOverlay | null = null;
-  private ghostOverlay: GhostOverlay | null = null;
+  private panel: RefinePanel | null = null;
+  private refinePort: chrome.runtime.Port | null = null;
   private badge: BadgeIndicator | null = null;
   private runtimeUnavailableLogged = false;
   private domObserver: MutationObserver | null = null;
@@ -140,13 +143,11 @@ class ExtensionContentScript {
         if (this.debounceTimer) window.clearTimeout(this.debounceTimer);
         this.debounceTimer = null;
         return;
-      case "requestAnalysis":
-        void this.requestAnalysis(effect.text, effect.requestId);
+      case "startRefine":
+        this.startRefine(effect);
         return;
-      case "cancelAnalysis":
-        void this.sendRuntimeMessage("CANCEL_ANALYSIS").catch(
-          () => {},
-        );
+      case "cancelRefine":
+        this.cancelRefine();
         return;
       case "applyText":
         this.writeInput(effect.text);
@@ -172,31 +173,13 @@ class ExtensionContentScript {
       const badge = next.badge;
       if (badge.kind === "hidden") this.badge?.hide();
       else if (badge.kind === "saving") this.badge?.showSaving();
-      else if (badge.kind === "count") this.badge?.show(badge.count);
+      else if (badge.kind === "ready") this.badge?.showReady();
       else if (badge.kind === "lint") this.badge?.showLint(badge.score, badge.findings);
       else this.badge?.showError(badge.message || "An error occurred");
     }
 
-    if (!next.overlay) {
-      if (this.overlay?.isVisible()) this.overlay.hide();
-    } else if (
-      !this.overlay?.isVisible() ||
-      prev?.overlay?.suggestions !== next.overlay.suggestions
-    ) {
-      this.overlay?.show(next.overlay.suggestions);
-      this.overlay?.setActiveIndex(next.overlay.activeIndex);
-    } else if (prev?.overlay?.activeIndex !== next.overlay.activeIndex) {
-      this.overlay.setActiveIndex(next.overlay.activeIndex);
-    }
-
-    if (!next.ghost) {
-      this.ghostOverlay?.hide();
-    } else if (
-      prev?.ghost?.text !== next.ghost.text ||
-      prev?.ghost?.suggestion !== next.ghost.suggestion
-    ) {
-      this.ghostOverlay?.update(next.ghost.text, next.ghost.suggestion);
-    }
+    // The panel updates in place (streamed text, answers keep focus).
+    if (next.panel || prev?.panel) this.panel?.render(next.panel);
   }
 
   private observeDOM() {
@@ -267,12 +250,10 @@ class ExtensionContentScript {
 
     this.dispatch({ type: "INPUT_DETACHED" });
     this.inputElement = null;
-    this.overlay?.destroy();
+    this.panel?.destroy();
     this.badge?.destroy();
-    this.ghostOverlay?.destroy();
-    this.overlay = null;
+    this.panel = null;
     this.badge = null;
-    this.ghostOverlay = null;
     this.renderedView = null;
   }
 
@@ -291,13 +272,15 @@ class ExtensionContentScript {
         // Determine container for overlay (usually parent of input)
         const container = el.parentElement || el;
         this.inputElement = el;
-        this.overlay = new SuggestionOverlay(container);
-        this.ghostOverlay = new GhostOverlay(el);
+        this.panel = new RefinePanel(container, {
+          onMode: (mode) => this.dispatch({ type: "MODE_CHOSEN", mode }),
+          onAccept: () => this.dispatch({ type: "ACCEPT" }),
+          onDismiss: () => this.dispatch({ type: "DISMISS" }),
+          onAnswer: (index, value) =>
+            this.dispatch({ type: "ANSWER_CHANGED", index, value }),
+          onSubmitAnswers: () => this.dispatch({ type: "ANSWERS_SUBMITTED" }),
+        });
         this.badge = new BadgeIndicator(container);
-        this.overlay.setOnSelect((index) =>
-          this.dispatch({ type: "SELECT", index }),
-        );
-        this.overlay.setOnClose(() => this.dispatch({ type: "DISMISS" }));
         this.badge.setOnClick(() => this.dispatch({ type: "BADGE_CLICKED" }));
         el.addEventListener("input", this.boundHandleInput);
 
@@ -313,41 +296,84 @@ class ExtensionContentScript {
     this.dispatch({ type: "TEXT_CHANGED", text });
   }
 
-  private async requestAnalysis(text: string, requestId: number) {
-    const conversation = this.chatContextEnabled
-      ? this.collectConversationContext(text)
-      : undefined;
+  /** One port per refine; disconnecting it cancels the provider call. */
+  private startRefine(effect: Extract<ContentEffect, { type: "startRefine" }>) {
+    this.cancelRefine();
+    const { requestId } = effect;
+    const fail = (message: string) =>
+      this.dispatch({ type: "REFINE_FAILED", requestId, message });
 
-    try {
-      const response = await this.sendRuntimeMessage("ANALYZE_PROMPT", {
-        prompt: text,
-        context: {
-          active_website: window.location.hostname,
-          conversation,
-        },
-      });
-
-      if (response && "error" in response) {
-        throw new Error(response.error);
-      }
-
-      this.dispatch({
-        type: "ANALYSIS_SUCCEEDED",
-        requestId,
-        suggestions: response?.suggestions ?? [],
-      });
-    } catch (error) {
-      // The machine drops superseded responses, so only log the current one.
-      const { state } = this.model;
-      if (state.kind === "analyzing" && state.requestId === requestId) {
-        console.error("plenz Analysis Error:", error);
-      }
-      this.dispatch({
-        type: "ANALYSIS_FAILED",
-        requestId,
-        message: (error as Error).message || "An error occurred",
-      });
+    if (effect.text.length > MAX_REFINE_DRAFT_CHARS) {
+      fail(
+        `This draft is too long to refine (limit ${MAX_REFINE_DRAFT_CHARS.toLocaleString()} characters).`,
+      );
+      return;
     }
+    if (!globalThis.chrome?.runtime?.id) {
+      fail("plenz was updated or reloaded. Refresh this page to keep using it.");
+      return;
+    }
+
+    const port = chrome.runtime.connect({ name: REFINE_PORT });
+    this.refinePort = port;
+    let settled = false;
+    const settle = () => {
+      settled = true;
+      if (this.refinePort === port) this.refinePort = null;
+      port.disconnect();
+    };
+
+    port.onMessage.addListener((message: RefineServerMessage) => {
+      switch (message.type) {
+        case "DELTA":
+          this.dispatch({ type: "REFINE_DELTA", requestId, text: message.text });
+          return;
+        case "DONE":
+          settle();
+          this.dispatch({ type: "REFINE_DONE", requestId, text: message.text });
+          return;
+        case "QUESTIONS":
+          settle();
+          this.dispatch({ type: "QUESTIONS_READY", requestId, questions: message.questions });
+          return;
+        case "ERROR":
+          settle();
+          fail(message.message);
+          return;
+      }
+    });
+    // Our own disconnect() doesn't fire this; only an unexpected drop does.
+    port.onDisconnect.addListener(() => {
+      if (settled) return;
+      settled = true;
+      if (this.refinePort === port) this.refinePort = null;
+      fail("Lost the connection to plenz. Try again.");
+    });
+
+    const lint = this.lintFor(effect.text);
+    const start: RefineStart = {
+      type: "START",
+      step: effect.step,
+      draft: effect.text,
+      context: {
+        active_website: window.location.hostname,
+        conversation: this.chatContextEnabled
+          ? this.collectConversationContext(effect.text)
+          : undefined,
+      },
+      missing:
+        effect.step === "improve" && lint.assessed
+          ? lint.findings.map((finding) => finding.label)
+          : undefined,
+      answers: effect.answers,
+    };
+    port.postMessage(start);
+  }
+
+  private cancelRefine() {
+    const port = this.refinePort;
+    this.refinePort = null;
+    port?.disconnect();
   }
 
   private getElementVisibleText(element: Element) {
@@ -444,7 +470,7 @@ class ExtensionContentScript {
     if (!event) return;
 
     e.preventDefault();
-    if (event.type !== "NAVIGATE") e.stopPropagation();
+    e.stopPropagation();
     this.dispatch(event);
   }
 

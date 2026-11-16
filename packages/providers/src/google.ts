@@ -1,29 +1,20 @@
 import type {
-  AnalysisResult,
+  CompletionRequest,
+  CompletionResult,
   ConnectionTestResult,
   ModelOption,
   ProviderAdapter,
-  ProviderAnalyzeContext,
-  ProviderAnalyzeOptions,
   ProviderConfig,
+  StreamOptions,
 } from "@plenz/types";
-import {
-  createProviderHttpError,
-  DEFAULT_ANALYSIS_MAX_TOKENS,
-  DEFAULT_ANALYSIS_TEMPERATURE,
-  formatAnalysisUserPrompt,
-} from "./analysis-context";
-import { parseSuggestionsText } from "./response-parsing";
+import { createProviderHttpError, outputBudget, parseJson, readErrorMessage } from "./http";
+import { readSSE } from "./sse";
 
 const API_URL = "https://generativelanguage.googleapis.com/v1beta";
 
 export class GoogleAdapter implements ProviderAdapter {
   id = "google";
   name = "Google Gemini";
-
-  private getUrl(model: string) {
-    return `${API_URL}/models/${model}:generateContent`;
-  }
 
   async fetchModels(config: ProviderConfig): Promise<ModelOption[]> {
     if (!config.apiKey) return [];
@@ -51,7 +42,7 @@ export class GoogleAdapter implements ProviderAdapter {
     if (!config.model) return { success: false, latencyMs: 0, error: "No model selected" };
     const start = performance.now();
     try {
-      const res = await fetch(this.getUrl(config.model), {
+      const res = await fetch(`${API_URL}/models/${config.model}:generateContent`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -79,67 +70,63 @@ export class GoogleAdapter implements ProviderAdapter {
     }
   }
 
-  async analyze(
-    prompt: string,
-    systemPrompt: string,
+  async streamCompletion(
+    request: CompletionRequest,
     config: ProviderConfig,
-    context?: ProviderAnalyzeContext,
-    options?: ProviderAnalyzeOptions,
-  ): Promise<AnalysisResult> {
+    options: StreamOptions = {},
+  ): Promise<CompletionResult> {
     const start = performance.now();
-    const res = await fetch(this.getUrl(config.model), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-goog-api-key": config.apiKey,
-      },
-      body: JSON.stringify({
-        // A real system instruction, instead of a first user turn.
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: formatAnalysisUserPrompt(prompt, context) }],
-          },
-        ],
-        generationConfig: {
-          maxOutputTokens: config.maxTokens ?? DEFAULT_ANALYSIS_MAX_TOKENS,
-          temperature: config.temperature ?? DEFAULT_ANALYSIS_TEMPERATURE,
-          responseMimeType: "application/json",
+    const res = await fetch(
+      `${API_URL}/models/${config.model}:streamGenerateContent?alt=sse`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-goog-api-key": config.apiKey,
         },
-      }),
-      signal: options?.signal,
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: request.system }] },
+          contents: [{ role: "user", parts: [{ text: request.user }] }],
+          generationConfig: {
+            maxOutputTokens: outputBudget(request.maxTokens, config.maxTokens),
+            temperature: config.temperature ?? request.temperature,
+          },
+        }),
+        signal: options.signal,
+      },
+    );
+
+    if (!res.ok || !res.body) {
+      throw createProviderHttpError(
+        await readErrorMessage(res, "Gemini API error"),
+        res.status,
+      );
+    }
+
+    let text = "";
+    const tokensUsed = { prompt: 0, completion: 0 };
+    await readSSE(res.body, ({ data }) => {
+      const event = parseJson(data);
+      if (!event) return;
+      if (event.error) throw new Error(event.error.message || "Gemini stream error");
+
+      const parts = event.candidates?.[0]?.content?.parts;
+      if (Array.isArray(parts)) {
+        for (const part of parts) {
+          // Skip thought summaries from thinking models; keep the answer text.
+          if (typeof part?.text === "string" && part.text && !part.thought) {
+            text += part.text;
+            options.onDelta?.(part.text);
+          }
+        }
+      }
+      if (event.usageMetadata) {
+        tokensUsed.prompt = event.usageMetadata.promptTokenCount ?? tokensUsed.prompt;
+        tokensUsed.completion =
+          event.usageMetadata.candidatesTokenCount ?? tokensUsed.completion;
+      }
     });
 
-    const data = await res.json();
-    const latencyMs = Math.round(performance.now() - start);
-
-    if (!res.ok) {
-      throw createProviderHttpError(data.error?.message || "Gemini API error", res.status);
-    }
-
-    const parts = data.candidates?.[0]?.content?.parts;
-    const text = Array.isArray(parts)
-      ? parts
-          .map((part: { text?: unknown }) => (typeof part.text === "string" ? part.text : ""))
-          .join("\n")
-      : "";
-
-    let suggestions: AnalysisResult["suggestions"] = [];
-    try {
-      suggestions = parseSuggestionsText(text, "Gemini");
-    } catch {
-      // Gemini previously returned no suggestions rather than failing.
-    }
-
-    return {
-      suggestions,
-      rawResponse: JSON.stringify(data),
-      tokensUsed: {
-        prompt: data.usageMetadata?.promptTokenCount ?? 0,
-        completion: data.usageMetadata?.candidatesTokenCount ?? 0,
-      },
-      latencyMs,
-    };
+    return { text, tokensUsed, latencyMs: Math.round(performance.now() - start) };
   }
 }

@@ -1,37 +1,28 @@
 import { providers } from "@plenz/providers";
 import {
-  buildSystemPrompt,
-  EntityExtractor,
-  IntentDetector,
-  SuggestionValidationError,
-  validateSuggestions,
+  buildRefineRequest,
+  cleanRefineOutput,
+  parseClarifyingQuestions,
 } from "@plenz/core";
-import type {
-  AnalysisResult,
-  ProviderAdapter,
-  ProviderAnalyzeContext,
-  ProviderConfig,
-} from "@plenz/types";
+import type { CompletionResult, ProviderAdapter, ProviderConfig } from "@plenz/types";
 import { StorageManager } from "./storage";
 import {
   initialOrchestratorState,
   orchestratorTransition,
 } from "./orchestrator-machine";
+import type { RefineStart } from "../shared/refine-port";
 
-const ANALYSIS_TIMEOUT_MS = 12_000;
+/** No first token by then: treat as a timeout (retryable). */
+const FIRST_TOKEN_TIMEOUT_MS = 20_000;
+/** A stream that goes quiet this long mid-reply is abandoned. */
+const IDLE_TIMEOUT_MS = 30_000;
 
-type AttemptInput = {
-  provider: ProviderAdapter;
-  config: ProviderConfig;
-  prompt: string;
-  systemPrompt: string;
-  context?: ProviderAnalyzeContext;
-  signal?: AbortSignal;
-};
+type Attempt = { provider: ProviderAdapter; config: ProviderConfig };
 
-type OrchestratedAnalysisResult = Pick<AnalysisResult, "suggestions" | "latencyMs"> & {
-  providerId: string;
-};
+export type RefineOutcome =
+  | { kind: "text"; text: string; providerId: string }
+  | { kind: "questions"; questions: string[]; providerId: string }
+  | { kind: "error"; message: string; cancelled?: boolean };
 
 function getErrorStatus(error: unknown) {
   return typeof error === "object" &&
@@ -44,17 +35,10 @@ function getErrorStatus(error: unknown) {
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
-  return "Unknown analysis error";
-}
-
-function isAbortError(error: unknown) {
-  return error instanceof DOMException && error.name === "AbortError";
+  return "Unknown refine error";
 }
 
 function isRetryableError(error: unknown) {
-  if (error instanceof SuggestionValidationError) return false;
-  if (isAbortError(error)) return true;
-
   const status = getErrorStatus(error);
   if (status === 429 || (typeof status === "number" && status >= 500)) {
     return true;
@@ -69,46 +53,46 @@ function isRetryableError(error: unknown) {
   );
 }
 
-function getContextText(context?: ProviderAnalyzeContext) {
-  const conversation = context?.conversation;
-  if (!conversation) return "";
-
-  return [
-    conversation.rollingSummary,
-    ...conversation.recentMessages.map((message) => message.text),
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-async function analyzeWithTimeout(input: AttemptInput): Promise<AnalysisResult> {
+/** One provider call, with a first-token timeout and an idle timeout. */
+async function streamAttempt(
+  attempt: Attempt,
+  request: ReturnType<typeof buildRefineRequest>,
+  signal: AbortSignal,
+  onDelta: (text: string) => void,
+): Promise<CompletionResult> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), ANALYSIS_TIMEOUT_MS);
+  let timedOut = false;
+  const onTimeout = () => {
+    timedOut = true;
+    controller.abort();
+  };
+  let timer = setTimeout(onTimeout, FIRST_TOKEN_TIMEOUT_MS);
   const abortFromCaller = () => controller.abort();
-  input.signal?.addEventListener("abort", abortFromCaller);
-  if (input.signal?.aborted) controller.abort();
+  signal.addEventListener("abort", abortFromCaller);
+  if (signal.aborted) controller.abort();
 
   try {
-    const result = await input.provider.analyze(
-      input.prompt,
-      input.systemPrompt,
-      input.config,
-      input.context,
-      { signal: controller.signal },
-    );
-    const suggestions = validateSuggestions(result.suggestions, 5, input.prompt);
-    return {
-      ...result,
-      suggestions,
-    };
+    return await attempt.provider.streamCompletion(request, attempt.config, {
+      signal: controller.signal,
+      onDelta: (text) => {
+        clearTimeout(timer);
+        timer = setTimeout(onTimeout, IDLE_TIMEOUT_MS);
+        onDelta(text);
+      },
+    });
+  } catch (error) {
+    if (timedOut && !signal.aborted) {
+      throw new Error("Timed out waiting for the provider.");
+    }
+    throw error;
   } finally {
-    clearTimeout(timeoutId);
-    input.signal?.removeEventListener("abort", abortFromCaller);
+    clearTimeout(timer);
+    signal.removeEventListener("abort", abortFromCaller);
   }
 }
 
 function logAttemptFailure(providerId: string, error: unknown) {
-  console.warn("plenz: provider analysis attempt failed", {
+  console.warn("plenz: provider refine attempt failed", {
     providerId,
     status: getErrorStatus(error),
     message: getErrorMessage(error),
@@ -127,26 +111,29 @@ async function getFallbackAttempts(activeProviderId: string | null) {
       config: configs[provider.id],
     }))
     .filter(
-      (attempt): attempt is { provider: ProviderAdapter; config: ProviderConfig } =>
+      (attempt): attempt is Attempt =>
         !!attempt.config?.apiKey && !!attempt.config?.model,
     );
 }
 
-const CANCELLED_RESULT = { error: "Analysis cancelled.", cancelled: true } as const;
+const CANCELLED: RefineOutcome = { kind: "error", message: "Refine cancelled.", cancelled: true };
 
-export async function analyzePromptWithOrchestration(
-  prompt: string,
-  context?: ProviderAnalyzeContext,
-  signal?: AbortSignal,
-): Promise<OrchestratedAnalysisResult | { error: string; cancelled?: boolean }> {
+/**
+ * Run one refine. Retries and (opt-in) fallbacks only happen before the first
+ * chunk reaches the user; restarting mid-stream would duplicate text.
+ */
+export async function runRefine(
+  start: RefineStart,
+  options: { signal: AbortSignal; onDelta: (text: string) => void },
+): Promise<RefineOutcome> {
+  const { signal } = options;
   const prefs = await StorageManager.getPreferences();
-
-  const activeConfigResult = await StorageManager.getActiveModelConfig();
-  const activeConfig = activeConfigResult.data;
+  const activeConfig = (await StorageManager.getActiveModelConfig()).data;
 
   if (!activeConfig?.apiKey || !activeConfig.model) {
     return {
-      error:
+      kind: "error",
+      message:
         "LLM Provider not configured. Please set an API key and model in the extension options.",
     };
   }
@@ -154,66 +141,72 @@ export async function analyzePromptWithOrchestration(
   const activeProvider = providers.find((provider) => provider.id === prefs.activeProviderId);
   if (!activeProvider) {
     return {
-      error: "Active LLM Provider not found. Please review your settings.",
+      kind: "error",
+      message: "Active LLM Provider not found. Please review your settings.",
     };
   }
 
-  const analysisText = [prompt, getContextText(context)].filter(Boolean).join("\n\n");
-  const intentDetector = new IntentDetector();
-  const entityExtractor = new EntityExtractor();
-  const intentMatch = intentDetector.detect(analysisText);
-  const entities = entityExtractor.extract(analysisText, context);
-  const systemPrompt = buildSystemPrompt(intentMatch, entities, context?.conversation);
+  const request = buildRefineRequest({
+    step: start.step,
+    draft: start.draft,
+    context: start.context,
+    missing: start.missing,
+    answers: start.answers,
+  });
+  // Ask me questions are shown once complete, not streamed.
+  const streamsToUser = start.step !== "ask";
+  let sentToUser = false;
+  const onDelta = (text: string) => {
+    if (!streamsToUser) return;
+    sentToUser = true;
+    options.onDelta(text);
+  };
+
   // Sending the prompt to a provider the user didn't pick must be opted into.
   // Fallbacks are only loaded once the active provider has failed.
-  let fallbackAttempts: Awaited<ReturnType<typeof getFallbackAttempts>> | null =
-    prefs.providerFallbackEnabled ? null : [];
+  let fallbackAttempts: Attempt[] | null = prefs.providerFallbackEnabled ? null : [];
   let state = initialOrchestratorState<unknown>();
 
   while (state.kind === "attempting") {
-    if (signal?.aborted) {
-      state = orchestratorTransition(state, { type: "CANCELLED" }, { fallbackCount: 0 });
-      break;
-    }
+    if (signal.aborted) return CANCELLED;
 
     const { target } = state;
-    const attempt =
+    const attempt: Attempt | undefined =
       target.kind === "fallback"
         ? fallbackAttempts?.[target.index]
         : { provider: activeProvider, config: activeConfig };
     if (!attempt) break;
 
     try {
-      const result = await analyzeWithTimeout({
-        provider: attempt.provider,
-        config: attempt.config,
-        prompt,
-        systemPrompt,
-        context,
-        signal,
-      });
+      const result = await streamAttempt(attempt, request, signal, onDelta);
       state = orchestratorTransition(state, { type: "ATTEMPT_SUCCEEDED" }, { fallbackCount: 0 });
 
-      return {
-        suggestions: result.suggestions,
-        latencyMs: result.latencyMs,
-        providerId: attempt.provider.id,
-      };
+      if (start.step === "ask") {
+        const questions = parseClarifyingQuestions(result.text);
+        return questions.length > 0
+          ? { kind: "questions", questions, providerId: attempt.provider.id }
+          : { kind: "error", message: "No clarifying questions came back. Try another mode." };
+      }
+
+      const text = cleanRefineOutput(result.text);
+      return text
+        ? { kind: "text", text, providerId: attempt.provider.id }
+        : { kind: "error", message: "The provider returned an empty prompt. Try again." };
     } catch (error) {
+      if (signal.aborted) return CANCELLED;
       logAttemptFailure(attempt.provider.id, error);
+      if (sentToUser) {
+        return { kind: "error", message: getErrorMessage(error) || "The refine stopped early." };
+      }
       fallbackAttempts ??= await getFallbackAttempts(prefs.activeProviderId);
       state = orchestratorTransition(
         state,
-        signal?.aborted
-          ? { type: "CANCELLED" }
-          : { type: "ATTEMPT_FAILED", error, retryable: isRetryableError(error) },
+        { type: "ATTEMPT_FAILED", error, retryable: isRetryableError(error) },
         { fallbackCount: fallbackAttempts.length },
       );
     }
   }
 
-  if (state.kind === "cancelled") return CANCELLED_RESULT;
-
   const lastError = state.kind === "failed" ? state.error : undefined;
-  return { error: getErrorMessage(lastError) || "Failed to analyze prompt." };
+  return { kind: "error", message: getErrorMessage(lastError) || "Failed to refine prompt." };
 }

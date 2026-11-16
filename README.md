@@ -30,9 +30,9 @@
 ## Features
 
 - Free local prompt check while typing: a score and chips like "No output format", with no API call.
-- AI refine on demand (click the badge or press Ctrl/Cmd+Shift+Enter), or automatically after a pause if you opt in.
-- Ranked prompt improvement suggestions.
-- One-click suggestion apply into chat editors.
+- AI refine on demand, streamed as it's written: Improve, Tighten (shorter, same requirements), Structure (labeled sections), or Ask me (answer 2–3 questions, then get the prompt).
+- Click the badge to pick a mode, or press Ctrl/Cmd+Shift+Enter for Improve; opt in to refine automatically after a pause.
+- One-click replace into chat editors.
 - Provider-agnostic architecture with BYOK.
 - Works across multiple AI chat platforms.
 

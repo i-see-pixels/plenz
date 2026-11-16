@@ -1,19 +1,3 @@
-export interface Suggestion {
-	id: string
-	type:
-	| "rewrite"
-	| "add_context"
-	| "add_constraints"
-	| "add_role"
-	| "add_format"
-	| "clarify"
-	original: string
-	suggested: string
-	rationale: string
-	confidence: number
-	position?: { start: number; end: number }
-}
-
 export interface ChatMessage {
 	role: "user" | "assistant" | "unknown"
 	text: string
@@ -37,13 +21,33 @@ export interface ProviderConfig {
 	temperature?: number
 }
 
-export interface ProviderAnalyzeContext {
+/** Where the draft is being written, sent along with a refine. */
+export interface RefineContext {
 	active_website?: string
 	conversation?: ConversationContext
 }
 
-export interface ProviderAnalyzeOptions {
+/** The refine modes a user can pick. */
+export type RefineMode = "improve" | "tighten" | "structure" | "ask"
+
+/** A provider-agnostic completion request: one system and one user message. */
+export interface CompletionRequest {
+	system: string
+	user: string
+	maxTokens: number
+	temperature: number
+}
+
+export interface StreamOptions {
 	signal?: AbortSignal
+	/** Called with each chunk of text as it arrives. */
+	onDelta?: (text: string) => void
+}
+
+export interface CompletionResult {
+	text: string
+	tokensUsed: { prompt: number; completion: number }
+	latencyMs: number
 }
 
 /** Status of key sync with the user's account */
@@ -60,13 +64,6 @@ export interface ConnectionTestResult {
 	success: boolean
 	latencyMs: number
 	error?: string
-}
-
-export interface AnalysisResult {
-	suggestions: Suggestion[]
-	rawResponse: string
-	tokensUsed: { prompt: number; completion: number }
-	latencyMs: number
 }
 
 export interface ModelOption {
@@ -108,11 +105,10 @@ export interface ProviderAdapter {
 	name: string
 	fetchModels(config: ProviderConfig): Promise<ModelOption[]>
 	testConnection(config: ProviderConfig): Promise<ConnectionTestResult>
-	analyze(
-		prompt: string,
-		systemPrompt: string,
+	/** Stream a completion; resolves with the full text once the stream ends. */
+	streamCompletion(
+		request: CompletionRequest,
 		config: ProviderConfig,
-		context?: ProviderAnalyzeContext,
-		options?: ProviderAnalyzeOptions
-	): Promise<AnalysisResult>
+		options?: StreamOptions
+	): Promise<CompletionResult>
 }

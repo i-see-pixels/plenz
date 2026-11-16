@@ -1,29 +1,38 @@
-import type { Suggestion } from "@plenz/types";
+import type { ClarifyingAnswer, RefineStep } from "@plenz/core";
+import type { RefineMode } from "@plenz/types";
 
 // Pure state machine for the in-page flow. No DOM, timers or messaging here:
 // `transition` returns the next model plus effects for the driver to run,
-// and `view` projects a model onto what the badge, popover and ghost text show.
+// and `view` projects a model onto what the badge and refine panel show.
 //
 // Typing is free: the driver lints the draft locally and the badge shows the
-// result. The paid LLM refine runs on request (badge click or
-// Ctrl/Cmd+Shift+Enter), or after a typing pause when auto-refine is on.
+// result. A paid refine runs only when asked: the badge opens a mode picker,
+// and Ctrl/Cmd+Shift+Enter runs Improve. With auto-refine on, Improve also
+// runs in the background after a typing pause.
 
 export const MIN_PROMPT_LENGTH = 10;
 
 export type ContentState =
   | { kind: "detached" }
   | { kind: "idle" }
-  | { kind: "debouncing"; text: string }
-  | { kind: "analyzing"; text: string; requestId: number }
-  | { kind: "ready"; text: string; suggestions: Suggestion[] }
+  /** Auto-refine is waiting for the user to pause. */
+  | { kind: "debouncing" }
+  /** The panel is open on its mode buttons. */
+  | { kind: "picking" }
+  /** `visible: false` is an auto-refine running behind the badge. */
   | {
-      kind: "open";
-      text: string;
-      suggestions: Suggestion[];
-      activeIndex: number;
+      kind: "streaming";
+      step: RefineStep;
+      requestId: number;
+      output: string;
+      visible: boolean;
     }
+  /** Ask me: waiting for the clarifying questions. */
+  | { kind: "asking"; requestId: number }
+  | { kind: "answering"; questions: string[]; answers: string[] }
+  | { kind: "result"; step: RefineStep; output: string; visible: boolean }
   | { kind: "applying"; text: string }
-  | { kind: "error"; message: string };
+  | { kind: "failed"; step: RefineStep; message: string; visible: boolean };
 
 export type ContentModel = {
   state: ContentState;
@@ -47,13 +56,16 @@ export type ContentEvent =
     }
   | { type: "TEXT_CHANGED"; text: string }
   | { type: "DEBOUNCE_ELAPSED" }
-  | { type: "ANALYSIS_SUCCEEDED"; requestId: number; suggestions: Suggestion[] }
-  | { type: "ANALYSIS_FAILED"; requestId: number; message: string }
-  | { type: "REFINE_REQUESTED" }
   | { type: "BADGE_CLICKED" }
-  | { type: "OPEN_REQUESTED" }
-  | { type: "NAVIGATE"; direction: "up" | "down" }
-  | { type: "SELECT"; index: number }
+  | { type: "MODE_CHOSEN"; mode: RefineMode }
+  /** Ctrl/Cmd+Shift+Enter: Improve straight away. */
+  | { type: "REFINE_REQUESTED" }
+  | { type: "REFINE_DELTA"; requestId: number; text: string }
+  | { type: "REFINE_DONE"; requestId: number; text: string }
+  | { type: "QUESTIONS_READY"; requestId: number; questions: string[] }
+  | { type: "REFINE_FAILED"; requestId: number; message: string }
+  | { type: "ANSWER_CHANGED"; index: number; value: string }
+  | { type: "ANSWERS_SUBMITTED" }
   | { type: "ACCEPT" }
   | { type: "DISMISS" }
   | { type: "APPLIED" };
@@ -61,8 +73,14 @@ export type ContentEvent =
 export type ContentEffect =
   | { type: "startDebounce"; ms: number }
   | { type: "clearDebounce" }
-  | { type: "requestAnalysis"; text: string; requestId: number }
-  | { type: "cancelAnalysis" }
+  | {
+      type: "startRefine";
+      requestId: number;
+      step: RefineStep;
+      text: string;
+      answers?: ClarifyingAnswer[];
+    }
+  | { type: "cancelRefine" }
   | { type: "applyText"; text: string };
 
 export type TransitionResult = {
@@ -88,7 +106,9 @@ export function createContentModel(
 /** Effects needed to abandon whatever async work the current state owns. */
 function exitEffects(state: ContentState): ContentEffect[] {
   if (state.kind === "debouncing") return [{ type: "clearDebounce" }];
-  if (state.kind === "analyzing") return [{ type: "cancelAnalysis" }];
+  if (state.kind === "streaming" || state.kind === "asking") {
+    return [{ type: "cancelRefine" }];
+  }
   return [];
 }
 
@@ -105,30 +125,52 @@ const unchanged = (model: ContentModel): TransitionResult => ({
   effects: [],
 });
 
-const REFINABLE: ContentState["kind"][] = ["idle", "debouncing", "ready", "error"];
-
-/** Start a refine of the current draft now, abandoning any pending work. */
-function refine(model: ContentModel): TransitionResult {
-  const { state } = model;
-  if (
-    !model.enabled ||
-    model.text.length < MIN_PROMPT_LENGTH ||
-    !REFINABLE.includes(state.kind)
-  ) {
-    return unchanged(model);
+/** Whether the refine panel is on screen (the badge is hidden meanwhile). */
+export function isPanelOpen(state: ContentState) {
+  switch (state.kind) {
+    case "picking":
+    case "asking":
+    case "answering":
+      return true;
+    case "streaming":
+    case "result":
+    case "failed":
+      return state.visible;
+    default:
+      return false;
   }
+}
+
+const canRefine = (model: ContentModel) =>
+  model.enabled && model.text.trim().length >= MIN_PROMPT_LENGTH;
+
+/** Start a refine step now, abandoning whatever was in progress. */
+function beginRefine(
+  model: ContentModel,
+  step: RefineStep,
+  visible: boolean,
+  answers?: ClarifyingAnswer[],
+): TransitionResult {
+  if (!canRefine(model)) return unchanged(model);
   const requestId = model.lastRequestId + 1;
+  const state: ContentState =
+    step === "ask"
+      ? { kind: "asking", requestId }
+      : { kind: "streaming", step, requestId, output: "", visible };
   return {
-    model: {
-      ...model,
-      lastRequestId: requestId,
-      state: { kind: "analyzing", text: model.text, requestId },
-    },
+    model: { ...model, lastRequestId: requestId, state },
     effects: [
-      ...exitEffects(state),
-      { type: "requestAnalysis", text: model.text, requestId },
+      ...exitEffects(model.state),
+      { type: "startRefine", requestId, step, text: model.text, answers },
     ],
   };
+}
+
+function isCurrent(state: ContentState, requestId: number) {
+  return (
+    (state.kind === "streaming" || state.kind === "asking") &&
+    state.requestId === requestId
+  );
 }
 
 export function transition(
@@ -160,108 +202,130 @@ export function transition(
     }
 
     case "TEXT_CHANGED": {
-      // Our own write while applying a suggestion must not start a new paid analysis.
+      // Our own write while applying a suggestion must not start a new refine.
       if (state.kind === "detached" || state.kind === "applying") {
         return unchanged(model);
       }
+      // Editing the draft makes any open panel or running refine stale.
       const next = { ...model, text: event.text };
       const effects = exitEffects(state);
-      if (
-        !model.enabled ||
-        !model.autoRefine ||
-        event.text.length < MIN_PROMPT_LENGTH
-      ) {
+      if (!canRefine(next) || !model.autoRefine) {
         return to(next, { kind: "idle" }, effects);
       }
-      return to(next, { kind: "debouncing", text: event.text }, [
+      return to(next, { kind: "debouncing" }, [
         ...effects,
         { type: "startDebounce", ms: model.debounceMs },
       ]);
     }
 
-    case "DEBOUNCE_ELAPSED": {
-      if (state.kind !== "debouncing") return unchanged(model);
-      const requestId = model.lastRequestId + 1;
-      return {
-        model: {
-          ...model,
-          lastRequestId: requestId,
-          state: { kind: "analyzing", text: state.text, requestId },
-        },
-        effects: [{ type: "requestAnalysis", text: state.text, requestId }],
-      };
-    }
-
-    case "ANALYSIS_SUCCEEDED":
-      // Responses for superseded requests are dropped.
-      if (state.kind !== "analyzing" || state.requestId !== event.requestId) {
-        return unchanged(model);
-      }
-      return event.suggestions.length > 0
-        ? to(model, {
-            kind: "ready",
-            text: state.text,
-            suggestions: event.suggestions,
-          })
-        : to(model, { kind: "idle" });
-
-    case "ANALYSIS_FAILED":
-      if (state.kind !== "analyzing" || state.requestId !== event.requestId) {
-        return unchanged(model);
-      }
-      return to(model, { kind: "error", message: event.message });
-
-    case "REFINE_REQUESTED":
-      return refine(model);
+    case "DEBOUNCE_ELAPSED":
+      // The timer has fired, so there is nothing to clear: refine from idle.
+      return state.kind === "debouncing"
+        ? beginRefine({ ...model, state: { kind: "idle" } }, "improve", false)
+        : unchanged(model);
 
     case "BADGE_CLICKED":
-      // Waiting suggestions open; otherwise the click asks for a refine.
-      return state.kind === "ready"
-        ? to(model, { ...state, kind: "open", activeIndex: 0 })
-        : refine(model);
+      switch (state.kind) {
+        case "idle":
+        case "debouncing":
+        case "failed":
+          return canRefine(model)
+            ? to(model, { kind: "picking" }, exitEffects(state))
+            : unchanged(model);
+        case "streaming":
+        case "result":
+          // A background auto-refine: show it.
+          return to(model, { ...state, visible: true });
+        default:
+          return unchanged(model);
+      }
 
-    case "OPEN_REQUESTED":
-      if (state.kind !== "ready") return unchanged(model);
-      return to(model, { ...state, kind: "open", activeIndex: 0 });
+    case "MODE_CHOSEN":
+      return isPanelOpen(state) ? beginRefine(model, event.mode, true) : unchanged(model);
 
-    case "NAVIGATE": {
-      if (state.kind !== "open") return unchanged(model);
-      const count = state.suggestions.length;
-      const step = event.direction === "down" ? 1 : -1;
+    case "REFINE_REQUESTED":
+      switch (state.kind) {
+        case "idle":
+        case "debouncing":
+        case "picking":
+        case "result":
+        case "failed":
+          return beginRefine(model, "improve", true);
+        case "streaming":
+          // Show a background refine rather than starting another one.
+          return state.visible ? unchanged(model) : to(model, { ...state, visible: true });
+        default:
+          return unchanged(model);
+      }
+
+    case "REFINE_DELTA":
+      if (state.kind !== "streaming" || state.requestId !== event.requestId) {
+        return unchanged(model);
+      }
+      return to(model, { ...state, output: state.output + event.text });
+
+    case "REFINE_DONE":
+      // Replies for superseded requests are dropped.
+      if (state.kind !== "streaming" || state.requestId !== event.requestId) {
+        return unchanged(model);
+      }
       return to(model, {
-        ...state,
-        activeIndex: (state.activeIndex + step + count) % count,
+        kind: "result",
+        step: state.step,
+        output: event.text,
+        visible: state.visible,
       });
+
+    case "QUESTIONS_READY":
+      if (state.kind !== "asking" || state.requestId !== event.requestId) {
+        return unchanged(model);
+      }
+      return to(model, {
+        kind: "answering",
+        questions: event.questions,
+        answers: event.questions.map(() => ""),
+      });
+
+    case "REFINE_FAILED":
+      if (!isCurrent(state, event.requestId)) return unchanged(model);
+      return to(model, {
+        kind: "failed",
+        step: state.kind === "streaming" ? state.step : "ask",
+        message: event.message,
+        visible: state.kind === "streaming" ? state.visible : true,
+      });
+
+    case "ANSWER_CHANGED": {
+      if (state.kind !== "answering" || !(event.index in state.questions)) {
+        return unchanged(model);
+      }
+      const answers = [...state.answers];
+      answers[event.index] = event.value;
+      return to(model, { ...state, answers });
     }
 
-    case "SELECT": {
-      if (state.kind !== "open") return unchanged(model);
-      const suggestion = state.suggestions[event.index];
-      if (!suggestion) return unchanged(model);
-      return to(model, { kind: "applying", text: suggestion.suggested }, [
-        { type: "applyText", text: suggestion.suggested },
-      ]);
-    }
+    case "ANSWERS_SUBMITTED":
+      if (state.kind !== "answering") return unchanged(model);
+      return beginRefine(
+        model,
+        "compose",
+        true,
+        state.questions.map((question, i) => ({ question, answer: state.answers[i] ?? "" })),
+      );
 
-    case "ACCEPT": {
-      if (state.kind !== "open") return unchanged(model);
-      const suggestion = state.suggestions[state.activeIndex];
-      if (!suggestion) return unchanged(model);
-      return to(model, { kind: "applying", text: suggestion.suggested }, [
-        { type: "applyText", text: suggestion.suggested },
+    case "ACCEPT":
+      if (state.kind !== "result" || !state.visible) return unchanged(model);
+      return to(model, { kind: "applying", text: state.output }, [
+        { type: "applyText", text: state.output },
       ]);
-    }
 
     case "DISMISS":
-      if (state.kind !== "open") return unchanged(model);
-      return to(model, {
-        kind: "ready",
-        text: state.text,
-        suggestions: state.suggestions,
-      });
+      return isPanelOpen(state)
+        ? to(model, { kind: "idle" }, exitEffects(state))
+        : unchanged(model);
 
     case "APPLIED":
-      // The applied suggestion is now the draft (its own input event was ignored).
+      // The applied prompt is now the draft (its own input event was ignored).
       return state.kind === "applying"
         ? to({ ...model, text: state.text }, { kind: "idle" })
         : unchanged(model);
@@ -279,64 +343,33 @@ export type KeyInput = {
 
 /**
  * Maps a keydown to a machine event, or null to let the page handle it.
- * Keys are only taken over while the popover is open, Tab in the chat input
- * when suggestions are waiting behind the badge, and Ctrl/Cmd+Shift+Enter in
- * the chat input to refine.
+ * Taken over: Esc while the panel is open, Tab in the chat input to accept a
+ * finished result, and Ctrl/Cmd+Shift+Enter in the chat input to refine.
  */
 export function keyToEvent(
   state: ContentState,
   input: KeyInput,
 ): ContentEvent | null {
-  if (state.kind === "open") {
-    switch (input.key) {
-      case "Tab":
-        return { type: "ACCEPT" };
-      case "Escape":
-        return { type: "DISMISS" };
-      case "ArrowUp":
-        return { type: "NAVIGATE", direction: "up" };
-      case "ArrowDown":
-        return { type: "NAVIGATE", direction: "down" };
-      default:
-        return null;
-    }
+  if (isPanelOpen(state) && input.key === "Escape") {
+    return { type: "DISMISS" };
   }
 
   if (
-    input.inInput &&
-    input.key === "Enter" &&
-    input.shiftKey &&
-    input.modKey &&
-    REFINABLE.includes(state.kind)
-  ) {
-    return { type: "REFINE_REQUESTED" };
-  }
-
-  if (
-    state.kind === "ready" &&
+    state.kind === "result" &&
+    state.visible &&
     input.key === "Tab" &&
     !input.shiftKey &&
     input.inInput
   ) {
-    return { type: "OPEN_REQUESTED" };
+    return { type: "ACCEPT" };
+  }
+
+  if (input.inInput && input.key === "Enter" && input.shiftKey && input.modKey) {
+    return { type: "REFINE_REQUESTED" };
   }
 
   return null;
 }
-
-export type BadgeView =
-  | { kind: "hidden" }
-  /** Local lint result; score is null when the draft can't be scored. */
-  | { kind: "lint"; score: number | null; findings: LintChip[] }
-  | { kind: "saving" }
-  | { kind: "count"; count: number }
-  | { kind: "error"; message: string };
-
-export type ContentView = {
-  badge: BadgeView;
-  overlay: { suggestions: Suggestion[]; activeIndex: number } | null;
-  ghost: { text: string; suggestion: string } | null;
-};
 
 export type LintChip = { label: string; hint: string };
 
@@ -344,24 +377,53 @@ export type LintChip = { label: string; hint: string };
 export type LintSummary = {
   assessed: boolean;
   score: number;
-  findings: LintChip[];
+  findings: Array<LintChip & { id: string }>;
 };
 
-/** Chips shown on the badge; the rest are less important. */
+/** Chips shown on the badge and picker; the rest are less important. */
 export const MAX_LINT_CHIPS = 3;
 
+export type BadgeView =
+  | { kind: "hidden" }
+  /** Local lint result; score is null when the draft can't be scored. */
+  | { kind: "lint"; score: number | null; findings: LintChip[] }
+  | { kind: "saving" }
+  /** A background refine finished; click to see it. */
+  | { kind: "ready" }
+  | { kind: "error"; message: string };
+
+export type PanelView =
+  | { kind: "picking"; recommended: RefineMode; findings: LintChip[] }
+  | { kind: "streaming"; step: RefineStep; output: string }
+  | { kind: "asking" }
+  | { kind: "answering"; questions: string[]; answers: string[] }
+  | { kind: "result"; step: RefineStep; output: string }
+  | { kind: "failed"; step: RefineStep; message: string };
+
+export type ContentView = {
+  badge: BadgeView;
+  panel: PanelView | null;
+};
+
+const HIDDEN: BadgeView = { kind: "hidden" };
+
+function topChips(lint: LintSummary | null): LintChip[] {
+  if (!lint?.assessed) return [];
+  return lint.findings.slice(0, MAX_LINT_CHIPS).map(({ label, hint }) => ({ label, hint }));
+}
+
+/** Long or unstructured drafts are better served by Tighten. */
+export function recommendedMode(lint: LintSummary | null): RefineMode {
+  const ids = new Set(lint?.findings.map((f) => f.id));
+  return ids.has("too_long") || ids.has("wall_of_text") ? "tighten" : "improve";
+}
+
 function lintBadge(model: ContentModel, lint: LintSummary | null): BadgeView {
-  if (!model.enabled || !lint || model.text.length < MIN_PROMPT_LENGTH) {
-    return { kind: "hidden" };
-  }
+  if (!lint || !canRefine(model)) return HIDDEN;
   return {
     kind: "lint",
     score: lint.assessed ? lint.score : null,
-    findings: lint.assessed
-      ? lint.findings
-          .slice(0, MAX_LINT_CHIPS)
-          .map(({ label, hint }) => ({ label, hint }))
-      : [],
+    findings: topChips(lint),
   };
 }
 
@@ -370,31 +432,32 @@ export function view(model: ContentModel, lint: LintSummary | null): ContentView
   switch (state.kind) {
     case "idle":
     case "debouncing":
-      return { badge: lintBadge(model, lint), overlay: null, ghost: null };
-    case "analyzing":
-      return { badge: { kind: "saving" }, overlay: null, ghost: null };
-    case "ready":
+      return { badge: lintBadge(model, lint), panel: null };
+    case "picking":
       return {
-        badge: { kind: "count", count: state.suggestions.length },
-        overlay: null,
-        ghost: { text: state.text, suggestion: state.suggestions[0].suggested },
+        badge: HIDDEN,
+        panel: { kind: "picking", recommended: recommendedMode(lint), findings: topChips(lint) },
       };
-    case "open":
+    case "streaming":
+      return state.visible
+        ? { badge: HIDDEN, panel: { kind: "streaming", step: state.step, output: state.output } }
+        : { badge: { kind: "saving" }, panel: null };
+    case "asking":
+      return { badge: HIDDEN, panel: { kind: "asking" } };
+    case "answering":
       return {
-        badge: { kind: "hidden" },
-        overlay: {
-          suggestions: state.suggestions,
-          activeIndex: state.activeIndex,
-        },
-        ghost: { text: state.text, suggestion: state.suggestions[0].suggested },
+        badge: HIDDEN,
+        panel: { kind: "answering", questions: state.questions, answers: state.answers },
       };
-    case "error":
-      return {
-        badge: { kind: "error", message: state.message },
-        overlay: null,
-        ghost: null,
-      };
+    case "result":
+      return state.visible
+        ? { badge: HIDDEN, panel: { kind: "result", step: state.step, output: state.output } }
+        : { badge: { kind: "ready" }, panel: null };
+    case "failed":
+      return state.visible
+        ? { badge: HIDDEN, panel: { kind: "failed", step: state.step, message: state.message } }
+        : { badge: { kind: "error", message: state.message }, panel: null };
     default:
-      return { badge: { kind: "hidden" }, overlay: null, ghost: null };
+      return { badge: HIDDEN, panel: null };
   }
 }

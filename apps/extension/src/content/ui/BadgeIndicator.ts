@@ -106,6 +106,14 @@ export class BadgeIndicator {
     this.reveal();
   }
 
+  /** A background refine finished; clicking shows it. */
+  public showReady() {
+    this.setTone("lint", "lint-good");
+    this.badge.innerHTML = `${ZAP_ICON} <span style="margin-left:4px">Ready</span>`;
+    this.badge.title = "Refined prompt ready. Click to see it.";
+    this.reveal();
+  }
+
   public showSaving() {
     this.setTone();
     this.badge.innerHTML = `${ZAP_ICON} <span style="margin-left:4px">...</span>`;

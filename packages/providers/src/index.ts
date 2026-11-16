@@ -8,7 +8,8 @@ import {
 export * from "./anthropic";
 export * from "./google";
 export * from "./openai-compatible";
-export * from "./response-parsing";
+export * from "./endpoints";
+export * from "./sse";
 
 function openAICompatible(id: string) {
   const preset = OPENAI_COMPATIBLE_PRESETS.find((p) => p.id === id);

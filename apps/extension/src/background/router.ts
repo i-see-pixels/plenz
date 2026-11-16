@@ -2,7 +2,6 @@ import { StorageManager } from "./storage";
 import { providers } from "@plenz/providers";
 import { AuthSession } from "./auth-session";
 import { PromptGalleryManager } from "./prompt-gallery";
-import { analyzePromptWithOrchestration } from "./prompt-orchestrator";
 import {
   CONTENT_SCRIPT_RPC,
   type RpcFailure,
@@ -11,24 +10,11 @@ import {
   type RpcType,
 } from "../shared/rpc";
 
-const inFlightAnalyses = new Map<string, AbortController>();
-
 function isExtensionPage(sender: chrome.runtime.MessageSender) {
   return (
     typeof sender.url === "string" &&
     sender.url.startsWith(chrome.runtime.getURL(""))
   );
-}
-
-function getAnalysisKey(sender: chrome.runtime.MessageSender) {
-  return sender.tab?.id !== undefined
-    ? `${sender.tab.id}:${sender.frameId ?? 0}`
-    : "extension-page";
-}
-
-function cancelAnalysis(key: string) {
-  inFlightAnalyses.get(key)?.abort();
-  inFlightAnalyses.delete(key);
 }
 
 type Handlers = {
@@ -108,35 +94,6 @@ const handlers: Handlers = {
     const provider = providers.find((p) => p.id === providerId);
     if (!provider) throw new Error(`Provider ${providerId} not found`);
     return provider.testConnection(config);
-  },
-
-  async ANALYZE_PROMPT(payload, sender) {
-    const { prompt, context } = payload;
-    const key = getAnalysisKey(sender);
-    // A newer request from the same frame makes the previous one obsolete.
-    cancelAnalysis(key);
-    const controller = new AbortController();
-    inFlightAnalyses.set(key, controller);
-
-    try {
-      return await analyzePromptWithOrchestration(
-        prompt,
-        context,
-        controller.signal,
-      );
-    } catch (e: any) {
-      console.error("Remote analysis failed:", e);
-      return { error: e.message || "Failed to analyze prompt." };
-    } finally {
-      if (inFlightAnalyses.get(key) === controller) {
-        inFlightAnalyses.delete(key);
-      }
-    }
-  },
-
-  async CANCEL_ANALYSIS(_payload, sender) {
-    cancelAnalysis(getAnalysisKey(sender));
-    return { success: true };
   },
 
   async AUTH_SIGN_IN() {

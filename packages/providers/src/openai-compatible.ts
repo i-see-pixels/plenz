@@ -1,23 +1,20 @@
 import type {
-  AnalysisResult,
+  CompletionRequest,
+  CompletionResult,
   ConnectionTestResult,
   ModelOption,
   ProviderAdapter,
-  ProviderAnalyzeContext,
-  ProviderAnalyzeOptions,
   ProviderConfig,
+  StreamOptions,
 } from "@plenz/types";
+import { modelsUrlFor, resolveChatCompletionsUrl } from "./endpoints";
 import {
   createProviderHttpError,
-  DEFAULT_ANALYSIS_MAX_TOKENS,
-  DEFAULT_ANALYSIS_TEMPERATURE,
-  formatAnalysisUserPrompt,
-} from "./analysis-context";
-import {
-  modelsUrlFor,
-  parseSuggestionsText,
-  resolveChatCompletionsUrl,
-} from "./response-parsing";
+  outputBudget,
+  parseJson,
+  readErrorMessage,
+} from "./http";
+import { isEventStream, readSSE } from "./sse";
 
 type RawModel = { id: string; name?: string; pricing?: { prompt?: number | string } };
 
@@ -31,8 +28,6 @@ export interface OpenAICompatiblePreset {
   defaultBaseUrl?: string;
   /** Skip the models request when there is no key. */
   requiresKey: boolean;
-  /** Ask for `response_format: json_object` (not every endpoint supports it). */
-  jsonMode: boolean;
   headers?: Record<string, string>;
   toModels(models: RawModel[]): ModelOption[];
 }
@@ -45,7 +40,6 @@ export const OPENAI_COMPATIBLE_PRESETS: OpenAICompatiblePreset[] = [
     name: "OpenAI",
     baseUrl: "https://api.openai.com/v1",
     requiresKey: true,
-    jsonMode: true,
     toModels: (models) =>
       models
         .filter((m) => m.id.includes("gpt") || m.id.includes("o1") || m.id.includes("o3"))
@@ -64,7 +58,6 @@ export const OPENAI_COMPATIBLE_PRESETS: OpenAICompatiblePreset[] = [
     name: "Mistral",
     baseUrl: "https://api.mistral.ai/v1",
     requiresKey: true,
-    jsonMode: true,
     toModels: (models) =>
       models.map((m) => ({
         id: m.id,
@@ -77,7 +70,6 @@ export const OPENAI_COMPATIBLE_PRESETS: OpenAICompatiblePreset[] = [
     name: "Groq",
     baseUrl: "https://api.groq.com/openai/v1",
     requiresKey: true,
-    jsonMode: true,
     toModels: (models) =>
       models.map((m) => ({
         id: m.id,
@@ -90,8 +82,6 @@ export const OPENAI_COMPATIBLE_PRESETS: OpenAICompatiblePreset[] = [
     name: "OpenRouter",
     baseUrl: "https://openrouter.ai/api/v1",
     requiresKey: true,
-    // Some routed models reject response_format, so rely on prompt + parsing.
-    jsonMode: false,
     headers: {
       "HTTP-Referer": "https://github.com/i-see-pixels/plenz",
       "X-Title": "plenz",
@@ -109,16 +99,10 @@ export const OPENAI_COMPATIBLE_PRESETS: OpenAICompatiblePreset[] = [
     // Local OpenAI-compatible servers (Ollama) by default.
     defaultBaseUrl: "http://localhost:11434/v1",
     requiresKey: false,
-    jsonMode: false,
     toModels: (models) =>
       models.map((m) => ({ id: m.id, name: m.name || m.id, tier: "standard" })),
   },
 ];
-
-async function readErrorMessage(res: Response, fallback: string) {
-  const body = await res.json().catch(() => null);
-  return body?.error?.message || body?.message || fallback;
-}
 
 export class OpenAICompatibleAdapter implements ProviderAdapter {
   readonly id: string;
@@ -183,13 +167,11 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
     }
   }
 
-  async analyze(
-    prompt: string,
-    systemPrompt: string,
+  async streamCompletion(
+    request: CompletionRequest,
     config: ProviderConfig,
-    context?: ProviderAnalyzeContext,
-    options?: ProviderAnalyzeOptions,
-  ): Promise<AnalysisResult> {
+    options: StreamOptions = {},
+  ): Promise<CompletionResult> {
     const start = performance.now();
     const res = await fetch(this.endpoint(config), {
       method: "POST",
@@ -197,40 +179,55 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
       body: JSON.stringify({
         model: config.model,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: formatAnalysisUserPrompt(prompt, context) },
+          { role: "system", content: request.system },
+          { role: "user", content: request.user },
         ],
-        max_tokens: config.maxTokens ?? DEFAULT_ANALYSIS_MAX_TOKENS,
-        temperature: config.temperature ?? DEFAULT_ANALYSIS_TEMPERATURE,
-        ...(this.preset.jsonMode ? { response_format: { type: "json_object" } } : {}),
+        max_tokens: outputBudget(request.maxTokens, config.maxTokens),
+        temperature: config.temperature ?? request.temperature,
+        stream: true,
+        stream_options: this.preset.id === "openai" ? { include_usage: true } : undefined,
       }),
-      signal: options?.signal,
+      signal: options.signal,
     });
-
-    const data = await res.json().catch(() => {
-      throw new Error(`Failed to parse response from ${this.name}`);
-    });
-    const latencyMs = Math.round(performance.now() - start);
 
     if (!res.ok) {
       throw createProviderHttpError(
-        data?.error?.message || `${this.name} API error`,
+        await readErrorMessage(res, `${this.name} API error`),
         res.status,
       );
     }
 
-    const content = data.choices?.[0]?.message?.content;
-    return {
-      suggestions: parseSuggestionsText(
-        typeof content === "string" ? content : "",
-        this.name,
-      ),
-      rawResponse: JSON.stringify(data),
-      tokensUsed: {
-        prompt: data.usage?.prompt_tokens ?? 0,
-        completion: data.usage?.completion_tokens ?? 0,
-      },
-      latencyMs,
+    let text = "";
+    const tokensUsed = { prompt: 0, completion: 0 };
+    const emit = (chunk: unknown) => {
+      if (typeof chunk !== "string" || !chunk) return;
+      text += chunk;
+      options.onDelta?.(chunk);
     };
+    const readUsage = (usage: any) => {
+      if (!usage) return;
+      tokensUsed.prompt = usage.prompt_tokens ?? tokensUsed.prompt;
+      tokensUsed.completion = usage.completion_tokens ?? tokensUsed.completion;
+    };
+
+    if (res.body && isEventStream(res)) {
+      await readSSE(res.body, ({ data }) => {
+        if (data === "[DONE]") return;
+        const event = parseJson(data);
+        if (!event) return;
+        if (event.error) throw new Error(event.error.message || `${this.name} stream error`);
+        emit(event.choices?.[0]?.delta?.content);
+        readUsage(event.usage);
+      });
+    } else {
+      // Some OpenAI-compatible servers ignore `stream`; take the whole reply.
+      const data = await res.json().catch(() => {
+        throw new Error(`Failed to parse response from ${this.name}`);
+      });
+      emit(data?.choices?.[0]?.message?.content);
+      readUsage(data?.usage);
+    }
+
+    return { text, tokensUsed, latencyMs: Math.round(performance.now() - start) };
   }
 }
