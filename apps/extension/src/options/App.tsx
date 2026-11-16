@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import logo from "../assets/logo.svg";
 import { AuthStatus } from "../components/AuthStatus";
 import { ModelConfig } from "../components/ModelConfig";
+import { isRpcFailure, sendRpc } from "../shared/rpc";
 import {
   Card,
   CardContent,
@@ -48,14 +49,14 @@ export function App() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const runtimePreferences = (await chrome.runtime.sendMessage({
-          type: "GET_PREFERENCES",
-        })) as Preferences | undefined;
+        const reply = await sendRpc("GET_PREFERENCES");
+        const runtimePreferences = reply && !isRpcFailure(reply) ? reply : null;
         const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
         const localPreferences = stored[PREFERENCES_STORAGE_KEY] as
           | Preferences
           | undefined;
-        const preferences = runtimePreferences ?? localPreferences;
+        const preferences: Preferences | undefined =
+          runtimePreferences ?? localPreferences;
         setDebounceInput(
           String(
             sanitizeDebounceMs(
@@ -103,15 +104,12 @@ export function App() {
         providerFallbackEnabled,
       };
 
-      await chrome.runtime.sendMessage({
-        type: "SET_PREFERENCES",
-        payload: {
-          preferences: {
-            debounceTime: nextDebounceMs,
-            suggestionsEnabled,
-            chatContextEnabled,
-            providerFallbackEnabled,
-          },
+      await sendRpc("SET_PREFERENCES", {
+        preferences: {
+          debounceTime: nextDebounceMs,
+          suggestionsEnabled,
+          chatContextEnabled,
+          providerFallbackEnabled,
         },
       });
 

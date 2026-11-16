@@ -11,6 +11,7 @@ import {
 } from "./auth-machine";
 import { StorageManager } from "./storage";
 import { resetFirebaseHealth } from "./storage-backend";
+import type { BroadcastMessage } from "../shared/rpc";
 
 /**
  * Driver for the auth state machine (see ./auth-machine.ts). It runs the
@@ -34,9 +35,8 @@ function dispatch(event: AuthEvent) {
 
   state = result.state;
   version++;
-  void chrome.runtime
-    .sendMessage({ type: "AUTH_STATE_CHANGED", payload: snapshot() })
-    .catch(() => {}); // No extension page is open.
+  const broadcast: BroadcastMessage = { type: "AUTH_STATE_CHANGED", payload: snapshot() };
+  void chrome.runtime.sendMessage(broadcast).catch(() => {}); // No extension page is open.
 
   if (isSettled(state)) {
     const waiters = settledWaiters;

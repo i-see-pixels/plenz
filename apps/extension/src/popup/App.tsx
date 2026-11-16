@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import logo from "../assets/logo.svg";
 import { providers } from "@plenz/providers";
 import { AuthStatus } from "../components/AuthStatus";
+import { isRpcFailure, sendRpc } from "../shared/rpc";
 import type { ModelOption } from "@plenz/types";
 import { BarChart3, BookOpen, Settings, Users } from "lucide-react";
 import { Badge } from "@plenz/ui/components/badge";
@@ -80,8 +81,8 @@ export function App() {
   }, []);
 
   const fetchActiveModel = () => {
-    chrome.runtime.sendMessage({ type: "GET_ACTIVE_MODEL" }, (response) => {
-      if (response && !response.error) {
+    void sendRpc("GET_ACTIVE_MODEL").then((response) => {
+      if (response && !response.error && "isConfigured" in response) {
         setModelStatus({
           configured: response.isConfigured,
           modelId: response.activeModelId,
@@ -105,9 +106,8 @@ export function App() {
 
   const fetchPreferences = async () => {
     try {
-      const runtimePreferences = (await chrome.runtime.sendMessage({
-        type: "GET_PREFERENCES",
-      })) as Preferences | undefined;
+      const reply = await sendRpc("GET_PREFERENCES");
+      const runtimePreferences = reply && !isRpcFailure(reply) ? reply : null;
       const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
       const localPreferences = stored[PREFERENCES_STORAGE_KEY] as
         | Preferences
@@ -125,10 +125,10 @@ export function App() {
     setPreferences((current) => ({ ...current, [key]: enabled }));
 
     try {
-      const response = (await chrome.runtime.sendMessage({
-        type: "SET_PREFERENCES",
-        payload: { preferences: { [key]: enabled } },
-      })) as { preferences?: Preferences } | undefined;
+      const reply = await sendRpc("SET_PREFERENCES", {
+        preferences: { [key]: enabled },
+      });
+      const response = reply && !isRpcFailure(reply) ? reply : null;
 
       // The background merges writes in order, so its reply is the full,
       // current set; the local copy mirrors it for the content script.
@@ -172,13 +172,15 @@ export function App() {
         throw new Error("Current browser window is unavailable.");
       }
 
-      const response = (await chrome.runtime.sendMessage({
-        type: "OPEN_PROMPT_GALLERY_PANEL",
-        payload: { windowId: currentWindow.id },
-      })) as { success?: boolean; error?: string } | undefined;
+      const response = await sendRpc("OPEN_PROMPT_GALLERY_PANEL", {
+        windowId: currentWindow.id,
+      });
 
-      if (!response?.success) {
-        throw new Error(response?.error || "Prompt gallery could not be opened.");
+      if (!("success" in response) || !response.success) {
+        throw new Error(
+          ("error" in response && response.error) ||
+            "Prompt gallery could not be opened.",
+        );
       }
 
       window.close();
@@ -191,23 +193,17 @@ export function App() {
   const handleModelChange = (newModelId: string) => {
     if (!newModelId) return;
 
-    chrome.runtime.sendMessage(
-      {
-        type: "SET_ACTIVE_MODEL",
-        payload: { 
-          modelId: newModelId,
-          // Find the provider that has this model to pass both
-          providerId: Object.entries(providerModels).find(([_, models]) => models.some((m) => m.id === newModelId))?.[0] || ""
-        },
-      },
-      (response) => {
-        if (response?.success) {
-          setModelStatus((prev) =>
-            prev ? { ...prev, modelId: newModelId } : null,
-          );
-        }
-      },
-    );
+    void sendRpc("SET_ACTIVE_MODEL", {
+      modelId: newModelId,
+      // Find the provider that has this model to pass both
+      providerId: Object.entries(providerModels).find(([_, models]) => models.some((m) => m.id === newModelId))?.[0] || ""
+    }).then((response) => {
+      if ("success" in response && response.success) {
+        setModelStatus((prev) =>
+          prev ? { ...prev, modelId: newModelId } : null,
+        );
+      }
+    });
   };
 
   const suggestionsEnabled = preferences.suggestionsEnabled !== false;

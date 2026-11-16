@@ -1,67 +1,46 @@
-import type { PublicPrompt, SavedPrompt } from "@plenz/types";
+import type { PublicPrompt } from "@plenz/types";
+import {
+  isRpcFailure,
+  sendRpc,
+  type PayloadArgs,
+  type RpcReply,
+  type RpcType,
+} from "../shared/rpc";
 
-function sendRuntimeMessage<T>(message: unknown): Promise<T> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-
-      if (
-        response &&
-        typeof response === "object" &&
-        "error" in (response as { error?: unknown }) &&
-        typeof (response as { error?: unknown }).error === "string"
-      ) {
-        reject(new Error((response as { error: string }).error));
-        return;
-      }
-
-      resolve(response as T);
-    });
-  });
+/** Like sendRpc, but an error reply rejects so callers can use try/catch. */
+async function call<K extends RpcType>(
+  type: K,
+  ...args: PayloadArgs<K>
+): Promise<RpcReply<K>> {
+  const reply = await sendRpc(type, ...args);
+  if (isRpcFailure(reply)) {
+    throw new Error(reply.error);
+  }
+  return reply as RpcReply<K>;
 }
 
 export const promptGalleryRuntime = {
   createSavedPrompt(title: string, prompt: string) {
-    return sendRuntimeMessage<{ prompt: SavedPrompt }>({
-      type: "CREATE_SAVED_PROMPT",
-      payload: { title, prompt },
-    });
+    return call("CREATE_SAVED_PROMPT", { title, prompt });
   },
 
   deleteSavedPrompt(id: string) {
-    return sendRuntimeMessage<{ success: boolean }>({
-      type: "DELETE_SAVED_PROMPT",
-      payload: { id },
-    });
+    return call("DELETE_SAVED_PROMPT", { id });
   },
 
   listPublicPrompts(category: "trending" | "newest") {
-    return sendRuntimeMessage<{ prompts: PublicPrompt[] }>({
-      type: "LIST_PUBLIC_PROMPTS",
-      payload: { category },
-    });
+    return call("LIST_PUBLIC_PROMPTS", { category });
   },
 
   listSavedPrompts() {
-    return sendRuntimeMessage<{ prompts: SavedPrompt[] }>({
-      type: "LIST_SAVED_PROMPTS",
-    });
+    return call("LIST_SAVED_PROMPTS");
   },
 
   updateSavedPrompt(id: string, title: string, prompt: string) {
-    return sendRuntimeMessage<{ prompt: SavedPrompt }>({
-      type: "UPDATE_SAVED_PROMPT",
-      payload: { id, title, prompt },
-    });
+    return call("UPDATE_SAVED_PROMPT", { id, title, prompt });
   },
 
   savePublicPrompt(prompt: PublicPrompt) {
-    return sendRuntimeMessage<{ prompt: SavedPrompt }>({
-      type: "SAVE_PUBLIC_PROMPT",
-      payload: { prompt },
-    });
+    return call("SAVE_PUBLIC_PROMPT", { prompt });
   },
 };

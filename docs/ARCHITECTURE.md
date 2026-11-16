@@ -23,16 +23,16 @@ Shared logic lives in:
 
 ## Provider Layer
 
-- Each provider implements `ProviderAdapter`.
-- Adapters handle auth headers, request shaping, and response normalization.
-- Current providers:
-  - OpenAI
-  - Google Gemini
-  - Anthropic
-  - Mistral
-  - Groq
-  - OpenRouter
-  - Custom (OpenAI-compatible base URL)
+- Three adapters implement `ProviderAdapter`:
+  - OpenAI-compatible, with presets for OpenAI, Mistral, Groq, OpenRouter and Custom (any OpenAI-compatible base URL, Ollama by default)
+  - Anthropic, using forced tool use so suggestions come back as structured input
+  - Google Gemini, with a system instruction and JSON response mode
+- All three share one parse step (`response-parsing.ts`): JSON extraction, recovery of complete suggestions from truncated output, and normalization. `@plenz/core` then filters for quality.
+
+## Messaging
+
+- Every message between extension pages, content scripts and the background worker is defined once in `apps/extension/src/shared/rpc.ts`, with its payload and reply types.
+- Senders use `sendRpc(type, payload)`. The router is a handler table typed against the same map, so a message without a handler fails the type-check.
 
 ## Security Model
 

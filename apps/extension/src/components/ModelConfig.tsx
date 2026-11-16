@@ -21,6 +21,7 @@ import {
 import { cn } from "@plenz/ui/lib/utils";
 import { AlertTriangle, Cloud, HardDrive, LoaderCircle } from "lucide-react";
 import { useAuthSession } from "./useAuthSession";
+import { sendRpc } from "../shared/rpc";
 import {
   backendNotice,
   backendTransition,
@@ -213,9 +214,7 @@ export function ModelConfig() {
   });
 
   const loadStorageSettings = async () => {
-    const rawResponse = await chrome.runtime.sendMessage({
-      type: "GET_STORAGE_SETTINGS",
-    });
+    const rawResponse = await sendRpc("GET_STORAGE_SETTINGS");
     const response = isStorageSettingsResponse(rawResponse)
       ? rawResponse
       : null;
@@ -244,9 +243,8 @@ export function ModelConfig() {
     let stale = false;
 
     void (async () => {
-      const rawResponse = await chrome.runtime.sendMessage({
-        type: "GET_MODEL_CONFIG",
-        payload: { providerId: selectedProvider },
+      const rawResponse = await sendRpc("GET_MODEL_CONFIG", {
+        providerId: selectedProvider,
       });
       if (stale) return;
 
@@ -346,14 +344,15 @@ export function ModelConfig() {
         }
       }
 
-      const response = await chrome.runtime.sendMessage({
-        type: "TEST_CONNECTION",
-        payload: {
-          providerId: selectedProvider,
-          config: { apiKey, model: selectedModel, baseUrl } as ProviderConfig,
-        },
+      const response = await sendRpc("TEST_CONNECTION", {
+        providerId: selectedProvider,
+        config: { apiKey, model: selectedModel, baseUrl } as ProviderConfig,
       });
-      finish(response);
+      if ("success" in response) {
+        finish(response);
+      } else {
+        fail(response.error);
+      }
     } catch (error) {
       fail((error as Error).message);
     }
@@ -378,9 +377,7 @@ export function ModelConfig() {
       let migration: MigrationResult | null = null;
 
       if (nextBackend === "firebase") {
-        const migrationResponse = await chrome.runtime.sendMessage({
-          type: "MIGRATE_SYNC_TO_FIREBASE",
-        });
+        const migrationResponse = await sendRpc("MIGRATE_SYNC_TO_FIREBASE");
         migration = isMigrationResponse(migrationResponse)
           ? migrationResponse
           : null;
@@ -393,9 +390,8 @@ export function ModelConfig() {
         }
       }
 
-      const actionResponse = await chrome.runtime.sendMessage({
-        type: "SET_STORAGE_BACKEND",
-        payload: { backend: nextBackend },
+      const actionResponse = await sendRpc("SET_STORAGE_BACKEND", {
+        backend: nextBackend,
       });
       const result = isActionResponse(actionResponse) ? actionResponse : null;
 
@@ -446,16 +442,13 @@ export function ModelConfig() {
         }
       }
 
-      const rawResponse = await chrome.runtime.sendMessage({
-        type: "SAVE_MODEL_CONFIG",
-        payload: {
-          providerId: selectedProvider,
-          config: {
-            apiKey,
-            model: selectedModel,
-            baseUrl,
-          } as ProviderConfig,
-        },
+      const rawResponse = await sendRpc("SAVE_MODEL_CONFIG", {
+        providerId: selectedProvider,
+        config: {
+          apiKey,
+          model: selectedModel,
+          baseUrl,
+        } as ProviderConfig,
       });
       const response = isStorageResult<void>(rawResponse) ? rawResponse : null;
       const responseError = getResponseError(rawResponse);
@@ -475,9 +468,9 @@ export function ModelConfig() {
         warning: nextError,
       });
 
-      await chrome.runtime.sendMessage({
-        type: "SET_ACTIVE_MODEL",
-        payload: { modelId: selectedModel, providerId: selectedProvider },
+      await sendRpc("SET_ACTIVE_MODEL", {
+        modelId: selectedModel,
+        providerId: selectedProvider,
       });
     } catch (error) {
       fail((error as Error).message);

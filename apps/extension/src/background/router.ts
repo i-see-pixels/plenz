@@ -3,13 +3,13 @@ import { providers } from "@plenz/providers";
 import { AuthSession } from "./auth-session";
 import { PromptGalleryManager } from "./prompt-gallery";
 import { analyzePromptWithOrchestration } from "./prompt-orchestrator";
-
-// Content scripts run inside third-party pages, so they only get the calls they need.
-const CONTENT_SCRIPT_MESSAGES = new Set([
-  "ANALYZE_PROMPT",
-  "CANCEL_ANALYSIS",
-  "GET_PREFERENCES",
-]);
+import {
+  CONTENT_SCRIPT_RPC,
+  type RpcFailure,
+  type RpcPayload,
+  type RpcReply,
+  type RpcType,
+} from "../shared/rpc";
 
 const inFlightAnalyses = new Map<string, AbortController>();
 
@@ -31,174 +31,208 @@ function cancelAnalysis(key: string) {
   inFlightAnalyses.delete(key);
 }
 
+type Handlers = {
+  [K in RpcType]: (
+    payload: RpcPayload<K>,
+    sender: chrome.runtime.MessageSender,
+  ) => Promise<RpcReply<K> | RpcFailure>;
+};
+
+// Payloads still cross a trust boundary, so handlers keep their runtime checks.
+const handlers: Handlers = {
+  async GET_ACTIVE_MODEL() {
+    const configResult = await StorageManager.getActiveModelConfig();
+    const prefs = await StorageManager.getPreferences();
+    return {
+      config: configResult.data,
+      activeModelId: prefs.activeModelId,
+      isConfigured: !!configResult.data?.apiKey,
+      syncStatus: configResult.syncStatus,
+      error: configResult.error,
+    };
+  },
+
+  async SET_ACTIVE_MODEL(payload) {
+    await StorageManager.setPreferences({
+      activeModelId: payload.modelId,
+      activeProviderId: payload.providerId,
+    });
+    return { success: true };
+  },
+
+  async GET_STORAGE_SETTINGS() {
+    return StorageManager.getStorageSettings();
+  },
+
+  async GET_PREFERENCES() {
+    return StorageManager.getPreferences();
+  },
+
+  async SET_PREFERENCES(payload) {
+    await StorageManager.setPreferences(payload?.preferences ?? {});
+    return { success: true, preferences: await StorageManager.getPreferences() };
+  },
+
+  async SET_STORAGE_BACKEND(payload) {
+    const nextBackend = payload?.backend;
+
+    if (nextBackend !== "chrome-sync" && nextBackend !== "firebase") {
+      return {
+        success: false,
+        error: "Invalid storage backend.",
+      };
+    }
+
+    await StorageManager.setStorageBackend(nextBackend);
+    return { success: true };
+  },
+
+  async GET_MODEL_CONFIG(payload) {
+    return StorageManager.getModelConfig(payload.providerId);
+  },
+
+  async SAVE_MODEL_CONFIG(payload) {
+    return StorageManager.setModelConfig(payload.providerId, payload.config);
+  },
+
+  async GET_ALL_MODEL_CONFIGS() {
+    return StorageManager.getAllModelConfigs();
+  },
+
+  async MIGRATE_SYNC_TO_FIREBASE() {
+    return StorageManager.migrateSyncToFirebase();
+  },
+
+  async TEST_CONNECTION(payload) {
+    const { providerId, config } = payload;
+    const provider = providers.find((p) => p.id === providerId);
+    if (!provider) throw new Error(`Provider ${providerId} not found`);
+    return provider.testConnection(config);
+  },
+
+  async ANALYZE_PROMPT(payload, sender) {
+    const { prompt, context } = payload;
+    const key = getAnalysisKey(sender);
+    // A newer request from the same frame makes the previous one obsolete.
+    cancelAnalysis(key);
+    const controller = new AbortController();
+    inFlightAnalyses.set(key, controller);
+
+    try {
+      return await analyzePromptWithOrchestration(
+        prompt,
+        context,
+        controller.signal,
+      );
+    } catch (e: any) {
+      console.error("Remote analysis failed:", e);
+      return { error: e.message || "Failed to analyze prompt." };
+    } finally {
+      if (inFlightAnalyses.get(key) === controller) {
+        inFlightAnalyses.delete(key);
+      }
+    }
+  },
+
+  async CANCEL_ANALYSIS(_payload, sender) {
+    cancelAnalysis(getAnalysisKey(sender));
+    return { success: true };
+  },
+
+  async AUTH_SIGN_IN() {
+    return AuthSession.signIn();
+  },
+
+  async AUTH_SIGN_OUT(payload) {
+    return AuthSession.signOut(payload?.keepLocalCopies === true);
+  },
+
+  async GET_AUTH_STATE() {
+    return AuthSession.getSnapshot();
+  },
+
+  async OPEN_PROMPT_GALLERY_PANEL(payload) {
+    const windowId = payload?.windowId;
+
+    if (typeof windowId !== "number") {
+      return { success: false, error: "Current window is unavailable." };
+    }
+
+    await chrome.sidePanel.open({ windowId });
+    return { success: true };
+  },
+
+  async LIST_PUBLIC_PROMPTS(payload) {
+    return {
+      prompts: await PromptGalleryManager.listPublicPrompts(
+        payload?.category === "newest" ? "newest" : "trending",
+      ),
+    };
+  },
+
+  async LIST_SAVED_PROMPTS() {
+    return {
+      prompts: await PromptGalleryManager.listSavedPrompts(),
+    };
+  },
+
+  async CREATE_SAVED_PROMPT(payload) {
+    return {
+      prompt: await PromptGalleryManager.createCustomPrompt({
+        title: payload?.title ?? "",
+        prompt: payload?.prompt ?? "",
+      }),
+    };
+  },
+
+  async UPDATE_SAVED_PROMPT(payload) {
+    return {
+      prompt: await PromptGalleryManager.updateSavedPrompt({
+        id: payload?.id ?? "",
+        title: payload?.title ?? "",
+        prompt: payload?.prompt ?? "",
+      }),
+    };
+  },
+
+  async SAVE_PUBLIC_PROMPT(payload) {
+    return {
+      prompt: await PromptGalleryManager.savePublicPrompt(payload?.prompt),
+    };
+  },
+
+  async DELETE_SAVED_PROMPT(payload) {
+    await PromptGalleryManager.deleteSavedPrompt(payload?.id ?? "");
+    return { success: true };
+  },
+};
+
+function isRpcType(type: unknown): type is RpcType {
+  return typeof type === "string" && Object.hasOwn(handlers, type);
+}
+
 export async function handleMessage(
-  message: any,
+  message: unknown,
   sender: chrome.runtime.MessageSender,
-) {
+): Promise<unknown> {
   if (sender.id !== chrome.runtime.id) {
     return { error: "Unauthorized sender." };
   }
 
-  if (!isExtensionPage(sender) && !CONTENT_SCRIPT_MESSAGES.has(message?.type)) {
-    console.warn("plenz: blocked message from content script:", message?.type);
+  const type = (message as { type?: unknown } | null)?.type;
+  if (!isRpcType(type)) {
+    console.warn("Unknown message type:", type);
+    return null;
+  }
+
+  if (!isExtensionPage(sender) && !CONTENT_SCRIPT_RPC.has(type)) {
+    console.warn("plenz: blocked message from content script:", type);
     return { error: "Not allowed from this context." };
   }
 
-  switch (message.type) {
-    case "GET_ACTIVE_MODEL":
-      const configResult = await StorageManager.getActiveModelConfig();
-      const prefs = await StorageManager.getPreferences();
-      const response = {
-        config: configResult.data,
-        activeModelId: prefs.activeModelId,
-        isConfigured: !!configResult.data?.apiKey,
-        syncStatus: configResult.syncStatus,
-        error: configResult.error,
-      };
-      return response;
-
-    case "SET_ACTIVE_MODEL":
-      await StorageManager.setPreferences({
-        activeModelId: message.payload.modelId,
-        activeProviderId: message.payload.providerId,
-      });
-      return { success: true };
-
-    case "GET_STORAGE_SETTINGS":
-      return await StorageManager.getStorageSettings();
-
-    case "GET_PREFERENCES":
-      return await StorageManager.getPreferences();
-
-    case "SET_PREFERENCES":
-      await StorageManager.setPreferences(message.payload?.preferences ?? {});
-      return { success: true, preferences: await StorageManager.getPreferences() };
-
-    case "SET_STORAGE_BACKEND": {
-      const nextBackend = message.payload?.backend;
-
-      if (nextBackend !== "chrome-sync" && nextBackend !== "firebase") {
-        return {
-          success: false,
-          error: "Invalid storage backend.",
-        };
-      }
-
-      await StorageManager.setStorageBackend(nextBackend);
-      return { success: true };
-    }
-
-    case "GET_MODEL_CONFIG":
-      return await StorageManager.getModelConfig(message.payload.providerId);
-
-    case "SAVE_MODEL_CONFIG":
-      return await StorageManager.setModelConfig(
-        message.payload.providerId,
-        message.payload.config,
-      );
-
-    case "GET_ALL_MODEL_CONFIGS":
-      return await StorageManager.getAllModelConfigs();
-
-    case "MIGRATE_SYNC_TO_FIREBASE":
-      return await StorageManager.migrateSyncToFirebase();
-
-    case "TEST_CONNECTION": {
-      const { providerId, config } = message.payload;
-      const provider = providers.find((p) => p.id === providerId);
-      if (!provider) throw new Error(`Provider ${providerId} not found`);
-      return await provider.testConnection(config);
-    }
-
-    case "ANALYZE_PROMPT": {
-      const { prompt, context } = message.payload;
-      const key = getAnalysisKey(sender);
-      // A newer request from the same frame makes the previous one obsolete.
-      cancelAnalysis(key);
-      const controller = new AbortController();
-      inFlightAnalyses.set(key, controller);
-
-      try {
-        return await analyzePromptWithOrchestration(
-          prompt,
-          context,
-          controller.signal,
-        );
-      } catch (e: any) {
-        console.error("Remote analysis failed:", e);
-        return { error: e.message || "Failed to analyze prompt." };
-      } finally {
-        if (inFlightAnalyses.get(key) === controller) {
-          inFlightAnalyses.delete(key);
-        }
-      }
-    }
-
-    case "CANCEL_ANALYSIS":
-      cancelAnalysis(getAnalysisKey(sender));
-      return { success: true };
-
-    case "AUTH_SIGN_IN":
-      return await AuthSession.signIn();
-
-    case "AUTH_SIGN_OUT":
-      return await AuthSession.signOut(message.payload?.keepLocalCopies === true);
-
-    case "GET_AUTH_STATE":
-      return await AuthSession.getSnapshot();
-
-    case "OPEN_PROMPT_GALLERY_PANEL": {
-      const windowId = message.payload?.windowId;
-
-      if (typeof windowId !== "number") {
-        return { success: false, error: "Current window is unavailable." };
-      }
-
-      await chrome.sidePanel.open({ windowId });
-      return { success: true };
-    }
-
-    case "LIST_PUBLIC_PROMPTS":
-      return {
-        prompts: await PromptGalleryManager.listPublicPrompts(
-          message.payload?.category === "newest" ? "newest" : "trending",
-        ),
-      };
-
-    case "LIST_SAVED_PROMPTS":
-      return {
-        prompts: await PromptGalleryManager.listSavedPrompts(),
-      };
-
-    case "CREATE_SAVED_PROMPT":
-      return {
-        prompt: await PromptGalleryManager.createCustomPrompt({
-          title: message.payload?.title ?? "",
-          prompt: message.payload?.prompt ?? "",
-        }),
-      };
-
-    case "UPDATE_SAVED_PROMPT":
-      return {
-        prompt: await PromptGalleryManager.updateSavedPrompt({
-          id: message.payload?.id ?? "",
-          title: message.payload?.title ?? "",
-          prompt: message.payload?.prompt ?? "",
-        }),
-      };
-
-    case "SAVE_PUBLIC_PROMPT":
-      return {
-        prompt: await PromptGalleryManager.savePublicPrompt(message.payload?.prompt),
-      };
-
-    case "DELETE_SAVED_PROMPT":
-      await PromptGalleryManager.deleteSavedPrompt(message.payload?.id ?? "");
-      return { success: true };
-
-    default:
-      console.warn("Unknown message type:", message.type);
-      return null;
-  }
+  const handler = handlers[type] as (
+    payload: unknown,
+    sender: chrome.runtime.MessageSender,
+  ) => Promise<unknown>;
+  return handler((message as { payload?: unknown }).payload, sender);
 }
-

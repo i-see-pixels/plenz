@@ -13,8 +13,16 @@ import {
   type BadgeView,
   type ContentView,
 } from "./machine";
+import {
+  isRpcFailure,
+  sendRpc,
+  type PayloadArgs,
+  type RpcFailure,
+  type RpcReply,
+  type RpcType,
+} from "../shared/rpc";
 import { buildConversationContext } from "@plenz/core";
-import type { ChatMessage, ConversationContext, Suggestion } from "@plenz/types";
+import type { ChatMessage, ConversationContext } from "@plenz/types";
 
 const PREFERENCES_STORAGE_KEY = "preferences";
 const DEFAULT_DEBOUNCE_MS = 500;
@@ -125,7 +133,7 @@ class ExtensionContentScript {
         void this.requestAnalysis(effect.text, effect.requestId);
         return;
       case "cancelAnalysis":
-        void this.sendRuntimeMessage({ type: "CANCEL_ANALYSIS" }).catch(
+        void this.sendRuntimeMessage("CANCEL_ANALYSIS").catch(
           () => {},
         );
         return;
@@ -193,9 +201,8 @@ class ExtensionContentScript {
 
   private async loadPreferences() {
     try {
-      const runtimePreferences = await this.sendRuntimeMessage<Preferences>({
-        type: "GET_PREFERENCES",
-      });
+      const reply = await this.sendRuntimeMessage("GET_PREFERENCES");
+      const runtimePreferences = reply && !isRpcFailure(reply) ? reply : null;
       const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
       const localPreferences = stored[PREFERENCES_STORAGE_KEY] as
         | Preferences
@@ -291,21 +298,15 @@ class ExtensionContentScript {
       : undefined;
 
     try {
-      const response = await this.sendRuntimeMessage<{
-        suggestions?: Suggestion[];
-        error?: string;
-      }>({
-        type: "ANALYZE_PROMPT",
-        payload: {
-          prompt: text,
-          context: {
-            active_website: window.location.hostname,
-            conversation,
-          },
+      const response = await this.sendRuntimeMessage("ANALYZE_PROMPT", {
+        prompt: text,
+        context: {
+          active_website: window.location.hostname,
+          conversation,
         },
       });
 
-      if (response?.error) {
+      if (response && "error" in response) {
         throw new Error(response.error);
       }
 
@@ -393,7 +394,10 @@ class ExtensionContentScript {
       : undefined;
   }
 
-  private async sendRuntimeMessage<T>(message: unknown): Promise<T | null> {
+  private async sendRuntimeMessage<K extends RpcType>(
+    type: K,
+    ...args: PayloadArgs<K>
+  ): Promise<RpcReply<K> | RpcFailure | null> {
     const runtime = globalThis.chrome?.runtime;
     if (!runtime?.id || typeof runtime.sendMessage !== "function") {
       if (!this.runtimeUnavailableLogged) {
@@ -405,7 +409,7 @@ class ExtensionContentScript {
       return null;
     }
 
-    return (await runtime.sendMessage(message)) as T;
+    return sendRpc(type, ...args);
   }
 
   private handleGlobalKeydown(e: KeyboardEvent) {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import type { AuthSnapshot } from "../background/auth-machine";
+import { sendRpc, type BroadcastMessage } from "../shared/rpc";
 
 const INITIAL: AuthSnapshot = { status: "checking", user: null, version: 0 };
 
@@ -28,13 +29,12 @@ export function useAuthSession() {
   };
 
   useEffect(() => {
-    const listener = (message: { type?: string; payload?: unknown }) => {
+    const listener = (message: BroadcastMessage) => {
       if (message?.type === "AUTH_STATE_CHANGED") apply(message.payload);
     };
 
     chrome.runtime.onMessage.addListener(listener);
-    chrome.runtime
-      .sendMessage({ type: "GET_AUTH_STATE" })
+    sendRpc("GET_AUTH_STATE")
       .then(apply)
       .catch((error) => console.error("plenz: failed to read auth state", error));
 

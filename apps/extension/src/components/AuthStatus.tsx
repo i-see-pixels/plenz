@@ -2,6 +2,7 @@ import { useState } from "preact/hooks";
 import { Button } from "@plenz/ui/components/button";
 import { Skeleton } from "@plenz/ui/components/skeleton";
 import { useAuthSession } from "./useAuthSession";
+import { sendRpc } from "../shared/rpc";
 
 export function AuthStatus() {
   const { auth, apply } = useAuthSession();
@@ -11,16 +12,14 @@ export function AuthStatus() {
   const busy = auth.status !== "signedIn" && auth.status !== "signedOut";
 
   const handleSignIn = () => {
-    chrome.runtime
-      .sendMessage({ type: "AUTH_SIGN_IN" })
+    sendRpc("AUTH_SIGN_IN")
       .then(apply)
       .catch((error) => console.error("plenz: sign-in failed", error));
   };
 
   const signOut = (keepLocalCopies: boolean) => {
     setConfirmingSignOut(false);
-    chrome.runtime
-      .sendMessage({ type: "AUTH_SIGN_OUT", payload: { keepLocalCopies } })
+    sendRpc("AUTH_SIGN_OUT", { keepLocalCopies })
       .then(apply)
       .catch((error) => console.error("plenz: sign-out failed", error));
   };

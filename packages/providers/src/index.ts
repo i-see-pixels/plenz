@@ -1,25 +1,29 @@
-import { OpenAIAdapter } from "./openai";
-import { GoogleAdapter } from "./google";
 import { AnthropicAdapter } from "./anthropic";
-import { MistralAdapter } from "./mistral";
-import { GroqAdapter } from "./groq";
-import { OpenRouterAdapter } from "./openrouter";
-import { CustomAdapter } from "./custom";
+import { GoogleAdapter } from "./google";
+import {
+  OPENAI_COMPATIBLE_PRESETS,
+  OpenAICompatibleAdapter,
+} from "./openai-compatible";
 
-export * from "./openai";
-export * from "./google";
 export * from "./anthropic";
-export * from "./mistral";
-export * from "./groq";
-export * from "./openrouter";
-export * from "./custom";
+export * from "./google";
+export * from "./openai-compatible";
+export * from "./response-parsing";
 
+function openAICompatible(id: string) {
+  const preset = OPENAI_COMPATIBLE_PRESETS.find((p) => p.id === id);
+  if (!preset) throw new Error(`Unknown OpenAI-compatible preset: ${id}`);
+  return new OpenAICompatibleAdapter(preset);
+}
+
+// Three adapters; ids match what users already have saved, so stored
+// configs keep working. Order is the order shown in settings.
 export const providers = [
-  new OpenAIAdapter(),
+  openAICompatible("openai"),
   new GoogleAdapter(),
   new AnthropicAdapter(),
-  new MistralAdapter(),
-  new GroqAdapter(),
-  new OpenRouterAdapter(),
-  new CustomAdapter(),
+  openAICompatible("mistral"),
+  openAICompatible("groq"),
+  openAICompatible("openrouter"),
+  openAICompatible("custom"),
 ];
