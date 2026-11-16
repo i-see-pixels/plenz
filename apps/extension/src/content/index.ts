@@ -1,4 +1,5 @@
-import { getActivePlatform, PlatformConfig } from "./platforms/registry";
+import { findPlatformAdapter } from "./editors/platforms";
+import type { EditorAdapter } from "./editors/types";
 import { BadgeIndicator } from "./ui/BadgeIndicator";
 import { RefinePanel } from "./ui/RefinePanel";
 import {
@@ -34,7 +35,7 @@ import {
   type RpcReply,
   type RpcType,
 } from "../shared/rpc";
-import type { ChatMessage, ConversationContext } from "@plenz/types";
+import type { ConversationContext } from "@plenz/types";
 
 const PREFERENCES_STORAGE_KEY = "preferences";
 const DEFAULT_DEBOUNCE_MS = 500;
@@ -76,7 +77,7 @@ function sameBadge(a: BadgeView, b: BadgeView) {
  * current state.
  */
 class ExtensionContentScript {
-  private platform: PlatformConfig | null = null;
+  private adapter: EditorAdapter | null = null;
   private inputElement: HTMLElement | null = null;
   private panel: RefinePanel | null = null;
   private refinePort: chrome.runtime.Port | null = null;
@@ -98,8 +99,8 @@ class ExtensionContentScript {
   private diffCache: { original: string; output: string; diff: PromptDiff } | null = null;
 
   constructor() {
-    this.platform = getActivePlatform();
-    if (this.platform) {
+    this.adapter = findPlatformAdapter(window.location.hostname);
+    if (this.adapter) {
       void this.init();
     }
   }
@@ -292,45 +293,36 @@ class ExtensionContentScript {
   }
 
   private detectInput() {
-    if (!this.platform) return;
+    if (!this.adapter) return;
 
-    for (const selector of this.platform.inputSelectors) {
-      const el = document.querySelector(selector) as HTMLElement;
-      if (el) {
-        if (this.inputElement === el) {
-          return;
-        }
+    const el = this.adapter.findInput(document);
+    if (!el || this.inputElement === el) return;
 
-        this.detachInput();
+    this.detachInput();
 
-        // Determine container for overlay (usually parent of input)
-        const container = el.parentElement || el;
-        this.inputElement = el;
-        this.panel = new RefinePanel(container, {
-          onMode: (mode) => this.dispatch({ type: "MODE_CHOSEN", mode }),
-          onAccept: () => this.dispatch({ type: "ACCEPT" }),
-          onDismiss: () => this.dispatch({ type: "DISMISS" }),
-          onAnswer: (index, value) =>
-            this.dispatch({ type: "ANSWER_CHANGED", index, value }),
-          onSubmitAnswers: () => this.dispatch({ type: "ANSWERS_SUBMITTED" }),
-          onToggleChange: (index) => this.dispatch({ type: "CHANGE_TOGGLED", index }),
-          onResetChanges: () => this.dispatch({ type: "CHANGES_RESET" }),
-        });
-        this.badge = new BadgeIndicator(container);
-        this.badge.setOnClick(() => this.dispatch({ type: "BADGE_CLICKED" }));
-        this.badge.setOnUndo(() => this.dispatch({ type: "UNDO_REQUESTED" }));
-        el.addEventListener("input", this.boundHandleInput);
+    const container = this.adapter.anchorFor(el);
+    this.inputElement = el;
+    this.panel = new RefinePanel(container, {
+      onMode: (mode) => this.dispatch({ type: "MODE_CHOSEN", mode }),
+      onAccept: () => this.dispatch({ type: "ACCEPT" }),
+      onDismiss: () => this.dispatch({ type: "DISMISS" }),
+      onAnswer: (index, value) =>
+        this.dispatch({ type: "ANSWER_CHANGED", index, value }),
+      onSubmitAnswers: () => this.dispatch({ type: "ANSWERS_SUBMITTED" }),
+      onToggleChange: (index) => this.dispatch({ type: "CHANGE_TOGGLED", index }),
+      onResetChanges: () => this.dispatch({ type: "CHANGES_RESET" }),
+    });
+    this.badge = new BadgeIndicator(container);
+    this.badge.setOnClick(() => this.dispatch({ type: "BADGE_CLICKED" }));
+    this.badge.setOnUndo(() => this.dispatch({ type: "UNDO_REQUESTED" }));
+    el.addEventListener("input", this.boundHandleInput);
 
-        this.dispatch({ type: "INPUT_ATTACHED" });
-        break;
-      }
-    }
+    this.dispatch({ type: "INPUT_ATTACHED" });
   }
 
-  private handleInput(e: Event) {
-    const target = e.target as HTMLElement;
-    const text = (target as any).value || target.innerText || "";
-    this.dispatch({ type: "TEXT_CHANGED", text });
+  private handleInput() {
+    if (!this.inputElement || !this.adapter) return;
+    this.dispatch({ type: "TEXT_CHANGED", text: this.adapter.read(this.inputElement) });
   }
 
   /** One port per refine; disconnecting it cancels the provider call. */
@@ -413,58 +405,19 @@ class ExtensionContentScript {
     port?.disconnect();
   }
 
-  private getElementVisibleText(element: Element) {
-    const rect = element.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return "";
-    return (element.textContent || "").replace(/\s+/g, " ").trim();
-  }
-
-  private collectRawChatMessages() {
-    if (!this.platform) return [];
-
-    const entries: Array<ChatMessage & { element: Element }> = [];
-    const seenElements = new Set<Element>();
-
-    for (const { selector, role } of this.platform.messageSelectors) {
-      for (const element of Array.from(document.querySelectorAll(selector))) {
-        if (seenElements.has(element) || element === this.inputElement) continue;
-        seenElements.add(element);
-
-        const text = this.getElementVisibleText(element);
-        if (!text) continue;
-
-        entries.push({
-          role,
-          text,
-          timestamp: Date.now(),
-          element,
-        });
-      }
-    }
-
-    return entries
-      .sort((a, b) =>
-        a.element.compareDocumentPosition(b.element) &
-        Node.DOCUMENT_POSITION_PRECEDING
-          ? 1
-          : -1,
-      )
-      .map(({ element, ...message }) => message);
-  }
-
   private collectConversationContext(
     currentDraft: string,
   ): ConversationContext | undefined {
-    if (!this.platform) return undefined;
+    if (!this.adapter) return undefined;
 
     if (this.conversationUrl !== window.location.href) {
       this.conversationUrl = window.location.href;
       this.rollingSummary = "";
     }
 
-    const messages = this.collectRawChatMessages();
+    const messages = this.adapter.readMessages(document, this.inputElement);
     const conversation = buildConversationContext({
-      platform: this.platform.name,
+      platform: this.adapter.name,
       activeWebsite: window.location.hostname,
       currentDraft,
       messages,
@@ -511,41 +464,10 @@ class ExtensionContentScript {
     this.dispatch(event);
   }
 
+  /** Through the editor's own input path where possible, so the page's undo keeps working. */
   private writeInput(text: string) {
-    if (!this.inputElement) return;
-
-    // Prefer actual DOM capabilities first so platform config mismatches do not break replacement.
-    if (
-      this.inputElement instanceof HTMLTextAreaElement ||
-      this.inputElement instanceof HTMLInputElement
-    ) {
-      const proto = Object.getPrototypeOf(this.inputElement);
-      const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
-      if (setter) {
-        setter.call(this.inputElement, text);
-      } else {
-        (this.inputElement as HTMLTextAreaElement | HTMLInputElement).value =
-          text;
-      }
-      this.inputElement.dispatchEvent(new Event("input", { bubbles: true }));
-    } else if (
-      this.inputElement.isContentEditable ||
-      this.platform?.inputType === "contenteditable" ||
-      this.platform?.inputType === "prosemirror"
-    ) {
-      this.inputElement.textContent = text;
-      this.inputElement.dispatchEvent(
-        new InputEvent("input", {
-          bubbles: true,
-          inputType: "insertText",
-          data: text,
-        }),
-      );
-    } else {
-      // Last-resort fallback for unknown editors
-      this.inputElement.textContent = text;
-      this.inputElement.dispatchEvent(new Event("input", { bubbles: true }));
-    }
+    if (!this.inputElement || !this.adapter) return;
+    this.adapter.write(this.inputElement, text);
   }
 }
 

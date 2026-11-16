@@ -466,16 +466,9 @@ The content script uses:
 
 This is intentional because the overlay must survive unknown host page styles.
 
-### Perplexity support is partially wired
+### Perplexity support
 
-`apps/extension/src/content/platforms/registry.ts` includes a Perplexity config, but `apps/extension/public/manifest.json` currently injects the content script only on:
-
-- `chatgpt.com`
-- `chat.openai.com`
-- `claude.ai`
-- `gemini.google.com`
-
-Treat Perplexity as in-progress in the live extension footprint unless the manifest is updated.
+Perplexity has an editor adapter in `apps/extension/src/content/editors/platforms.ts`, and `apps/extension/public/manifest.json` injects the content script on `perplexity.ai` and `www.perplexity.ai` alongside ChatGPT, Claude and Gemini.
 
 ### There is an unused starter app in the extension workspace
 

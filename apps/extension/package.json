@@ -30,6 +30,7 @@
     "@types/chrome": "^0.1.38",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "happy-dom": "^21.0.4",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.4.5",
     "vite": "^7.3.1"

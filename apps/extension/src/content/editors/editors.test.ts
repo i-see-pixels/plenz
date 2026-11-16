@@ -1,0 +1,204 @@
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import { Window } from "happy-dom";
+import { readText, sameText, writeText } from "./dom.ts";
+import { findPlatformAdapter, hostMatches } from "./platforms.ts";
+
+/** A fresh page at `url` with `html` in the body. */
+function page(url: string, html: string) {
+  const window = new Window({ url });
+  window.document.body.innerHTML = html;
+  return window.document as unknown as Document;
+}
+
+// Minimal copies of each site's composer and message markup, matching the
+// selectors the adapters rely on. When a site changes its DOM, update these.
+const FIXTURES = {
+  chatgpt: {
+    url: "https://chatgpt.com/c/123",
+    html: `
+      <main>
+        <div data-message-author-role="user"><div>How do I center a div?</div></div>
+        <div data-message-author-role="assistant"><p>Use flexbox.</p></div>
+      </main>
+      <form><div id="prompt-textarea" contenteditable="true" class="ProseMirror"><p>chatgpt draft</p></div></form>`,
+    messages: [
+      { role: "user", text: "How do I center a div?" },
+      { role: "assistant", text: "Use flexbox." },
+    ],
+    draft: "chatgpt draft",
+  },
+  claude: {
+    url: "https://claude.ai/chat/abc",
+    html: `
+      <div data-testid="user-message">Summarize this paper</div>
+      <div class="font-claude-message">Here is a summary</div>
+      <fieldset><div contenteditable="true" class="ProseMirror"><p>claude draft</p></div></fieldset>`,
+    messages: [
+      { role: "user", text: "Summarize this paper" },
+      { role: "assistant", text: "Here is a summary" },
+    ],
+    draft: "claude draft",
+  },
+  gemini: {
+    url: "https://gemini.google.com/app",
+    html: `
+      <div class="user-query-container">Plan a trip to Lisbon</div>
+      <message-content>Sure, here is a plan</message-content>
+      <div class="input-area"><rich-textarea><div class="ql-editor" contenteditable="true"><p>gemini draft</p></div></rich-textarea></div>`,
+    messages: [
+      { role: "user", text: "Plan a trip to Lisbon" },
+      { role: "assistant", text: "Sure, here is a plan" },
+    ],
+    draft: "gemini draft",
+  },
+  perplexity: {
+    url: "https://www.perplexity.ai/search/x",
+    html: `
+      <main>
+        <div data-testid="user-message">What is RAG?</div>
+        <div data-testid="answer">Retrieval-augmented generation</div>
+      </main>
+      <form><textarea placeholder="Ask anything...">perplexity draft</textarea></form>`,
+    messages: [
+      { role: "user", text: "What is RAG?" },
+      { role: "assistant", text: "Retrieval-augmented generation" },
+    ],
+    draft: "perplexity draft",
+  },
+} as const;
+
+describe("platform matching", () => {
+  test("each site maps to its adapter, including subdomains", () => {
+    assert.equal(findPlatformAdapter("chatgpt.com")?.name, "chatgpt");
+    assert.equal(findPlatformAdapter("chat.openai.com")?.name, "chatgpt");
+    assert.equal(findPlatformAdapter("claude.ai")?.name, "claude");
+    assert.equal(findPlatformAdapter("gemini.google.com")?.name, "gemini");
+    assert.equal(findPlatformAdapter("www.perplexity.ai")?.name, "perplexity");
+  });
+
+  test("lookalike hosts don't match", () => {
+    assert.equal(findPlatformAdapter("claude.ai.example.com"), null);
+    assert.equal(findPlatformAdapter("notchatgpt.com"), null);
+    assert.equal(hostMatches("evilperplexity.ai", "perplexity.ai"), false);
+  });
+});
+
+for (const [name, fixture] of Object.entries(FIXTURES)) {
+  describe(`${name} adapter`, () => {
+    const adapter = findPlatformAdapter(new URL(fixture.url).hostname)!;
+
+    test("finds the composer and reads the draft", () => {
+      const doc = page(fixture.url, fixture.html);
+      const input = adapter.findInput(doc);
+      assert.ok(input, "composer not found");
+      assert.equal(adapter.read(input).trim(), fixture.draft);
+    });
+
+    test("reads chat messages oldest first, without the composer", () => {
+      const doc = page(fixture.url, fixture.html);
+      const input = adapter.findInput(doc);
+      const messages = adapter.readMessages(doc, input).map(({ role, text }) => ({ role, text }));
+      assert.deepEqual(messages, fixture.messages);
+    });
+  });
+}
+
+describe("finding the composer", () => {
+  test("skips disabled and read-only fields", () => {
+    const doc = page(
+      "https://www.perplexity.ai/",
+      `<textarea placeholder="Ask" disabled>old</textarea>
+       <textarea class="overflow-auto">live</textarea>`,
+    );
+    assert.equal(readText(findPlatformAdapter("www.perplexity.ai")!.findInput(doc)!), "live");
+  });
+
+  test("skips editors that are not contenteditable", () => {
+    const doc = page(
+      "https://claude.ai/",
+      `<fieldset><div class="ProseMirror" contenteditable="false">preview</div></fieldset>
+       <fieldset><div class="ProseMirror" contenteditable="true">live</div></fieldset>`,
+    );
+    assert.equal(findPlatformAdapter("claude.ai")!.findInput(doc)?.textContent, "live");
+  });
+
+  test("skips hidden composers left behind by the page", () => {
+    const doc = page(
+      "https://claude.ai/",
+      `<div class="ProseMirror" contenteditable="true" style="display:none">stale</div>
+       <fieldset><div class="ProseMirror" contenteditable="true">live</div></fieldset>`,
+    );
+    assert.equal(findPlatformAdapter("claude.ai")!.findInput(doc)?.textContent, "live");
+  });
+
+  test("hidden messages are left out of the chat context", () => {
+    const doc = page(
+      "https://claude.ai/",
+      `<div data-testid="user-message" style="display:none">draft from another tab</div>
+       <div data-testid="user-message">visible question</div>`,
+    );
+    assert.deepEqual(
+      findPlatformAdapter("claude.ai")!.readMessages(doc, null).map((m) => m.text),
+      ["visible question"],
+    );
+  });
+
+  test("returns null until the composer exists", () => {
+    const doc = page("https://claude.ai/", "<main>loading</main>");
+    assert.equal(findPlatformAdapter("claude.ai")!.findInput(doc), null);
+  });
+});
+
+describe("writing the draft", () => {
+  test("a rich editor that handles paste gets the text as one paste", () => {
+    const doc = page("https://claude.ai/", `<div id="ed" contenteditable="true"><p>old draft</p></div>`);
+    const editor = doc.getElementById("ed")!;
+    let pastes = 0;
+    let inputs = 0;
+    // Like ProseMirror: claim the paste and update its own document.
+    editor.addEventListener("paste", (event) => {
+      const data = (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? "";
+      event.preventDefault();
+      pastes++;
+      editor.innerHTML = `<p>${data}</p>`;
+    });
+    editor.addEventListener("input", () => inputs++);
+
+    assert.equal(writeText(editor, "new prompt"), "paste");
+    assert.equal(pastes, 1);
+    assert.equal(readText(editor).trim(), "new prompt");
+    assert.equal(inputs, 0, "no extra synthetic input event when the editor handled it");
+  });
+
+  test("a plain contenteditable falls back and still fires input", () => {
+    const doc = page("https://claude.ai/", `<div id="ed" contenteditable="true">old draft</div>`);
+    const editor = doc.getElementById("ed")!;
+    let inputs = 0;
+    editor.addEventListener("input", () => inputs++);
+
+    const method = writeText(editor, "new prompt");
+    assert.ok(method === "insertText" || method === "direct", method);
+    assert.ok(sameText(readText(editor), "new prompt"));
+    assert.ok(inputs >= 1);
+  });
+
+  test("a textarea gets the full text and an input event", () => {
+    const doc = page("https://www.perplexity.ai/", `<textarea id="ta">old draft</textarea>`);
+    const textarea = doc.getElementById("ta") as HTMLTextAreaElement;
+    let inputs = 0;
+    textarea.addEventListener("input", () => inputs++);
+
+    const method = writeText(textarea, "line one\nline two");
+    assert.ok(method === "insertText" || method === "direct", method);
+    assert.equal(textarea.value, "line one\nline two");
+    assert.ok(inputs >= 1);
+  });
+});
+
+describe("sameText", () => {
+  test("ignores layout whitespace and non-breaking spaces", () => {
+    assert.equal(sameText("a b\n\nc ", " a b c"), true);
+    assert.equal(sameText("a b", "a c"), false);
+  });
+});
