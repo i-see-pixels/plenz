@@ -42,7 +42,9 @@
   "permissions": [
     "storage",
     "identity",
-    "sidePanel"
+    "sidePanel",
+    "scripting",
+    "activeTab"
   ],
   "side_panel": {
     "default_path": "src/sidepanel/index.html"

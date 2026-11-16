@@ -34,7 +34,7 @@
 - Click the badge to pick a mode, or press Ctrl/Cmd+Shift+Enter for Improve; opt in to refine automatically after a pause.
 - See exactly what changed: a word-level diff where you can keep your own wording for any change, then replace in one click, with Undo.
 - Provider-agnostic architecture with BYOK.
-- Works across multiple AI chat platforms.
+- Works on ChatGPT, Claude, Gemini and Perplexity, and on any other site you turn it on for from the popup.
 
 ## Star History
 
@@ -87,6 +87,7 @@
 | Claude     | Supported |
 | Gemini     | Supported |
 | Perplexity | Supported |
+| Any other site | Supported when you turn it on from the popup (uses the text box you click into) |
 | Copilot    | Planned   |
 
 ## Supported Providers

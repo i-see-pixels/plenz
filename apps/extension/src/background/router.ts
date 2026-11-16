@@ -2,6 +2,7 @@ import { StorageManager } from "./storage";
 import { providers } from "@plenz/providers";
 import { AuthSession } from "./auth-session";
 import { PromptGalleryManager } from "./prompt-gallery";
+import { Sites } from "./sites";
 import {
   CONTENT_SCRIPT_RPC,
   type RpcFailure,
@@ -161,6 +162,24 @@ const handlers: Handlers = {
   async DELETE_SAVED_PROMPT(payload) {
     await PromptGalleryManager.deleteSavedPrompt(payload?.id ?? "");
     return { success: true };
+  },
+
+  async GET_SITE_STATUS(payload) {
+    return Sites.status(String(payload?.url ?? ""));
+  },
+
+  async SITE_PERMISSION_REQUESTED(payload) {
+    const tabId = typeof payload?.tabId === "number" ? payload.tabId : undefined;
+    return Sites.markPending(String(payload?.url ?? ""), tabId);
+  },
+
+  async ENABLE_SITE(payload) {
+    const tabId = typeof payload?.tabId === "number" ? payload.tabId : undefined;
+    return Sites.enable(String(payload?.url ?? ""), tabId);
+  },
+
+  async DISABLE_SITE(payload) {
+    return Sites.disable(String(payload?.url ?? ""));
   },
 };
 

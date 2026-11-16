@@ -1,3 +1,4 @@
+import { genericAdapter } from "./editors/generic";
 import { findPlatformAdapter } from "./editors/platforms";
 import type { EditorAdapter } from "./editors/types";
 import { BadgeIndicator } from "./ui/BadgeIndicator";
@@ -99,10 +100,10 @@ class ExtensionContentScript {
   private diffCache: { original: string; output: string; diff: PromptDiff } | null = null;
 
   constructor() {
-    this.adapter = findPlatformAdapter(window.location.hostname);
-    if (this.adapter) {
-      void this.init();
-    }
+    // The manifest only injects on known chat sites; anywhere else we were
+    // registered because the user enabled this site from the popup.
+    this.adapter = findPlatformAdapter(window.location.hostname) ?? genericAdapter;
+    void this.init();
   }
 
   private async init() {
@@ -116,6 +117,11 @@ class ExtensionContentScript {
       this.handleGlobalKeydown.bind(this),
       true,
     );
+
+    // On other sites the prompt field is whichever text box the user focuses.
+    if (this.adapter === genericAdapter) {
+      document.addEventListener("focusin", () => this.detectInput(), true);
+    }
   }
 
   /**
@@ -471,4 +477,10 @@ class ExtensionContentScript {
   }
 }
 
-new ExtensionContentScript();
+// Enabling a site injects into the open tab and registers for future loads;
+// never run two copies in the same page.
+const loaded = globalThis as typeof globalThis & { __plenzContentScript?: boolean };
+if (!loaded.__plenzContentScript) {
+  loaded.__plenzContentScript = true;
+  new ExtensionContentScript();
+}

@@ -23,6 +23,13 @@ Shared logic lives in:
 7. The finished prompt is shown as a word-level diff against the draft (`diffPrompts` in `@plenz/core`), or as the plain result when the rewrite is mostly new text. Clicking a change keeps the draft's wording there; "Replace prompt" (or Tab in the chat input) writes the accepted changes only (`applyDiff`). Esc closes the panel.
 8. After a replace the badge offers Undo, which restores the previous draft. It stays available until the chat input is edited.
 
+## Other Sites
+
+- The manifest only injects the content script on the supported chat sites. For any other site, the popup's "Use plenz on [site]" asks for that site's optional host permission, and the background registers the content script for it with `chrome.scripting` (`apps/extension/src/background/sites.ts`).
+- On those sites the generic editor adapter uses whichever multi-line text box the user focuses, including inside open shadow roots. Single-line inputs are never used, and there is no chat transcript to read.
+- The registered script is a self-contained IIFE built by `vite.site-script.config.ts`, so it needs no `web_accessible_resources`. Exposing the crxjs loader's chunks to every site would let any page detect the extension.
+- Chrome may close the popup while its permission prompt is open, so the popup records the pending site first and `permissions.onAdded` finishes enabling it.
+
 ## Provider Layer
 
 - Three adapters implement `ProviderAdapter`, whose core method is `streamCompletion({ system, user }, config, { signal, onDelta })`:

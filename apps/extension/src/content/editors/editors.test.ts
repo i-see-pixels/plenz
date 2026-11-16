@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { Window } from "happy-dom";
 import { readText, sameText, writeText } from "./dom.ts";
+import { genericAdapter, promptFieldFor } from "./generic.ts";
 import { findPlatformAdapter, hostMatches } from "./platforms.ts";
 
 /** A fresh page at `url` with `html` in the body. */
@@ -193,6 +194,54 @@ describe("writing the draft", () => {
     assert.ok(method === "insertText" || method === "direct", method);
     assert.equal(textarea.value, "line one\nline two");
     assert.ok(inputs >= 1);
+  });
+});
+
+describe("generic adapter (sites the user turned on)", () => {
+  const focused = (html: string, id: string) => {
+    const doc = page("https://notes.example.com/", html);
+    (doc.getElementById(id) as HTMLElement).focus();
+    return doc;
+  };
+
+  test("uses the textarea the user focuses", () => {
+    const doc = focused(`<textarea id="a">first</textarea><textarea id="b">second</textarea>`, "b");
+    assert.equal(readText(genericAdapter.findInput(doc)!), "second");
+  });
+
+  test("uses the root of a rich editor when focus is inside it", () => {
+    const doc = focused(
+      `<div id="editor" contenteditable="true"><p id="inner" tabindex="0">draft</p></div>`,
+      "inner",
+    );
+    assert.equal(genericAdapter.findInput(doc)?.id, "editor");
+  });
+
+  test("follows focus into open shadow roots", () => {
+    const doc = page("https://app.example.com/", `<div id="host"></div>`);
+    const shadow = doc.getElementById("host")!.attachShadow({ mode: "open" });
+    shadow.innerHTML = `<textarea id="inside">in shadow</textarea>`;
+    (shadow.getElementById("inside") as HTMLElement).focus();
+    assert.equal(readText(genericAdapter.findInput(doc)!), "in shadow");
+  });
+
+  test("never uses one-line, password or disabled fields", () => {
+    for (const html of [
+      `<input id="f" type="text" value="search">`,
+      `<input id="f" type="password" value="secret">`,
+      `<textarea id="f" disabled>locked</textarea>`,
+      `<textarea id="f" readonly>locked</textarea>`,
+      `<button id="f">Send</button>`,
+    ]) {
+      assert.equal(genericAdapter.findInput(focused(html, "f")), null, html);
+    }
+  });
+
+  test("nothing focused means no field, and there are no chat messages to read", () => {
+    const doc = page("https://notes.example.com/", `<textarea>idle</textarea>`);
+    assert.equal(genericAdapter.findInput(doc), null);
+    assert.deepEqual(genericAdapter.readMessages(doc, null), []);
+    assert.equal(promptFieldFor(null), null);
   });
 });
 

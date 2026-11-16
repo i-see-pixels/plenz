@@ -14,6 +14,7 @@ import type {
 import type { AuthSnapshot } from "../background/auth-machine";
 import type { UserPreferences } from "../background/storage";
 import type { StorageBackendPreference } from "../background/storage-backend";
+import type { SiteStatus } from "./sites";
 
 /** Any handler may reply with this instead (rejected sender, thrown error). */
 export type RpcFailure = { error: string };
@@ -90,6 +91,13 @@ export type RpcMap = {
   };
   SAVE_PUBLIC_PROMPT: { payload: { prompt: PublicPrompt }; reply: { prompt: SavedPrompt } };
   DELETE_SAVED_PROMPT: { payload: { id: string }; reply: Success };
+  // Sites beyond the built-in chat platforms (see ./sites.ts).
+  GET_SITE_STATUS: { payload: { url: string }; reply: { status: SiteStatus; host?: string } };
+  /** Call just before asking Chrome for the site's permission. */
+  SITE_PERMISSION_REQUESTED: { payload: { url: string; tabId?: number }; reply: ActionResult };
+  /** Call after the popup was granted the site's host permission. */
+  ENABLE_SITE: { payload: { url: string; tabId?: number }; reply: ActionResult };
+  DISABLE_SITE: { payload: { url: string }; reply: ActionResult };
 };
 
 export type RpcType = keyof RpcMap;

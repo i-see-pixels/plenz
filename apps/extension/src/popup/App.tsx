@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import logo from "../assets/logo.svg";
 import { providers } from "@plenz/providers";
 import { AuthStatus } from "../components/AuthStatus";
+import { SiteAccess } from "../components/SiteAccess";
 import { isRpcFailure, sendRpc } from "../shared/rpc";
 import type { ModelOption } from "@plenz/types";
 import { BarChart3, BookOpen, Settings, Users } from "lucide-react";
@@ -237,6 +238,8 @@ export function App() {
         </CardHeader>
 
         <CardContent className="px-0 py-0">
+          <SiteAccess />
+
           <section className="flex flex-col gap-3 px-4 py-3">
             <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
               Account
