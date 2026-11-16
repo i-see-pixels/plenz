@@ -24,6 +24,7 @@ type Preferences = {
   suggestionsEnabled?: boolean;
   chatContextEnabled?: boolean;
   providerFallbackEnabled?: boolean;
+  autoRefineEnabled?: boolean;
 };
 
 function sanitizeDebounceMs(value: unknown) {
@@ -41,6 +42,7 @@ export function App() {
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
   const [chatContextEnabled, setChatContextEnabled] = useState(false);
   const [providerFallbackEnabled, setProviderFallbackEnabled] = useState(false);
+  const [autoRefineEnabled, setAutoRefineEnabled] = useState(false);
   const [preferencesState, setPreferencesState] = useState<{
     status: "idle" | "saving" | "saved" | "error";
     message?: string;
@@ -69,6 +71,7 @@ export function App() {
         setProviderFallbackEnabled(
           preferences?.providerFallbackEnabled === true,
         );
+        setAutoRefineEnabled(preferences?.autoRefineEnabled === true);
       } catch (error) {
         setPreferencesState({
           status: "error",
@@ -102,6 +105,7 @@ export function App() {
         suggestionsEnabled,
         chatContextEnabled,
         providerFallbackEnabled,
+        autoRefineEnabled,
       };
 
       await sendRpc("SET_PREFERENCES", {
@@ -110,6 +114,7 @@ export function App() {
           suggestionsEnabled,
           chatContextEnabled,
           providerFallbackEnabled,
+          autoRefineEnabled,
         },
       });
 
@@ -251,6 +256,27 @@ export function App() {
                   </span>
                   <span className="text-xs leading-relaxed text-muted-foreground">
                     If the active provider fails, retry with your other configured providers. This sends your prompt to those providers and may bill each of them.
+                  </span>
+                </span>
+              </label>
+              <label className="grid cursor-pointer gap-3 rounded-sm border border-border px-3 py-3 sm:grid-cols-[auto_1fr]">
+                <input
+                  type="checkbox"
+                  checked={autoRefineEnabled}
+                  onChange={(event) => {
+                    markEdited();
+                    setAutoRefineEnabled(
+                      (event.currentTarget as HTMLInputElement).checked,
+                    );
+                  }}
+                  className="mt-0.5 size-4"
+                />
+                <span className="flex flex-col gap-1">
+                  <span className="font-mono text-[11px] tracking-[0.14em] uppercase">
+                    Refine automatically while typing
+                  </span>
+                  <span className="text-xs leading-relaxed text-muted-foreground">
+                    Off by default: the local check runs as you type, and your provider is only called when you click the badge or press Ctrl/Cmd+Shift+Enter. When on, plenz also refines after each typing pause (the debounce above), and each refine is a billed call.
                   </span>
                 </span>
               </label>

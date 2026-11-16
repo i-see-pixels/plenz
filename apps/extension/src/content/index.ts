@@ -12,7 +12,9 @@ import {
   type ContentModel,
   type BadgeView,
   type ContentView,
+  type LintSummary,
 } from "./machine";
+import { lintPrompt } from "@plenz/core";
 import {
   isRpcFailure,
   sendRpc,
@@ -32,6 +34,7 @@ type Preferences = {
   debounceTime?: number;
   suggestionsEnabled?: boolean;
   chatContextEnabled?: boolean;
+  autoRefineEnabled?: boolean;
 };
 
 function sanitizeDebounceMs(value: unknown) {
@@ -46,6 +49,13 @@ function sameBadge(a: BadgeView, b: BadgeView) {
   if (a.kind !== b.kind) return false;
   if (a.kind === "count" && b.kind === "count") return a.count === b.count;
   if (a.kind === "error" && b.kind === "error") return a.message === b.message;
+  if (a.kind === "lint" && b.kind === "lint") {
+    return (
+      a.score === b.score &&
+      a.findings.map((f) => f.label).join("|") ===
+        b.findings.map((f) => f.label).join("|")
+    );
+  }
   return true;
 }
 
@@ -74,6 +84,7 @@ class ExtensionContentScript {
   private renderedView: ContentView | null = null;
   private readonly eventQueue: ContentEvent[] = [];
   private dispatching = false;
+  private lintCache: { text: string; result: LintSummary } | null = null;
 
   constructor() {
     this.platform = getActivePlatform();
@@ -144,8 +155,16 @@ class ExtensionContentScript {
     }
   }
 
+  /** Lint once per distinct draft; render runs on every event. */
+  private lintFor(text: string): LintSummary {
+    if (this.lintCache?.text !== text) {
+      this.lintCache = { text, result: lintPrompt(text) };
+    }
+    return this.lintCache.result;
+  }
+
   private render() {
-    const next = view(this.model.state);
+    const next = view(this.model, this.lintFor(this.model.text));
     const prev = this.renderedView;
     this.renderedView = next;
 
@@ -154,6 +173,7 @@ class ExtensionContentScript {
       if (badge.kind === "hidden") this.badge?.hide();
       else if (badge.kind === "saving") this.badge?.showSaving();
       else if (badge.kind === "count") this.badge?.show(badge.count);
+      else if (badge.kind === "lint") this.badge?.showLint(badge.score, badge.findings);
       else this.badge?.showError(badge.message || "An error occurred");
     }
 
@@ -236,6 +256,7 @@ class ExtensionContentScript {
       debounceMs: sanitizeDebounceMs(
         preferences?.debounceMs ?? preferences?.debounceTime,
       ),
+      autoRefine: preferences?.autoRefineEnabled === true,
     });
   }
 
@@ -277,7 +298,7 @@ class ExtensionContentScript {
           this.dispatch({ type: "SELECT", index }),
         );
         this.overlay.setOnClose(() => this.dispatch({ type: "DISMISS" }));
-        this.badge.setOnClick(() => this.dispatch({ type: "OPEN_REQUESTED" }));
+        this.badge.setOnClick(() => this.dispatch({ type: "BADGE_CLICKED" }));
         el.addEventListener("input", this.boundHandleInput);
 
         this.dispatch({ type: "INPUT_ATTACHED" });
@@ -417,6 +438,7 @@ class ExtensionContentScript {
     const event = keyToEvent(this.model.state, {
       key: e.key,
       shiftKey: e.shiftKey,
+      modKey: e.ctrlKey || e.metaKey,
       inInput: !!(target && this.inputElement?.contains(target)),
     });
     if (!event) return;

@@ -36,7 +36,8 @@ function run(model: ContentModel, ...events: ContentEvent[]) {
 }
 
 function attached() {
-  return run(createContentModel(), { type: "INPUT_ATTACHED" }).model;
+  // These flows exercise auto-refine; on-demand refine has its own tests below.
+  return run(createContentModel(true, 500, true), { type: "INPUT_ATTACHED" }).model;
 }
 
 function analyzing() {
@@ -147,9 +148,9 @@ describe("content machine: analysis flow", () => {
   });
 
   test("success with suggestions shows the badge, not the popover", () => {
-    const state = ready().state;
-    assert.equal(state.kind, "ready");
-    const v = view(state);
+    const model = ready();
+    assert.equal(model.state.kind, "ready");
+    const v = view(model, null);
     assert.deepEqual(v.badge, { kind: "count", count: 3 });
     assert.equal(v.overlay, null);
   });
@@ -169,7 +170,7 @@ describe("content machine: analysis flow", () => {
       requestId: 1,
       message: "rate limited",
     });
-    assert.deepEqual(view(model.state).badge, {
+    assert.deepEqual(view(model, null).badge, {
       kind: "error",
       message: "rate limited",
     });
@@ -178,18 +179,18 @@ describe("content machine: analysis flow", () => {
 
 describe("content machine: popover", () => {
   test("opening starts at the first suggestion and hides the badge", () => {
-    const state = open().state;
-    assert.equal(state.kind, "open");
-    const v = view(state);
+    const model = open();
+    assert.equal(model.state.kind, "open");
+    const v = view(model, null);
     assert.equal(v.badge.kind, "hidden");
     assert.equal(v.overlay?.activeIndex, 0);
   });
 
   test("navigation wraps in both directions", () => {
     const up = run(open(), { type: "NAVIGATE", direction: "up" }).model;
-    assert.equal(view(up.state).overlay?.activeIndex, 2);
+    assert.equal(view(up, null).overlay?.activeIndex, 2);
     const down = run(up, { type: "NAVIGATE", direction: "down" }).model;
-    assert.equal(view(down.state).overlay?.activeIndex, 0);
+    assert.equal(view(down, null).overlay?.activeIndex, 0);
   });
 
   test("accept applies the active suggestion, ignores our own input, then idles", () => {
@@ -217,13 +218,13 @@ describe("content machine: popover", () => {
   test("dismiss returns to the badge with suggestions kept", () => {
     const { model } = run(open(), { type: "DISMISS" });
     assert.equal(model.state.kind, "ready");
-    assert.deepEqual(view(model.state).badge, { kind: "count", count: 3 });
+    assert.deepEqual(view(model, null).badge, { kind: "count", count: 3 });
   });
 
   test("typing while open closes it and starts a new analysis cycle", () => {
     const { model } = run(open(), { type: "TEXT_CHANGED", text: `${PROMPT}.` });
     assert.equal(model.state.kind, "debouncing");
-    assert.equal(view(model.state).overlay, null);
+    assert.equal(view(model, null).overlay, null);
   });
 
   test("open/accept events do nothing outside their states", () => {
@@ -255,6 +256,7 @@ describe("content machine: lifecycle and preferences", () => {
       type: "PREFERENCES_CHANGED",
       enabled: false,
       debounceMs: 500,
+      autoRefine: true,
     });
     assert.equal(model.state.kind, "idle");
     assert.deepEqual(effects, [{ type: "clearDebounce" }]);
@@ -268,6 +270,7 @@ describe("content machine: lifecycle and preferences", () => {
       type: "PREFERENCES_CHANGED",
       enabled: true,
       debounceMs: 900,
+      autoRefine: true,
     }).model;
     const { effects } = run(tuned, { type: "TEXT_CHANGED", text: PROMPT });
     assert.deepEqual(effects, [{ type: "startDebounce", ms: 900 }]);
@@ -275,9 +278,13 @@ describe("content machine: lifecycle and preferences", () => {
 });
 
 describe("keyToEvent", () => {
-  const key = (k: string, extra: Partial<{ shiftKey: boolean; inInput: boolean }> = {}) => ({
+  const key = (
+    k: string,
+    extra: Partial<{ shiftKey: boolean; modKey: boolean; inInput: boolean }> = {},
+  ) => ({
     key: k,
     shiftKey: false,
+    modKey: false,
     inInput: true,
     ...extra,
   });
@@ -311,4 +318,120 @@ describe("keyToEvent", () => {
     });
     assert.equal(keyToEvent(state, key("a")), null);
   });
+
+  test("Ctrl/Cmd+Shift+Enter in the input refines, but not while open or elsewhere", () => {
+    const refineKey = key("Enter", { shiftKey: true, modKey: true });
+    assert.deepEqual(keyToEvent(attached().state, refineKey), { type: "REFINE_REQUESTED" });
+    assert.deepEqual(keyToEvent(ready().state, refineKey), { type: "REFINE_REQUESTED" });
+    assert.equal(keyToEvent(open().state, refineKey), null);
+    assert.equal(
+      keyToEvent(attached().state, key("Enter", { shiftKey: true, modKey: true, inInput: false })),
+      null,
+    );
+    // Plain and Shift+Enter belong to the page (send / newline).
+    assert.equal(keyToEvent(attached().state, key("Enter")), null);
+    assert.equal(keyToEvent(attached().state, key("Enter", { shiftKey: true })), null);
+  });
 });
+
+describe("content machine: on-demand refine and lint", () => {
+  const LINT = {
+    assessed: true,
+    score: 55,
+    findings: [
+      { label: "No goal or context", hint: "a" },
+      { label: "No audience or tone", hint: "b" },
+      { label: "No length", hint: "c" },
+      { label: "No constraints", hint: "d" },
+    ],
+  };
+  const manual = () =>
+    run(createContentModel(), { type: "INPUT_ATTACHED" }, { type: "TEXT_CHANGED", text: PROMPT })
+      .model;
+
+  test("by default typing only tracks the draft; nothing is sent", () => {
+    const { model, effects } = run(createContentModel(), { type: "INPUT_ATTACHED" }, {
+      type: "TEXT_CHANGED",
+      text: PROMPT,
+    });
+    assert.equal(model.state.kind, "idle");
+    assert.equal(model.text, PROMPT);
+    assert.deepEqual(effects, []);
+  });
+
+  test("the idle badge shows the lint score and the top three chips", () => {
+    const badge = view(manual(), LINT).badge;
+    assert.equal(badge.kind, "lint");
+    if (badge.kind !== "lint") return;
+    assert.equal(badge.score, 55);
+    assert.deepEqual(
+      badge.findings.map((f) => f.label),
+      ["No goal or context", "No audience or tone", "No length"],
+    );
+  });
+
+  test("a draft the linter can't score still shows a refine badge", () => {
+    const badge = view(manual(), { assessed: false, score: 100, findings: [] }).badge;
+    assert.deepEqual(badge, { kind: "lint", score: null, findings: [] });
+  });
+
+  test("no lint badge for short drafts or when suggestions are off", () => {
+    const short = run(createContentModel(), { type: "INPUT_ATTACHED" }, {
+      type: "TEXT_CHANGED",
+      text: "hi",
+    }).model;
+    assert.equal(view(short, LINT).badge.kind, "hidden");
+    const off = run(manual(), {
+      type: "PREFERENCES_CHANGED",
+      enabled: false,
+      debounceMs: 500,
+      autoRefine: false,
+    }).model;
+    assert.equal(view(off, LINT).badge.kind, "hidden");
+  });
+
+  test("a refine request analyzes the current draft straight away", () => {
+    const { model, effects } = run(manual(), { type: "REFINE_REQUESTED" });
+    assert.deepEqual(model.state, { kind: "analyzing", text: PROMPT, requestId: 1 });
+    assert.deepEqual(effects, [{ type: "requestAnalysis", text: PROMPT, requestId: 1 }]);
+  });
+
+  test("refine skips a pending debounce in auto mode", () => {
+    const debouncing = run(attached(), { type: "TEXT_CHANGED", text: PROMPT }).model;
+    const { effects } = run(debouncing, { type: "REFINE_REQUESTED" });
+    assert.deepEqual(effects, [
+      { type: "clearDebounce" },
+      { type: "requestAnalysis", text: PROMPT, requestId: 1 },
+    ]);
+  });
+
+  test("refine is ignored for short drafts and while analyzing", () => {
+    const short = run(createContentModel(), { type: "INPUT_ATTACHED" }, {
+      type: "TEXT_CHANGED",
+      text: "hi",
+    }).model;
+    assert.deepEqual(run(short, { type: "REFINE_REQUESTED" }).effects, []);
+    const analyzing = run(manual(), { type: "REFINE_REQUESTED" }).model;
+    assert.deepEqual(run(analyzing, { type: "REFINE_REQUESTED" }).effects, []);
+  });
+
+  test("the badge refines when idle or after an error, and opens when ready", () => {
+    assert.equal(run(manual(), { type: "BADGE_CLICKED" }).model.state.kind, "analyzing");
+
+    const failed = run(manual(), { type: "REFINE_REQUESTED" }, {
+      type: "ANALYSIS_FAILED",
+      requestId: 1,
+      message: "timeout",
+    }).model;
+    assert.equal(run(failed, { type: "BADGE_CLICKED" }).model.state.kind, "analyzing");
+
+    assert.equal(run(ready(), { type: "BADGE_CLICKED" }).model.state.kind, "open");
+  });
+
+  test("after applying, the applied text is the draft that gets linted", () => {
+    const { model } = run(open(), { type: "ACCEPT" }, { type: "APPLIED" });
+    assert.equal(model.state.kind, "idle");
+    assert.equal(model.text, "suggested a");
+  });
+});
+

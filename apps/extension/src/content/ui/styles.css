@@ -51,6 +51,87 @@
   background: color-mix(in srgb, var(--pl-accent) 18%, white);
 }
 
+/* Local prompt check: score pill, colored by band, with a hover panel. */
+.pl-badge.lint {
+  position: relative;
+}
+
+.pl-badge.lint-good {
+  color: var(--pl-accent-secondary);
+  background: color-mix(in srgb, var(--pl-accent-secondary) 10%, white);
+  border-color: color-mix(in srgb, var(--pl-accent-secondary) 40%, white);
+}
+
+.pl-badge.lint-weak {
+  color: #dc2626;
+  background: color-mix(in srgb, #dc2626 10%, white);
+  border-color: color-mix(in srgb, #dc2626 40%, white);
+}
+
+.pl-lint-score {
+  margin-left: 4px;
+}
+
+.pl-lint-panel {
+  display: none;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  width: 260px;
+  padding: 10px 12px;
+  background: var(--pl-bg-primary);
+  color: var(--pl-text-primary);
+  border: 1px solid var(--pl-border);
+  border-radius: var(--pl-radius-md);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.14);
+  font-family: var(--pl-font-family);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: normal;
+  cursor: default;
+}
+
+.pl-badge.lint:hover .pl-lint-panel,
+.pl-badge.lint:focus-within .pl-lint-panel {
+  display: block;
+}
+
+.pl-lint-head {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.pl-lint-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.pl-lint-item {
+  display: grid;
+  gap: 2px;
+}
+
+.pl-lint-label {
+  font-weight: 600;
+}
+
+.pl-lint-hint,
+.pl-lint-foot {
+  color: var(--pl-text-secondary);
+  line-height: 1.4;
+}
+
+.pl-lint-foot {
+  border-top: 1px solid var(--pl-border);
+  padding-top: 6px;
+  font-size: 11px;
+}
+
 .pl-badge.error {
   background: color-mix(in srgb, #ef4444 12%, white);
   color: #ef4444;

@@ -26,6 +26,8 @@ export interface UserPreferences {
   suggestionsEnabled: boolean;
   chatContextEnabled: boolean;
   providerFallbackEnabled: boolean;
+  /** Refine with the LLM after a typing pause. Off: refine only on request. */
+  autoRefineEnabled: boolean;
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -37,6 +39,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   suggestionsEnabled: true,
   chatContextEnabled: false,
   providerFallbackEnabled: false,
+  autoRefineEnabled: false,
 };
 
 function getErrorMessage(error: unknown) {
@@ -80,6 +83,10 @@ function normalizePreferences(value: unknown): UserPreferences {
     typeof prefs.providerFallbackEnabled === "boolean"
       ? prefs.providerFallbackEnabled
       : DEFAULT_PREFERENCES.providerFallbackEnabled;
+  const autoRefineEnabled =
+    typeof prefs.autoRefineEnabled === "boolean"
+      ? prefs.autoRefineEnabled
+      : DEFAULT_PREFERENCES.autoRefineEnabled;
 
   return {
     debounceTime,
@@ -90,6 +97,7 @@ function normalizePreferences(value: unknown): UserPreferences {
     suggestionsEnabled,
     chatContextEnabled,
     providerFallbackEnabled,
+    autoRefineEnabled,
   };
 }
 

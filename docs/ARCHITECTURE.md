@@ -15,8 +15,8 @@ Shared logic lives in:
 ## Browser Extension Data Flow
 
 1. Content script detects supported platform input areas.
-2. User prompt is observed and debounced.
-3. Content script sends `ANALYZE_PROMPT` to the background worker. Typing again sends `CANCEL_ANALYSIS`, and a newer request from the same tab/frame aborts the older one, so outdated provider calls stop.
+2. As the user types, the content script lints the draft locally (`lintPrompt` in `@plenz/core`): deterministic rubric checks with a score and up to three chips on the badge. No network call.
+3. On request (badge click or Ctrl/Cmd+Shift+Enter), or after a debounced pause when "Refine automatically while typing" is on, the content script sends `ANALYZE_PROMPT` to the background worker. Typing again sends `CANCEL_ANALYSIS`, and a newer request from the same tab/frame aborts the older one, so outdated provider calls stop.
 4. Background routes request through configured provider adapter. Other configured providers are tried only if the user enables "Fall back to other providers".
 5. Provider returns normalized suggestions.
 6. Content script shows a badge with the suggestion count. Clicking it or pressing Tab in the chat input opens the popover; while it is open, Tab applies, Esc dismisses and ↑/↓ navigate. Typing closes it.
