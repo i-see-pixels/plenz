@@ -103,6 +103,8 @@ export interface SavedPrompt {
 export interface ProviderAdapter {
 	id: string
 	name: string
+	/** False for providers that work without a key (on-device, local servers). Defaults to true. */
+	needsApiKey?: boolean
 	fetchModels(config: ProviderConfig): Promise<ModelOption[]>
 	testConnection(config: ProviderConfig): Promise<ConnectionTestResult>
 	/** Stream a completion; resolves with the full text once the stream ends. */

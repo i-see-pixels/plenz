@@ -1,5 +1,9 @@
 import { useEffect, useState } from "preact/hooks";
-import { providers } from "@plenz/providers";
+import {
+  ON_DEVICE_MODEL_ID,
+  ON_DEVICE_PROVIDER_ID,
+  providers,
+} from "@plenz/providers";
 import type {
   ConnectionTestResult,
   ProviderConfig,
@@ -21,6 +25,7 @@ import {
 import { cn } from "@plenz/ui/lib/utils";
 import { AlertTriangle, Cloud, HardDrive, LoaderCircle } from "lucide-react";
 import { useAuthSession } from "./useAuthSession";
+import { OnDeviceModel } from "./OnDeviceModel";
 import { sendRpc } from "../shared/rpc";
 import {
   backendNotice,
@@ -204,12 +209,15 @@ export function ModelConfig() {
 
   const provider =
     providers.find((item) => item.id === selectedProvider) ?? providers[0];
+  // Chrome's built-in model has no key or model to choose.
+  const isOnDevice = selectedProvider === ON_DEVICE_PROVIDER_ID;
+  const effectiveModel = isOnDevice ? ON_DEVICE_MODEL_ID : selectedModel;
   const usesCustomModelInput =
     selectedProvider === "custom" || selectedProvider === "openrouter";
   const testInputs = testInputsKey({
     providerId: selectedProvider,
     apiKey,
-    model: selectedModel,
+    model: effectiveModel,
     baseUrl,
   });
 
@@ -346,7 +354,7 @@ export function ModelConfig() {
 
       const response = await sendRpc("TEST_CONNECTION", {
         providerId: selectedProvider,
-        config: { apiKey, model: selectedModel, baseUrl } as ProviderConfig,
+        config: { apiKey, model: effectiveModel, baseUrl } as ProviderConfig,
       });
       if ("success" in response) {
         finish(response);
@@ -446,7 +454,7 @@ export function ModelConfig() {
         providerId: selectedProvider,
         config: {
           apiKey,
-          model: selectedModel,
+          model: effectiveModel,
           baseUrl,
         } as ProviderConfig,
       });
@@ -469,7 +477,7 @@ export function ModelConfig() {
       });
 
       await sendRpc("SET_ACTIVE_MODEL", {
-        modelId: selectedModel,
+        modelId: effectiveModel,
         providerId: selectedProvider,
       });
     } catch (error) {
@@ -584,6 +592,10 @@ export function ModelConfig() {
         </Select>
       </div>
 
+      {isOnDevice ? (
+        <OnDeviceModel />
+      ) : (
+      <>
       <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
         <Label
           htmlFor="model"
@@ -692,6 +704,8 @@ export function ModelConfig() {
           placeholder="sk-..."
         />
       </div>
+      </>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <Button

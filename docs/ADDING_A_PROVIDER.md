@@ -21,7 +21,7 @@ Then register it in `providers` in `packages/providers/src/index.ts` with `openA
 
 ## 2. Other APIs: implement `ProviderAdapter`
 
-Create a file implementing the `ProviderAdapter` interface from `@plenz/types` (`fetchModels`, `testConnection`, `streamCompletion`). Call `onDelta` with each text chunk as it arrives, honour `signal` so cancelled refines stop, and resolve with the full text. If the API streams server-sent events, use `readSSE` from `sse.ts`.
+Create a file implementing the `ProviderAdapter` interface from `@plenz/types` (`fetchModels`, `testConnection`, `streamCompletion`). Set `needsApiKey: false` if it works without a key, as `on-device.ts` does. Call `onDelta` with each text chunk as it arrives, honour `signal` so cancelled refines stop, and resolve with the full text. If the API streams server-sent events, use `readSSE` from `sse.ts`.
 
 ## 3. Configure API Domain Access
 

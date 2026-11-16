@@ -1,5 +1,10 @@
 import { StorageManager } from "./storage";
-import { providers } from "@plenz/providers";
+import {
+  isProviderConfigured,
+  onDeviceAvailability,
+  onDeviceStatusMessage,
+  providers,
+} from "@plenz/providers";
 import { AuthSession } from "./auth-session";
 import { PromptGalleryManager } from "./prompt-gallery";
 import { Sites } from "./sites";
@@ -33,7 +38,10 @@ const handlers: Handlers = {
     return {
       config: configResult.data,
       activeModelId: prefs.activeModelId,
-      isConfigured: !!configResult.data?.apiKey,
+      isConfigured: isProviderConfigured(
+        providers.find((p) => p.id === prefs.activeProviderId),
+        configResult.data,
+      ),
       syncStatus: configResult.syncStatus,
       error: configResult.error,
     };
@@ -162,6 +170,12 @@ const handlers: Handlers = {
   async DELETE_SAVED_PROMPT(payload) {
     await PromptGalleryManager.deleteSavedPrompt(payload?.id ?? "");
     return { success: true };
+  },
+
+  async GET_ON_DEVICE_STATUS() {
+    // Checked here, where refines run, rather than in the asking page.
+    const availability = await onDeviceAvailability();
+    return { availability, message: onDeviceStatusMessage(availability) };
   },
 
   async GET_SITE_STATUS(payload) {

@@ -4,6 +4,7 @@ import { providers } from "@plenz/providers";
 import { AuthStatus } from "../components/AuthStatus";
 import { SiteAccess } from "../components/SiteAccess";
 import { isRpcFailure, sendRpc } from "../shared/rpc";
+import type { OnDeviceAvailability } from "@plenz/providers";
 import type { ModelOption } from "@plenz/types";
 import { BarChart3, BookOpen, Settings, Users } from "lucide-react";
 import { Badge } from "@plenz/ui/components/badge";
@@ -48,6 +49,7 @@ export function App() {
   } | null>(null);
   const [providerModels, setProviderModels] = useState<Record<string, ModelOption[]>>({});
   const [openingPromptGallery, setOpeningPromptGallery] = useState(false);
+  const [onDevice, setOnDevice] = useState<OnDeviceAvailability | null>(null);
   const [preferences, setPreferences] = useState<Preferences>({
     suggestionsEnabled: true,
     chatContextEnabled: false,
@@ -59,6 +61,10 @@ export function App() {
   useEffect(() => {
     fetchActiveModel();
     fetchProviderModels();
+    // Without a provider, refines fall back to Chrome's on-device model.
+    void sendRpc("GET_ON_DEVICE_STATUS").then((reply) => {
+      if (!isRpcFailure(reply)) setOnDevice(reply.availability);
+    });
     void fetchPreferences();
 
     const handleStorageChange = (changes: {
@@ -293,15 +299,25 @@ export function App() {
             )}
           </section>
 
-          {!modelStatus?.configured ? (
+          {modelStatus && !modelStatus.configured ? (
             <>
               <Separator />
               <section className="flex flex-col gap-3 px-4 py-3">
-                <p className="rounded-sm border border-accent-signal bg-muted px-3 py-2 text-xs leading-relaxed">
-                  Model configuration is required before inline prompt
-                  enhancement is enabled.
-                </p>
-                <Button onClick={openSettings}>Configure model</Button>
+                {onDevice === "available" ? (
+                  <p className="rounded-sm border border-border bg-muted px-3 py-2 text-xs leading-relaxed">
+                    Refining with Chrome's on-device model (Gemini Nano): no API
+                    key needed. Add a provider in settings for stronger results.
+                  </p>
+                ) : (
+                  <p className="rounded-sm border border-accent-signal bg-muted px-3 py-2 text-xs leading-relaxed">
+                    {onDevice === "downloadable" || onDevice === "downloading"
+                      ? "Add an API key, or download Chrome's free on-device model in settings, to refine prompts."
+                      : "Add an API key in settings to refine prompts. The prompt check works without one."}
+                  </p>
+                )}
+                <Button onClick={openSettings}>
+                  {onDevice === "available" ? "Add a provider" : "Configure model"}
+                </Button>
               </section>
             </>
           ) : null}

@@ -1,4 +1,11 @@
-import { providers } from "@plenz/providers";
+import {
+  isProviderConfigured,
+  ON_DEVICE_MODEL_ID,
+  ON_DEVICE_PROVIDER_ID,
+  onDeviceAvailability,
+  onDeviceStatusMessage,
+  providers,
+} from "@plenz/providers";
 import {
   buildRefineRequest,
   cleanRefineOutput,
@@ -99,20 +106,19 @@ function logAttemptFailure(providerId: string, error: unknown) {
   });
 }
 
-async function getFallbackAttempts(activeProviderId: string | null) {
+async function getFallbackAttempts(primaryProviderId: string) {
   const configsResult = await StorageManager.getAllModelConfigs();
   const configs = configsResult.data ?? {};
   const availableProviders: ProviderAdapter[] = providers;
 
   return availableProviders
-    .filter((provider) => provider.id !== activeProviderId)
+    .filter((provider) => provider.id !== primaryProviderId)
     .map((provider) => ({
       provider,
       config: configs[provider.id],
     }))
-    .filter(
-      (attempt): attempt is Attempt =>
-        !!attempt.config?.apiKey && !!attempt.config?.model,
+    .filter((attempt): attempt is Attempt =>
+      isProviderConfigured(attempt.provider, attempt.config),
     );
 }
 
@@ -130,20 +136,24 @@ export async function runRefine(
   const prefs = await StorageManager.getPreferences();
   const activeConfig = (await StorageManager.getActiveModelConfig()).data;
 
-  if (!activeConfig?.apiKey || !activeConfig.model) {
-    return {
-      kind: "error",
-      message:
-        "LLM Provider not configured. Please set an API key and model in the extension options.",
-    };
-  }
-
   const activeProvider = providers.find((provider) => provider.id === prefs.activeProviderId);
-  if (!activeProvider) {
-    return {
-      kind: "error",
-      message: "Active LLM Provider not found. Please review your settings.",
-    };
+  let primary: Attempt;
+  if (activeProvider && activeConfig && isProviderConfigured(activeProvider, activeConfig)) {
+    primary = { provider: activeProvider, config: activeConfig };
+  } else {
+    // Nothing set up: use Chrome's on-device model if it's already downloaded.
+    const availability = await onDeviceAvailability();
+    const onDevice = providers.find((provider) => provider.id === ON_DEVICE_PROVIDER_ID);
+    if (availability !== "available" || !onDevice) {
+      return {
+        kind: "error",
+        message:
+          availability === "unavailable"
+            ? "No AI provider is set up. Add an API key in the extension settings."
+            : `No AI provider is set up. ${onDeviceStatusMessage(availability)}`,
+      };
+    }
+    primary = { provider: onDevice, config: { apiKey: "", model: ON_DEVICE_MODEL_ID } };
   }
 
   const request = buildRefineRequest({
@@ -174,7 +184,7 @@ export async function runRefine(
     const attempt: Attempt | undefined =
       target.kind === "fallback"
         ? fallbackAttempts?.[target.index]
-        : { provider: activeProvider, config: activeConfig };
+        : primary;
     if (!attempt) break;
 
     try {
@@ -198,7 +208,7 @@ export async function runRefine(
       if (sentToUser) {
         return { kind: "error", message: getErrorMessage(error) || "The refine stopped early." };
       }
-      fallbackAttempts ??= await getFallbackAttempts(prefs.activeProviderId);
+      fallbackAttempts ??= await getFallbackAttempts(primary.provider.id);
       state = orchestratorTransition(
         state,
         { type: "ATTEMPT_FAILED", error, retryable: isRetryableError(error) },

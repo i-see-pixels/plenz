@@ -32,11 +32,13 @@ Shared logic lives in:
 
 ## Provider Layer
 
-- Three adapters implement `ProviderAdapter`, whose core method is `streamCompletion({ system, user }, config, { signal, onDelta })`:
+- Four adapters implement `ProviderAdapter`, whose core method is `streamCompletion({ system, user }, config, { signal, onDelta })`:
   - OpenAI-compatible, with presets for OpenAI, Mistral, Groq, OpenRouter and Custom (any OpenAI-compatible base URL, Ollama by default). Servers that ignore `stream` are read as a single reply.
   - Anthropic Messages API streaming
   - Google Gemini `streamGenerateContent`, with a system instruction
-- Adapters know nothing about modes; they share one server-sent-events parser (`sse.ts`).
+  - On-device: Chrome's built-in Gemini Nano through the Prompt API (`on-device.ts`), feature-detected at runtime
+- Adapters know nothing about modes; the HTTP ones share one server-sent-events parser (`sse.ts`).
+- A provider counts as configured when it has a model, plus a key unless its adapter sets `needsApiKey: false` (on-device, Custom). With nothing configured, refines use the on-device model if it is already downloaded. A refine never starts the multi-GB download; that only happens from the "Download model" button in settings, whose click Chrome requires.
 
 ## Messaging
 

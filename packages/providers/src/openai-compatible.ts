@@ -107,10 +107,12 @@ export const OPENAI_COMPATIBLE_PRESETS: OpenAICompatiblePreset[] = [
 export class OpenAICompatibleAdapter implements ProviderAdapter {
   readonly id: string;
   readonly name: string;
+  readonly needsApiKey: boolean;
 
   constructor(private readonly preset: OpenAICompatiblePreset) {
     this.id = preset.id;
     this.name = preset.name;
+    this.needsApiKey = preset.requiresKey;
   }
 
   private endpoint(config: ProviderConfig) {

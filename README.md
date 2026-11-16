@@ -101,6 +101,7 @@
 | Groq           | Supported |
 | OpenRouter     | Supported |
 | Custom Adapter | Supported |
+| On-device (Chrome's Gemini Nano) | Supported, no API key; used automatically when no provider is set up and the model is downloaded |
 
 ## Privacy and Security
 

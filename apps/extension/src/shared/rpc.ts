@@ -15,6 +15,7 @@ import type { AuthSnapshot } from "../background/auth-machine";
 import type { UserPreferences } from "../background/storage";
 import type { StorageBackendPreference } from "../background/storage-backend";
 import type { SiteStatus } from "./sites";
+import type { OnDeviceAvailability } from "@plenz/providers";
 
 /** Any handler may reply with this instead (rejected sender, thrown error). */
 export type RpcFailure = { error: string };
@@ -91,6 +92,11 @@ export type RpcMap = {
   };
   SAVE_PUBLIC_PROMPT: { payload: { prompt: PublicPrompt }; reply: { prompt: SavedPrompt } };
   DELETE_SAVED_PROMPT: { payload: { id: string }; reply: Success };
+  /** Chrome's built-in model, as seen from the background worker. */
+  GET_ON_DEVICE_STATUS: {
+    payload: void;
+    reply: { availability: OnDeviceAvailability; message: string };
+  };
   // Sites beyond the built-in chat platforms (see ./sites.ts).
   GET_SITE_STATUS: { payload: { url: string }; reply: { status: SiteStatus; host?: string } };
   /** Call just before asking Chrome for the site's permission. */

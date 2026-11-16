@@ -32,6 +32,8 @@ plenz may send data to third-party services only when required for the feature y
 - Google APIs for optional sign-in and profile retrieval
 - AI provider APIs selected by you, such as OpenAI, Google, Anthropic, Mistral, Groq, OpenRouter, or a self-hosted/local endpoint if configured by you
 
+If you use Chrome's on-device model (Gemini Nano), either by choosing it or because no other provider is set up, refines run inside your browser and prompt text is not sent to any provider. Chrome downloads that model itself, only when you click "Download model" in settings.
+
 The prompt check shown while you type runs entirely in your browser and sends nothing. Prompt text is sent to an AI provider only when you ask for a refine (by clicking the badge or pressing Ctrl/Cmd+Shift+Enter), or after each typing pause if you turn on "Refine automatically while typing". It is sent only to the provider you configure in the extension. If you turn on "Fall back to other providers" in settings, it may also be sent to your other configured providers when the active one fails.
 
 ## Sites You Turn On
