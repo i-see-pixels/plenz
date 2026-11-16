@@ -1,5 +1,6 @@
 import type { PublicPrompt, SavedPrompt } from "@plenz/types";
 import type { UserInfo } from "../background/auth";
+import type { PromptModalState } from "./prompt-modal-machine";
 
 export type GalleryFilter = "trending" | "newest" | "saved";
 export type PromptDraftMode = "create" | "edit";
@@ -26,16 +27,14 @@ export interface PromptGalleryState {
   activeFilter: GalleryFilter;
   actionState: ActionState | null;
   authLoading: boolean;
-  busyPromptId: string | null;
-  promptDraftMode: PromptDraftMode;
-  promptModalOpen: boolean;
+  /** Prompts with a save or delete in flight; several can run at once. */
+  busyPromptIds: Record<string, true>;
+  promptModal: PromptModalState;
   expandedPromptIds: Record<string, boolean>;
   publicNewestPrompts: PromptQueryState<PublicPrompt>;
   publicTrendingPrompts: PromptQueryState<PublicPrompt>;
   savedPrompts: PromptQueryState<SavedPrompt>;
-  submittingPromptDraft: boolean;
   searchTerm: string;
-  draft: PromptDraft;
   user: UserInfo | null;
 }
 

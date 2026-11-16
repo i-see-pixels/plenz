@@ -143,6 +143,8 @@ async function writeConfigsToFirebase(configs: Record<string, ProviderConfig>) {
   };
 }
 
+let preferencesWriteQueue: Promise<void> = Promise.resolve();
+
 export const StorageManager = {
   async isUserSignedIn(): Promise<boolean> {
     const user = await AuthManager.getAuthStatus();
@@ -167,11 +169,16 @@ export const StorageManager = {
   },
 
   async setPreferences(prefs: Partial<UserPreferences>): Promise<void> {
-    const current = await this.getPreferences();
-    const updated = normalizePreferences({ ...current, ...prefs });
-    await chrome.storage.sync.set({
-      preferences: updated,
+    // Read-merge-write: queue writes so two quick changes cannot drop one.
+    const write = preferencesWriteQueue.then(async () => {
+      const current = await this.getPreferences();
+      const updated = normalizePreferences({ ...current, ...prefs });
+      await chrome.storage.sync.set({
+        preferences: updated,
+      });
     });
+    preferencesWriteQueue = write.catch(() => {});
+    return write;
   },
 
   async getStorageSettings(): Promise<{

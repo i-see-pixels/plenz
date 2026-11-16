@@ -36,6 +36,8 @@ type Preferences = {
   chatContextEnabled?: boolean;
 };
 
+type PreferenceToggle = "suggestionsEnabled" | "chatContextEnabled";
+
 export function App() {
   const extensionVersion = chrome.runtime.getManifest().version;
   const [modelStatus, setModelStatus] = useState<{
@@ -48,8 +50,9 @@ export function App() {
     suggestionsEnabled: true,
     chatContextEnabled: false,
   });
-  const [savingSuggestions, setSavingSuggestions] = useState(false);
-  const [savingChatContext, setSavingChatContext] = useState(false);
+  const [savingToggles, setSavingToggles] = useState<
+    Partial<Record<PreferenceToggle, boolean>>
+  >({});
 
   useEffect(() => {
     fetchActiveModel();
@@ -115,79 +118,35 @@ export function App() {
     }
   };
 
-  const updateSuggestionsEnabled = async (enabled: boolean) => {
-    const previousPreferences = preferences;
-    setSavingSuggestions(true);
-    setPreferences((current) => ({
-      ...current,
-      suggestionsEnabled: enabled,
-    }));
+  // Each toggle saves on its own; flipping both quickly must not undo either.
+  const updatePreference = async (key: PreferenceToggle, enabled: boolean) => {
+    const previousValue = preferences[key];
+    setSavingToggles((current) => ({ ...current, [key]: true }));
+    setPreferences((current) => ({ ...current, [key]: enabled }));
 
     try {
+      const response = (await chrome.runtime.sendMessage({
+        type: "SET_PREFERENCES",
+        payload: { preferences: { [key]: enabled } },
+      })) as { preferences?: Preferences } | undefined;
+
+      // The background merges writes in order, so its reply is the full,
+      // current set; the local copy mirrors it for the content script.
       const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
       const currentPreferences =
         (stored[PREFERENCES_STORAGE_KEY] as Preferences | undefined) ?? {};
-      const nextPreferences = {
-        ...currentPreferences,
-        ...previousPreferences,
-        suggestionsEnabled: enabled,
-      };
-
-      await chrome.runtime.sendMessage({
-        type: "SET_PREFERENCES",
-        payload: {
-          preferences: {
-            suggestionsEnabled: enabled,
-          },
+      await chrome.storage.local.set({
+        [PREFERENCES_STORAGE_KEY]: {
+          ...currentPreferences,
+          ...response?.preferences,
+          [key]: enabled,
         },
       });
-
-      await chrome.storage.local.set({
-        [PREFERENCES_STORAGE_KEY]: nextPreferences,
-      });
     } catch (error) {
-      console.error("Popup: failed to update suggestions preference", error);
-      setPreferences(previousPreferences);
+      console.error(`Popup: failed to update ${key}`, error);
+      setPreferences((current) => ({ ...current, [key]: previousValue }));
     } finally {
-      setSavingSuggestions(false);
-    }
-  };
-
-  const updateChatContextEnabled = async (enabled: boolean) => {
-    const previousPreferences = preferences;
-    setSavingChatContext(true);
-    setPreferences((current) => ({
-      ...current,
-      chatContextEnabled: enabled,
-    }));
-
-    try {
-      const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
-      const currentPreferences =
-        (stored[PREFERENCES_STORAGE_KEY] as Preferences | undefined) ?? {};
-      const nextPreferences = {
-        ...currentPreferences,
-        ...previousPreferences,
-        chatContextEnabled: enabled,
-      };
-
-      await chrome.runtime.sendMessage({
-        type: "SET_PREFERENCES",
-        payload: {
-          preferences: {
-            chatContextEnabled: enabled,
-          },
-        },
-      });
-
-      await chrome.storage.local.set({
-        [PREFERENCES_STORAGE_KEY]: nextPreferences,
-      });
-    } catch (error) {
-      console.error("Popup: failed to update chat context preference", error);
-      setPreferences(previousPreferences);
-    } finally {
-      setSavingChatContext(false);
+      setSavingToggles((current) => ({ ...current, [key]: false }));
     }
   };
 
@@ -363,9 +322,9 @@ export function App() {
               <Switch
                 id="suggestions-enabled"
                 checked={suggestionsEnabled}
-                disabled={savingSuggestions}
+                disabled={savingToggles.suggestionsEnabled}
                 onCheckedChange={(checked) =>
-                  void updateSuggestionsEnabled(checked)
+                  void updatePreference("suggestionsEnabled", checked)
                 }
               />
             </div>
@@ -379,9 +338,9 @@ export function App() {
               <Switch
                 id="chat-context-enabled"
                 checked={chatContextEnabled}
-                disabled={savingChatContext}
+                disabled={savingToggles.chatContextEnabled}
                 onCheckedChange={(checked) =>
-                  void updateChatContextEnabled(checked)
+                  void updatePreference("chatContextEnabled", checked)
                 }
               />
             </div>

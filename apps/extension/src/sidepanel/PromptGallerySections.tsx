@@ -371,8 +371,9 @@ function CatalogPromptActions({
 }) {
   const { actions, state, view } = usePromptGallery()
   const savedPrompt = view.savedCatalogPrompts[prompt.id]
+  const isBusy = !!state.busyPromptIds[prompt.id]
   const buttonLabel =
-    state.busyPromptId === prompt.id
+    isBusy
       ? "Working..."
       : savedPrompt
         ? "Saved"
@@ -382,7 +383,7 @@ function CatalogPromptActions({
     <Button
       variant={savedPrompt ? "secondary" : "outline"}
       size="sm"
-      disabled={state.busyPromptId === prompt.id}
+      disabled={isBusy}
       onClick={() => void actions.toggleCatalogSave(prompt)}
     >
       {buttonLabel}
@@ -396,7 +397,7 @@ function SavedPromptActions({
   prompt: SavedPrompt
 }) {
   const { actions, state } = usePromptGallery()
-  const isBusy = state.busyPromptId === prompt.id
+  const isBusy = !!state.busyPromptIds[prompt.id]
 
   return (
     <>
@@ -429,11 +430,14 @@ function SavedPromptActions({
 
 export function PromptGallerySaveDialog() {
   const { actions, state } = usePromptGallery()
-  const isEditing = state.promptDraftMode === "edit"
+  const modal = state.promptModal
 
-  if (!state.promptModalOpen) {
+  if (modal.kind === "closed") {
     return null
   }
+
+  const isEditing = modal.mode === "edit"
+  const isSubmitting = modal.kind === "submitting"
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/15 px-4">
@@ -463,7 +467,7 @@ export function PromptGallerySaveDialog() {
             </label>
             <Input
               id="custom-prompt-title"
-              value={state.draft.title}
+              value={modal.draft.title}
               onInput={(event) =>
                 actions.setDraftTitle(
                   (event.target as HTMLInputElement).value,
@@ -482,7 +486,7 @@ export function PromptGallerySaveDialog() {
             </label>
             <textarea
               id="custom-prompt-body"
-              value={state.draft.prompt}
+              value={modal.draft.prompt}
               onInput={(event) =>
                 actions.setDraftPrompt(
                   (event.target as HTMLTextAreaElement).value,
@@ -496,9 +500,9 @@ export function PromptGallerySaveDialog() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => void actions.submitPromptDraft()}
-              disabled={state.submittingPromptDraft}
+              disabled={isSubmitting}
             >
-              {state.submittingPromptDraft
+              {isSubmitting
                 ? isEditing
                   ? "Saving changes..."
                   : "Saving..."
@@ -509,7 +513,7 @@ export function PromptGallerySaveDialog() {
             <Button
               variant="outline"
               onClick={actions.closePromptModal}
-              disabled={state.submittingPromptDraft}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>

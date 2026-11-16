@@ -22,6 +22,12 @@ import {
   isFirebaseConfigured,
 } from "./firebase";
 import { getFirebaseUserId } from "./firebase-user";
+import {
+  firebaseHealthTransition,
+  shouldTryFirebase,
+  type FirebaseHealth,
+  type FirebaseHealthEvent,
+} from "./firebase-health";
 
 export const MODEL_CONFIG_KEY_PREFIX = "model_config_";
 export type StorageBackendPreference = "chrome-sync" | "firebase";
@@ -248,6 +254,18 @@ export class ChromeSyncBackend implements StorageBackend {
   }
 }
 
+// Shared by every FirebaseBackend; storage creates a new one per call.
+let firebaseHealth: FirebaseHealth = { kind: "available" };
+
+function updateFirebaseHealth(event: FirebaseHealthEvent) {
+  firebaseHealth = firebaseHealthTransition(firebaseHealth, event);
+}
+
+/** A new sign-in deserves a fresh attempt at Cloud Sync. */
+export function resetFirebaseHealth() {
+  updateFirebaseHealth({ type: "RESET" });
+}
+
 export class FirebaseBackend implements StorageBackend {
   private readonly syncFallback = new ChromeSyncBackend();
 
@@ -255,10 +273,23 @@ export class FirebaseBackend implements StorageBackend {
     operation: (userId: string) => Promise<StorageResult<T>>,
     fallback: () => Promise<StorageResult<T>>,
   ): Promise<StorageResult<T>> {
+    if (!shouldTryFirebase(firebaseHealth, Date.now())) {
+      const reason =
+        firebaseHealth.kind === "unavailable" ? firebaseHealth.error : "";
+      return appendFallbackMessage(await fallback(), new Error(reason));
+    }
+
     try {
       const userId = await getFirebaseUserId();
-      return await operation(userId);
+      const result = await operation(userId);
+      updateFirebaseHealth({ type: "SUCCEEDED" });
+      return result;
     } catch (error) {
+      updateFirebaseHealth({
+        type: "FAILED",
+        error: getErrorMessage(error),
+        now: Date.now(),
+      });
       return appendFallbackMessage(await fallback(), error);
     }
   }

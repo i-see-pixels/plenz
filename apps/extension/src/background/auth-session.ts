@@ -10,6 +10,7 @@ import {
   type AuthState,
 } from "./auth-machine";
 import { StorageManager } from "./storage";
+import { resetFirebaseHealth } from "./storage-backend";
 
 /**
  * Driver for the auth state machine (see ./auth-machine.ts). It runs the
@@ -58,6 +59,7 @@ async function perform(effect: AuthEffect): Promise<AuthEvent> {
 
     case "signIn": {
       const user = await AuthManager.signIn(true).catch(() => null);
+      if (user) resetFirebaseHealth();
       return user
         ? { type: "SIGNED_IN", user }
         : { type: "SIGN_IN_FAILED", message: "Sign-in was cancelled or failed." };

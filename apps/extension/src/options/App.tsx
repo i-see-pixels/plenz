@@ -79,6 +79,12 @@ export function App() {
     void loadPreferences();
   }, []);
 
+  // "Saved" describes the form as it was saved; editing it again clears that.
+  const markEdited = () =>
+    setPreferencesState((current) =>
+      current.status === "saved" ? { status: "idle" } : current,
+    );
+
   const savePreferences = async () => {
     const nextDebounceMs = sanitizeDebounceMs(Number(debounceInput));
 
@@ -179,22 +185,24 @@ export function App() {
                   max={5000}
                   step={50}
                   value={debounceInput}
-                  onInput={(event) =>
+                  onInput={(event) => {
+                    markEdited();
                     setDebounceInput(
                       (event.target as HTMLInputElement).value || "0",
-                    )
-                  }
+                    );
+                  }}
                 />
               </div>
               <label className="grid cursor-pointer gap-3 rounded-sm border border-border px-3 py-3 sm:grid-cols-[auto_1fr]">
                 <input
                   type="checkbox"
                   checked={suggestionsEnabled}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    markEdited();
                     setSuggestionsEnabled(
                       (event.currentTarget as HTMLInputElement).checked,
-                    )
-                  }
+                    );
+                  }}
                   className="mt-0.5 size-4"
                 />
                 <span className="flex flex-col gap-1">
@@ -210,11 +218,12 @@ export function App() {
                 <input
                   type="checkbox"
                   checked={chatContextEnabled}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    markEdited();
                     setChatContextEnabled(
                       (event.currentTarget as HTMLInputElement).checked,
-                    )
-                  }
+                    );
+                  }}
                   className="mt-0.5 size-4"
                 />
                 <span className="flex flex-col gap-1">
@@ -230,11 +239,12 @@ export function App() {
                 <input
                   type="checkbox"
                   checked={providerFallbackEnabled}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    markEdited();
                     setProviderFallbackEnabled(
                       (event.currentTarget as HTMLInputElement).checked,
-                    )
-                  }
+                    );
+                  }}
                   className="mt-0.5 size-4"
                 />
                 <span className="flex flex-col gap-1">

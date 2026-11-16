@@ -21,13 +21,24 @@ import {
 import { cn } from "@plenz/ui/lib/utils";
 import { AlertTriangle, Cloud, HardDrive, LoaderCircle } from "lucide-react";
 import { useAuthSession } from "./useAuthSession";
-
-type StorageBackendPreference = "chrome-sync" | "firebase";
-
-type SaveState = {
-  status: SyncStatus;
-  error?: string;
-};
+import {
+  backendNotice,
+  backendTransition,
+  saveBadgeStatus,
+  saveMessage,
+  saveTransition,
+  testInputsKey,
+  testTransition,
+  visibleTestResult,
+  type BackendEvent,
+  type BackendState,
+  type MigrationResult,
+  type SaveEvent,
+  type SaveState,
+  type StorageBackendPreference,
+  type TestEvent,
+  type TestState,
+} from "./model-config-machine";
 
 type StorageSettingsResponse = {
   storageBackend: StorageBackendPreference;
@@ -37,11 +48,6 @@ type StorageSettingsResponse = {
 type ActionResponse = {
   success: boolean;
   error?: string;
-};
-
-type MigrationResponse = {
-  migrated: number;
-  errors: string[];
 };
 
 const storageBackendOptions: Array<{
@@ -79,12 +85,12 @@ function isStorageSettingsResponse(
   );
 }
 
-function isMigrationResponse(value: unknown): value is MigrationResponse {
+function isMigrationResponse(value: unknown): value is MigrationResult {
   return (
     !!value &&
     typeof value === "object" &&
     "migrated" in value &&
-    Array.isArray((value as MigrationResponse).errors)
+    Array.isArray((value as MigrationResult).errors)
   );
 }
 
@@ -174,31 +180,37 @@ export function ModelConfig() {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [fetchingModels, setFetchingModels] = useState(false);
   const [baseUrl, setBaseUrl] = useState("");
-  const [testStatus, setTestStatus] = useState<{
-    loading: boolean;
-    result?: ConnectionTestResult;
-  }>({ loading: false });
+  const [testState, setTestState] = useState<TestState>({ kind: "idle" });
   const [saveState, setSaveState] = useState<SaveState>({
-    status: "local-only",
+    kind: "idle",
+    syncStatus: "local-only",
   });
   const { auth } = useAuthSession();
   const isSignedIn = auth.status === "signedIn";
   const [storageBackend, setStorageBackend] =
     useState<StorageBackendPreference>("chrome-sync");
   const [firebaseConfigured, setFirebaseConfigured] = useState(false);
-  const [backendState, setBackendState] = useState<{
-    loading: boolean;
-    tone: "muted" | "error";
-    message?: string;
-  }>({
-    loading: false,
-    tone: "muted",
+  const [backendState, setBackendState] = useState<BackendState>({
+    kind: "idle",
   });
+
+  const updateSave = (event: SaveEvent) =>
+    setSaveState((current) => saveTransition(current, event));
+  const updateBackend = (event: BackendEvent) =>
+    setBackendState((current) => backendTransition(current, event));
+  const updateTest = (event: TestEvent) =>
+    setTestState((current) => testTransition(current, event));
 
   const provider =
     providers.find((item) => item.id === selectedProvider) ?? providers[0];
   const usesCustomModelInput =
     selectedProvider === "custom" || selectedProvider === "openrouter";
+  const testInputs = testInputsKey({
+    providerId: selectedProvider,
+    apiKey,
+    model: selectedModel,
+    baseUrl,
+  });
 
   const loadStorageSettings = async () => {
     const rawResponse = await chrome.runtime.sendMessage({
@@ -209,9 +221,8 @@ export function ModelConfig() {
       : null;
 
     if (!response) {
-      setBackendState({
-        loading: false,
-        tone: "error",
+      updateBackend({
+        type: "SETTINGS_LOAD_FAILED",
         message:
           getResponseError(rawResponse) || "Failed to load sync settings.",
       });
@@ -222,117 +233,116 @@ export function ModelConfig() {
     setFirebaseConfigured(response.firebaseConfigured);
   };
 
-  const loadConfig = async () => {
-    const rawResponse = await chrome.runtime.sendMessage({
-      type: "GET_MODEL_CONFIG",
-      payload: { providerId: selectedProvider },
-    });
-    const response = isStorageResult<ProviderConfig>(rawResponse)
-      ? rawResponse
-      : null;
-
-    const config = response?.data;
-    if (config) {
-      setApiKey(config.apiKey || "");
-      setSelectedModel(config.model || "");
-      setBaseUrl(config.baseUrl || "");
-    } else {
-      setApiKey("");
-      setSelectedModel("");
-      setBaseUrl("");
-    }
-
-    setSaveState({
-      status: response?.syncStatus || (isSignedIn ? "synced" : "local-only"),
-      error: response?.error,
-    });
-  };
-
   // Storage settings depend on who is signed in, so reload them on every change.
   useEffect(() => {
     void loadStorageSettings();
   }, [isSignedIn]);
 
+  // Load the saved config for the selected provider. Switching again before
+  // the reply arrives makes it stale, so it is dropped.
   useEffect(() => {
-    void loadConfig();
+    let stale = false;
+
+    void (async () => {
+      const rawResponse = await chrome.runtime.sendMessage({
+        type: "GET_MODEL_CONFIG",
+        payload: { providerId: selectedProvider },
+      });
+      if (stale) return;
+
+      const response = isStorageResult<ProviderConfig>(rawResponse)
+        ? rawResponse
+        : null;
+      const config = response?.data;
+      setApiKey(config?.apiKey || "");
+      setSelectedModel(config?.model || "");
+      setBaseUrl(config?.baseUrl || "");
+      updateSave({
+        type: "CONFIG_LOADED",
+        syncStatus:
+          response?.syncStatus || (isSignedIn ? "synced" : "local-only"),
+        warning: response?.error,
+      });
+    })();
+
+    return () => {
+      stale = true;
+    };
   }, [selectedProvider, isSignedIn, storageBackend]);
 
   useEffect(() => {
-    const fetchModelsWithCache = async () => {
-      const p =
-        providers.find((prov) => prov.id === selectedProvider) || providers[0];
-      const cacheKey = `models_${selectedProvider}`;
+    // Set when the provider, key or URL changes again; late replies are dropped.
+    let stale = false;
+    const p =
+      providers.find((prov) => prov.id === selectedProvider) || providers[0];
+    const cacheKey = `models_${selectedProvider}`;
+    const showCachedModels = () => {
+      chrome.storage.local.get([cacheKey], (res) => {
+        if (!stale) setModels((res[cacheKey] as ModelOption[]) || []);
+      });
+    };
 
+    const fetchModelsWithCache = async () => {
       if (
         !apiKey &&
         selectedProvider !== "openrouter" &&
         selectedProvider !== "custom"
       ) {
-        chrome.storage.local.get([cacheKey], (res) => {
-          setModels((res[cacheKey] as ModelOption[]) || []);
-        });
+        showCachedModels();
         return;
       }
 
       setFetchingModels(true);
       try {
         const fetched = await p.fetchModels({ apiKey, baseUrl, model: "" });
+        if (stale) return;
         if (fetched && fetched.length > 0) {
           setModels(fetched);
           chrome.storage.local.set({ [cacheKey]: fetched });
         } else {
-          chrome.storage.local.get([cacheKey], (res) => {
-            setModels((res[cacheKey] as ModelOption[]) || []);
-          });
+          showCachedModels();
         }
       } catch {
-        chrome.storage.local.get([cacheKey], (res) => {
-          setModels((res[cacheKey] as ModelOption[]) || []);
-        });
+        showCachedModels();
       } finally {
-        setFetchingModels(false);
+        if (!stale) setFetchingModels(false);
       }
     };
 
     const timer = setTimeout(fetchModelsWithCache, 600);
-    return () => clearTimeout(timer);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+      setFetchingModels(false);
+    };
   }, [selectedProvider, apiKey, baseUrl]);
 
   const handleTest = async () => {
-    setTestStatus({ loading: true });
+    const inputs = testInputs;
+    const finish = (result: ConnectionTestResult) =>
+      updateTest({ type: "TEST_FINISHED", inputs, result });
+    const fail = (error: string) =>
+      finish({ success: false, latencyMs: 0, error });
+
+    updateTest({ type: "TEST_STARTED", inputs });
     try {
       if (selectedProvider === "custom") {
         const originPattern = getCustomProviderOriginPattern(baseUrl);
 
         if (!originPattern) {
-          setTestStatus({
-            loading: false,
-            result: {
-              success: false,
-              latencyMs: 0,
-              error: "Enter a valid http(s) Custom Provider URL.",
-            },
-          });
+          fail("Enter a valid http(s) Custom Provider URL.");
           return;
         }
 
-        if (originPattern) {
-          const granted = await chrome.permissions.request({
-            origins: [originPattern],
-          });
+        const granted = await chrome.permissions.request({
+          origins: [originPattern],
+        });
 
-          if (!granted) {
-            setTestStatus({
-              loading: false,
-              result: {
-                success: false,
-                latencyMs: 0,
-                error:
-                  "Permission denied for that provider host. Approve access and try again.",
-              },
-            });
-            return;
-          }
+        if (!granted) {
+          fail(
+            "Permission denied for that provider host. Approve access and try again.",
+          );
+          return;
         }
       }
 
@@ -343,56 +353,29 @@ export function ModelConfig() {
           config: { apiKey, model: selectedModel, baseUrl } as ProviderConfig,
         },
       });
-      setTestStatus({ loading: false, result: response });
+      finish(response);
     } catch (error) {
-      setTestStatus({
-        loading: false,
-        result: {
-          success: false,
-          latencyMs: 0,
-          error: (error as Error).message,
-        },
-      });
+      fail((error as Error).message);
     }
   };
 
   const handleStorageBackendChange = async (
     nextBackend: StorageBackendPreference,
   ) => {
-    if (nextBackend === storageBackend || backendState.loading) {
-      return;
-    }
-
-    if (nextBackend === "firebase" && !isSignedIn) {
-      setBackendState({
-        loading: false,
-        tone: "error",
-        message: "Sign in with Google before enabling Cloud Sync.",
-      });
-      return;
-    }
-
-    if (nextBackend === "firebase" && !firebaseConfigured) {
-      setBackendState({
-        loading: false,
-        tone: "error",
-        message:
-          "Firebase is not configured in this build. Add the VITE_FIREBASE_* environment variables before enabling Cloud Sync.",
-      });
-      return;
-    }
-
-    setBackendState({
-      loading: true,
-      tone: "muted",
-      message:
-        nextBackend === "firebase"
-          ? "Migrating saved provider settings to Cloud Sync..."
-          : "Switching to Chrome Sync...",
+    const next = backendTransition(backendState, {
+      type: "SWITCH_REQUESTED",
+      target: nextBackend,
+      current: storageBackend,
+      isSignedIn,
+      firebaseConfigured,
     });
+    setBackendState(next);
+    if (next.kind !== "switching") {
+      return;
+    }
 
     try {
-      let migration: MigrationResponse | null = null;
+      let migration: MigrationResult | null = null;
 
       if (nextBackend === "firebase") {
         const migrationResponse = await chrome.runtime.sendMessage({
@@ -425,53 +408,41 @@ export function ModelConfig() {
       }
 
       setStorageBackend(nextBackend);
-      setBackendState({
-        loading: false,
-        tone: migration?.errors.length ? "error" : "muted",
-        message:
-          nextBackend === "firebase"
-            ? migration?.errors.length
-              ? `Cloud Sync enabled with warnings. ${migration.errors[0]}`
-              : migration && migration.migrated > 0
-                ? `Cloud Sync enabled. Migrated ${migration.migrated} provider configuration${migration.migrated === 1 ? "" : "s"} from Chrome Sync.`
-                : "Cloud Sync enabled."
-            : "Chrome Sync enabled. Existing Cloud Sync data remains available if you switch back.",
-      });
+      updateBackend({ type: "SWITCH_SUCCEEDED", migration });
     } catch (error) {
-      setBackendState({
-        loading: false,
-        tone: "error",
-        message: (error as Error).message,
-      });
+      updateBackend({ type: "SWITCH_FAILED", message: (error as Error).message });
     }
   };
 
   const handleSave = async () => {
-    setSaveState({ status: "syncing" });
+    if (saveState.kind === "saving") {
+      return;
+    }
 
+    const fail = (errorMessage: string) => {
+      updateSave({ type: "SAVE_FAILED", error: errorMessage });
+      alert(`Error saving settings: ${errorMessage}`);
+    };
+
+    updateSave({ type: "SAVE_STARTED" });
     try {
       if (selectedProvider === "custom") {
         const originPattern = getCustomProviderOriginPattern(baseUrl);
 
         if (!originPattern) {
-          const errorMessage = "Enter a valid http(s) Custom Provider URL.";
-          setSaveState({ status: "error", error: errorMessage });
-          alert(`Error saving settings: ${errorMessage}`);
+          fail("Enter a valid http(s) Custom Provider URL.");
           return;
         }
 
-        if (originPattern) {
-          const granted = await chrome.permissions.request({
-            origins: [originPattern],
-          });
+        const granted = await chrome.permissions.request({
+          origins: [originPattern],
+        });
 
-          if (!granted) {
-            const errorMessage =
-              "Permission denied for that provider host. Approve access before saving.";
-            setSaveState({ status: "error", error: errorMessage });
-            alert(`Error saving settings: ${errorMessage}`);
-            return;
-          }
+        if (!granted) {
+          fail(
+            "Permission denied for that provider host. Approve access before saving.",
+          );
+          return;
         }
       }
 
@@ -493,15 +464,15 @@ export function ModelConfig() {
         response?.syncStatus === "error" || (!response && !!nextError);
 
       if (isHardError) {
-        const errorMessage = nextError || "Unknown error";
-        setSaveState({ status: "error", error: errorMessage });
-        alert(`Error saving settings: ${errorMessage}`);
+        fail(nextError || "Unknown error");
         return;
       }
 
-      setSaveState({
-        status: response?.syncStatus || (isSignedIn ? "synced" : "local-only"),
-        error: nextError,
+      updateSave({
+        type: "SAVE_SUCCEEDED",
+        syncStatus:
+          response?.syncStatus || (isSignedIn ? "synced" : "local-only"),
+        warning: nextError,
       });
 
       await chrome.runtime.sendMessage({
@@ -509,15 +480,16 @@ export function ModelConfig() {
         payload: { modelId: selectedModel, providerId: selectedProvider },
       });
     } catch (error) {
-      setSaveState({
-        status: "error",
-        error: (error as Error).message,
-      });
-      alert(`Error saving settings: ${(error as Error).message}`);
+      fail((error as Error).message);
     }
   };
 
-  const syncMeta = getSyncStatusMeta(saveState.status, storageBackend);
+  const badgeStatus = saveBadgeStatus(saveState);
+  const syncMeta = getSyncStatusMeta(badgeStatus, storageBackend);
+  const saveDetail = saveMessage(saveState) || syncMeta.description;
+  const backendLine = backendNotice(backendState);
+  const isSwitchingBackend = backendState.kind === "switching";
+  const testResult = visibleTestResult(testState, testInputs);
   const defaultBackendMessage = !firebaseConfigured
     ? "Cloud Sync is unavailable in this build. Add the VITE_FIREBASE_* environment variables and rebuild the extension."
     : !isSignedIn
@@ -549,7 +521,7 @@ export function ModelConfig() {
           {storageBackendOptions.map(({ value, label, description, Icon }) => {
             const isSelected = storageBackend === value;
             const isDisabled =
-              backendState.loading ||
+              isSwitchingBackend ||
               (value === "firebase" && (!isSignedIn || !firebaseConfigured));
 
             return (
@@ -583,12 +555,12 @@ export function ModelConfig() {
         <p
           className={cn(
             "text-xs leading-relaxed",
-            backendState.tone === "error"
+            backendLine?.tone === "error"
               ? "text-accent-signal"
               : "text-muted-foreground",
           )}
         >
-          {backendState.message || defaultBackendMessage}
+          {backendLine?.message || defaultBackendMessage}
         </p>
       </div>
 
@@ -731,14 +703,14 @@ export function ModelConfig() {
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <Button
           onClick={handleTest}
-          disabled={testStatus.loading}
+          disabled={testState.kind === "testing"}
           variant="outline"
         >
-          {testStatus.loading ? "Testing..." : "Test connection"}
+          {testState.kind === "testing" ? "Testing..." : "Test connection"}
         </Button>
         <Button
           onClick={handleSave}
-          disabled={saveState.status === "syncing" || backendState.loading}
+          disabled={saveState.kind === "saving" || isSwitchingBackend}
         >
           Save configuration
         </Button>
@@ -748,9 +720,9 @@ export function ModelConfig() {
             "rounded-sm font-mono text-[10px] tracking-[0.12em] uppercase",
             syncMeta.className,
           )}
-          title={saveState.error || syncMeta.description}
+          title={saveDetail}
         >
-          {getSyncStatusIcon(saveState.status)}
+          {getSyncStatusIcon(badgeStatus)}
           {syncMeta.label}
         </Badge>
       </div>
@@ -758,38 +730,38 @@ export function ModelConfig() {
       <p
         className={cn(
           "px-0 text-xs leading-relaxed",
-          saveState.status === "error"
+          badgeStatus === "error"
             ? "text-accent-signal"
             : "text-muted-foreground",
         )}
       >
-        {saveState.error || syncMeta.description}
+        {saveDetail}
       </p>
 
-      {testStatus.result ? (
+      {testResult ? (
         <div
           className={cn(
             "flex items-center justify-between gap-3 rounded-sm border px-3 py-2",
-            testStatus.result.success
+            testResult.success
               ? "border-accent-secondary bg-muted"
               : "border-accent-signal bg-muted",
           )}
         >
           <p className="text-sm leading-relaxed text-foreground">
-            {testStatus.result.success
-              ? `Connection OK. Latency: ${testStatus.result.latencyMs}ms`
-              : `Connection failed: ${testStatus.result.error}`}
+            {testResult.success
+              ? `Connection OK. Latency: ${testResult.latencyMs}ms`
+              : `Connection failed: ${testResult.error}`}
           </p>
           <Badge
             variant="outline"
             className={cn(
               "rounded-sm font-mono text-[10px] tracking-[0.12em] uppercase",
-              testStatus.result.success
+              testResult.success
                 ? "border-accent-secondary text-accent-secondary"
                 : "border-accent-signal text-accent-signal",
             )}
           >
-            {testStatus.result.success ? "Healthy" : "Error"}
+            {testResult.success ? "Healthy" : "Error"}
           </Badge>
         </div>
       ) : null}

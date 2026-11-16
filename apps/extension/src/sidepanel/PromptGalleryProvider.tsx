@@ -3,6 +3,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
@@ -15,6 +16,11 @@ import type {
   PromptDraftMode,
   PromptQueryState,
 } from "./prompt-gallery.types"
+import {
+  EMPTY_DRAFT,
+  promptModalTransition,
+  type PromptModalEvent,
+} from "./prompt-modal-machine"
 import {
   buildCatalogSaveLookup,
   createPromptQueryState,
@@ -29,19 +35,12 @@ const initialState: PromptGalleryState = {
   activeFilter: "trending",
   actionState: null,
   authLoading: true,
-  busyPromptId: null,
-  draft: {
-    savedPromptId: null,
-    prompt: "",
-    title: "",
-  },
+  busyPromptIds: {},
   expandedPromptIds: {},
-  promptDraftMode: "create",
-  promptModalOpen: false,
+  promptModal: { kind: "closed" },
   publicNewestPrompts: createPromptQueryState<PublicPrompt>("loading"),
   publicTrendingPrompts: createPromptQueryState<PublicPrompt>("loading"),
   savedPrompts: createPromptQueryState<SavedPrompt>("idle"),
-  submittingPromptDraft: false,
   searchTerm: "",
   user: null,
 }
@@ -54,6 +53,24 @@ export function PromptGalleryProvider({
   children: ReactNode
 }) {
   const [state, setState] = useState(initialState)
+  // Only the newest saved-prompts request may write its result.
+  const savedPromptsRequest = useRef(0)
+
+  function updateModal(event: PromptModalEvent) {
+    setState((current) => ({
+      ...current,
+      promptModal: promptModalTransition(current.promptModal, event),
+    }))
+  }
+
+  function setPromptBusy(promptId: string, busy: boolean) {
+    setState((current) => {
+      const busyPromptIds = { ...current.busyPromptIds }
+      if (busy) busyPromptIds[promptId] = true
+      else delete busyPromptIds[promptId]
+      return { ...current, busyPromptIds }
+    })
+  }
 
   const { auth } = useAuthSession()
   const authSettled = auth.status === "signedIn" || auth.status === "signedOut"
@@ -81,6 +98,8 @@ export function PromptGalleryProvider({
 
     if (signedInUser) {
       void loadSavedPrompts()
+    } else {
+      savedPromptsRequest.current++ // drop any list still loading
     }
   }, [authSettled, signedInUser?.id])
 
@@ -121,6 +140,7 @@ export function PromptGalleryProvider({
   }
 
   async function loadSavedPrompts() {
+    const request = ++savedPromptsRequest.current
     setState((current) => ({
       ...current,
       savedPrompts: {
@@ -132,9 +152,9 @@ export function PromptGalleryProvider({
 
     try {
       const response = await promptGalleryRuntime.listSavedPrompts()
+      if (request !== savedPromptsRequest.current) return
 
-      // Signed out while loading: the list belongs to the previous user.
-      setState((current) => !current.user ? current : ({
+      setState((current) => ({
         ...current,
         savedPrompts: {
           data: response.prompts,
@@ -143,6 +163,8 @@ export function PromptGalleryProvider({
         },
       }))
     } catch (error) {
+      if (request !== savedPromptsRequest.current) return
+
       setState((current) => ({
         ...current,
         savedPrompts: {
@@ -217,25 +239,25 @@ export function PromptGalleryProvider({
 
         return {
           ...current,
-          draft: {
-            savedPromptId: prompt.id,
-            prompt: prompt.prompt,
-            title: prompt.title,
-          },
-          promptDraftMode: "edit",
-          promptModalOpen: true,
+          promptModal: promptModalTransition(current.promptModal, {
+            type: "OPEN",
+            mode: "edit",
+            draft: {
+              savedPromptId: prompt.id,
+              prompt: prompt.prompt,
+              title: prompt.title,
+            },
+          }),
         }
       }
 
       return {
         ...current,
-        draft: {
-          savedPromptId: null,
-          prompt: "",
-          title: "",
-        },
-        promptDraftMode: "create",
-        promptModalOpen: true,
+        promptModal: promptModalTransition(current.promptModal, {
+          type: "OPEN",
+          mode: "create",
+          draft: EMPTY_DRAFT,
+        }),
       }
     })
   }
@@ -249,36 +271,15 @@ export function PromptGalleryProvider({
   }
 
   function closePromptModal() {
-    setState((current) => ({
-      ...current,
-      draft: {
-        savedPromptId: null,
-        prompt: "",
-        title: "",
-      },
-      promptDraftMode: "create",
-      promptModalOpen: false,
-    }))
+    updateModal({ type: "CLOSE" })
   }
 
   function setDraftTitle(value: string) {
-    setState((current) => ({
-      ...current,
-      draft: {
-        ...current.draft,
-        title: value,
-      },
-    }))
+    updateModal({ type: "EDIT", field: "title", value })
   }
 
   function setDraftPrompt(value: string) {
-    setState((current) => ({
-      ...current,
-      draft: {
-        ...current.draft,
-        prompt: value,
-      },
-    }))
+    updateModal({ type: "EDIT", field: "prompt", value })
   }
 
   async function copyPrompt(prompt: PublicPrompt | SavedPrompt) {
@@ -329,10 +330,10 @@ export function PromptGalleryProvider({
     const savedCatalogPrompts = buildCatalogSaveLookup(state.savedPrompts.data)
     const existingSavedPrompt = savedCatalogPrompts[prompt.id]
 
-    setState((current) => ({
-      ...current,
-      busyPromptId: prompt.id,
-    }))
+    if (state.busyPromptIds[prompt.id]) {
+      return
+    }
+    setPromptBusy(prompt.id, true)
 
     try {
       if (existingSavedPrompt) {
@@ -359,18 +360,15 @@ export function PromptGalleryProvider({
         message: (error as Error).message || "Prompt could not be updated.",
       })
     } finally {
-      setState((current) => ({
-        ...current,
-        busyPromptId: null,
-      }))
+      setPromptBusy(prompt.id, false)
     }
   }
 
   async function deleteSavedPrompt(prompt: SavedPrompt) {
-    setState((current) => ({
-      ...current,
-      busyPromptId: prompt.id,
-    }))
+    if (state.busyPromptIds[prompt.id]) {
+      return
+    }
+    setPromptBusy(prompt.id, true)
 
     try {
       await promptGalleryRuntime.deleteSavedPrompt(prompt.id)
@@ -387,37 +385,32 @@ export function PromptGalleryProvider({
         message: (error as Error).message || "Prompt could not be removed.",
       })
     } finally {
-      setState((current) => ({
-        ...current,
-        busyPromptId: null,
-      }))
+      setPromptBusy(prompt.id, false)
     }
   }
 
   async function submitPromptDraft() {
-    if (state.submittingPromptDraft) {
+    const modal = state.promptModal
+    if (modal.kind !== "editing") {
       return
     }
 
-    setState((current) => ({
-      ...current,
-      submittingPromptDraft: true,
-    }))
+    updateModal({ type: "SUBMIT" })
 
     try {
-      const isEditing = state.promptDraftMode === "edit"
+      const isEditing = modal.mode === "edit"
       const actionLabel = isEditing ? "updated" : "saved"
 
       if (isEditing) {
         await promptGalleryRuntime.updateSavedPrompt(
-          state.draft.savedPromptId ?? "",
-          state.draft.title,
-          state.draft.prompt,
+          modal.draft.savedPromptId ?? "",
+          modal.draft.title,
+          modal.draft.prompt,
         )
       } else {
         await promptGalleryRuntime.createSavedPrompt(
-          state.draft.title,
-          state.draft.prompt,
+          modal.draft.title,
+          modal.draft.prompt,
         )
       }
 
@@ -429,27 +422,19 @@ export function PromptGalleryProvider({
           // message: `Private prompt ${actionLabel} in your library.`,
         },
         activeFilter: "saved",
-        draft: {
-          savedPromptId: null,
-          prompt: "",
-          title: "",
-        },
-        promptDraftMode: "create",
-        promptModalOpen: false,
+        promptModal: promptModalTransition(current.promptModal, {
+          type: "SUBMIT_SUCCEEDED",
+        }),
       }))
 
       await loadSavedPrompts()
     } catch (error) {
+      updateModal({ type: "SUBMIT_FAILED" })
       setActionState({
         kind: "error",
         title: "Prompt save failed",
         message: (error as Error).message || "Prompt could not be saved.",
       })
-    } finally {
-      setState((current) => ({
-        ...current,
-        submittingPromptDraft: false,
-      }))
     }
   }
 
