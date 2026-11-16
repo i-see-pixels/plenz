@@ -1,5 +1,4 @@
 import type { PublicPrompt, SavedPrompt } from "@plenz/types";
-import type { UserInfo } from "../background/auth";
 
 function sendRuntimeMessage<T>(message: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -36,12 +35,6 @@ export const promptGalleryRuntime = {
     return sendRuntimeMessage<{ success: boolean }>({
       type: "DELETE_SAVED_PROMPT",
       payload: { id },
-    });
-  },
-
-  getAuthStatus() {
-    return sendRuntimeMessage<UserInfo | null>({
-      type: "GET_AUTH_STATUS",
     });
   },
 

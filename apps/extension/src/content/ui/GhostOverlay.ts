@@ -4,6 +4,8 @@ export class GhostOverlay {
 	private container: HTMLDivElement
 	private inputElement: HTMLElement
 	private visible: boolean = false
+	private resizeObserver: ResizeObserver
+	private readonly boundSyncScroll = () => this.syncScroll()
 
 	constructor(inputElement: HTMLElement) {
 		this.inputElement = inputElement
@@ -31,9 +33,16 @@ export class GhostOverlay {
 		this.mount()
 		this.syncStyles()
 
-		this.inputElement.addEventListener("scroll", this.syncScroll.bind(this))
-		const ro = new ResizeObserver(() => this.syncStyles())
-		ro.observe(this.inputElement)
+		this.inputElement.addEventListener("scroll", this.boundSyncScroll)
+		this.resizeObserver = new ResizeObserver(() => this.syncStyles())
+		this.resizeObserver.observe(this.inputElement)
+	}
+
+	public destroy() {
+		this.hide()
+		this.inputElement.removeEventListener("scroll", this.boundSyncScroll)
+		this.resizeObserver.disconnect()
+		this.shadowHost.remove()
 	}
 
 	private mount() {

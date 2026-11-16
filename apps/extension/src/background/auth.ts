@@ -8,7 +8,7 @@ export interface UserInfo {
 }
 
 const AUTH_USER_STORAGE_KEY = "auth_user";
-const AUTH_SESSION_ACTIVE_STORAGE_KEY = "auth_session_active";
+export const AUTH_SESSION_ACTIVE_STORAGE_KEY = "auth_session_active";
 type AuthTokenResult = string | { token?: string };
 
 function isUserInfo(value: unknown): value is UserInfo {

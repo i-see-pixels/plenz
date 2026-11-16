@@ -22,6 +22,7 @@ type Preferences = {
   debounceTime?: number;
   suggestionsEnabled?: boolean;
   chatContextEnabled?: boolean;
+  providerFallbackEnabled?: boolean;
 };
 
 function sanitizeDebounceMs(value: unknown) {
@@ -38,6 +39,7 @@ export function App() {
   );
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
   const [chatContextEnabled, setChatContextEnabled] = useState(false);
+  const [providerFallbackEnabled, setProviderFallbackEnabled] = useState(false);
   const [preferencesState, setPreferencesState] = useState<{
     status: "idle" | "saving" | "saved" | "error";
     message?: string;
@@ -63,6 +65,9 @@ export function App() {
         );
         setSuggestionsEnabled(preferences?.suggestionsEnabled !== false);
         setChatContextEnabled(preferences?.chatContextEnabled === true);
+        setProviderFallbackEnabled(
+          preferences?.providerFallbackEnabled === true,
+        );
       } catch (error) {
         setPreferencesState({
           status: "error",
@@ -89,6 +94,7 @@ export function App() {
         debounceTime: nextDebounceMs,
         suggestionsEnabled,
         chatContextEnabled,
+        providerFallbackEnabled,
       };
 
       await chrome.runtime.sendMessage({
@@ -98,6 +104,7 @@ export function App() {
             debounceTime: nextDebounceMs,
             suggestionsEnabled,
             chatContextEnabled,
+            providerFallbackEnabled,
           },
         },
       });
@@ -216,6 +223,26 @@ export function App() {
                   </span>
                   <span className="text-xs leading-relaxed text-muted-foreground">
                     Opt in to sending relevant recent messages and a local summary with each refinement request.
+                  </span>
+                </span>
+              </label>
+              <label className="grid cursor-pointer gap-3 rounded-sm border border-border px-3 py-3 sm:grid-cols-[auto_1fr]">
+                <input
+                  type="checkbox"
+                  checked={providerFallbackEnabled}
+                  onChange={(event) =>
+                    setProviderFallbackEnabled(
+                      (event.currentTarget as HTMLInputElement).checked,
+                    )
+                  }
+                  className="mt-0.5 size-4"
+                />
+                <span className="flex flex-col gap-1">
+                  <span className="font-mono text-[11px] tracking-[0.14em] uppercase">
+                    Fall back to other providers
+                  </span>
+                  <span className="text-xs leading-relaxed text-muted-foreground">
+                    If the active provider fails, retry with your other configured providers. This sends your prompt to those providers and may bill each of them.
                   </span>
                 </span>
               </label>

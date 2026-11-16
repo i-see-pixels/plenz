@@ -32,7 +32,7 @@ plenz may send data to third-party services only when required for the feature y
 - Google APIs for optional sign-in and profile retrieval
 - AI provider APIs selected by you, such as OpenAI, Google, Anthropic, Mistral, Groq, OpenRouter, or a self-hosted/local endpoint if configured by you
 
-Prompt text is sent only to the provider you configure in the extension.
+Prompt text is sent only to the provider you configure in the extension. If you turn on "Fall back to other providers" in settings, it may also be sent to your other configured providers when the active one fails.
 
 ## Data Storage
 

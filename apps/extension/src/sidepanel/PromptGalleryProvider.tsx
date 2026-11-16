@@ -20,11 +20,10 @@ import {
   createPromptQueryState,
   getCatalogShareSlug,
   getSearchablePromptCollection,
-  isUserInfo,
   matchesSearch,
   PUBLIC_SHARE_BASE_URL,
 } from "./prompt-gallery.utils"
-import type { UserInfo } from "../background/auth"
+import { useAuthSession } from "../components/useAuthSession"
 
 const initialState: PromptGalleryState = {
   activeFilter: "trending",
@@ -56,66 +55,34 @@ export function PromptGalleryProvider({
 }) {
   const [state, setState] = useState(initialState)
 
+  const { auth } = useAuthSession()
+  const authSettled = auth.status === "signedIn" || auth.status === "signedOut"
+  const signedInUser = auth.status === "signedIn" ? auth.user : null
+
   useEffect(() => {
-    void loadAuthStatus()
     void Promise.all([loadPublicPrompts("trending"), loadPublicPrompts("newest")])
   }, [])
 
+  // Follow the background auth session; it is the same on every extension page.
   useEffect(() => {
-    const handleAuthChange = (event: Event) => {
-      const detail = (event as CustomEvent<{ user: UserInfo | null }>).detail
-      const nextUser = detail?.user ?? null
-
-      setState((current) => ({
-        ...current,
-        authLoading: false,
-        savedPrompts: nextUser
-          ? current.savedPrompts
-          : createPromptQueryState<SavedPrompt>("idle"),
-        user: nextUser,
-      }))
-
-      if (nextUser) {
-        void loadSavedPrompts()
-      }
+    if (!authSettled) {
+      setState((current) => ({ ...current, authLoading: true }))
+      return
     }
 
-    window.addEventListener(
-      "plenz-auth-status-changed",
-      handleAuthChange as EventListener,
-    )
+    setState((current) => ({
+      ...current,
+      authLoading: false,
+      savedPrompts: signedInUser
+        ? current.savedPrompts
+        : createPromptQueryState<SavedPrompt>("idle"),
+      user: signedInUser,
+    }))
 
-    return () => {
-      window.removeEventListener(
-        "plenz-auth-status-changed",
-        handleAuthChange as EventListener,
-      )
+    if (signedInUser) {
+      void loadSavedPrompts()
     }
-  }, [])
-
-  async function loadAuthStatus() {
-    try {
-      const response = await promptGalleryRuntime.getAuthStatus()
-
-      setState((current) => ({
-        ...current,
-        authLoading: false,
-        user: isUserInfo(response) ? response : null,
-      }))
-
-      if (isUserInfo(response)) {
-        await loadSavedPrompts()
-      }
-    } catch (error) {
-      console.error("Prompt gallery: failed to read auth status", error)
-
-      setState((current) => ({
-        ...current,
-        authLoading: false,
-        user: null,
-      }))
-    }
-  }
+  }, [authSettled, signedInUser?.id])
 
   async function loadPublicPrompts(category: "trending" | "newest") {
     const stateKey =
@@ -166,7 +133,8 @@ export function PromptGalleryProvider({
     try {
       const response = await promptGalleryRuntime.listSavedPrompts()
 
-      setState((current) => ({
+      // Signed out while loading: the list belongs to the previous user.
+      setState((current) => !current.user ? current : ({
         ...current,
         savedPrompts: {
           data: response.prompts,

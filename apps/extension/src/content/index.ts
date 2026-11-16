@@ -2,6 +2,17 @@ import { getActivePlatform, PlatformConfig } from "./platforms/registry";
 import { SuggestionOverlay } from "./ui/SuggestionOverlay";
 import { BadgeIndicator } from "./ui/BadgeIndicator";
 import { GhostOverlay } from "./ui/GhostOverlay";
+import {
+  createContentModel,
+  keyToEvent,
+  transition,
+  view,
+  type ContentEffect,
+  type ContentEvent,
+  type ContentModel,
+  type BadgeView,
+  type ContentView,
+} from "./machine";
 import { buildConversationContext } from "@plenz/core";
 import type { ChatMessage, ConversationContext, Suggestion } from "@plenz/types";
 
@@ -23,23 +34,38 @@ function sanitizeDebounceMs(value: unknown) {
   return Math.max(0, Math.min(5000, Math.round(value)));
 }
 
+function sameBadge(a: BadgeView, b: BadgeView) {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "count" && b.kind === "count") return a.count === b.count;
+  if (a.kind === "error" && b.kind === "error") return a.message === b.message;
+  return true;
+}
+
+/**
+ * Driver for the content-script state machine (see ./machine.ts).
+ * It turns DOM and runtime activity into machine events, runs the effects
+ * each transition returns, and renders the badge, popover and ghost text
+ * from the current state.
+ */
 class ExtensionContentScript {
   private platform: PlatformConfig | null = null;
   private inputElement: HTMLElement | null = null;
   private overlay: SuggestionOverlay | null = null;
   private ghostOverlay: GhostOverlay | null = null;
   private badge: BadgeIndicator | null = null;
-  private currentSuggestions: Suggestion[] = [];
   private runtimeUnavailableLogged = false;
   private domObserver: MutationObserver | null = null;
   private readonly boundHandleInput = this.handleInput.bind(this);
   private debounceTimer: number | null = null;
-  private debounceMs = DEFAULT_DEBOUNCE_MS;
-  private suggestionsEnabled = true;
   private chatContextEnabled = false;
-  private activeAnalysisRequestId = 0;
+  private detectScheduled = false;
   private rollingSummary = "";
   private conversationUrl = window.location.href;
+
+  private model: ContentModel = createContentModel();
+  private renderedView: ContentView | null = null;
+  private readonly eventQueue: ContentEvent[] = [];
+  private dispatching = false;
 
   constructor() {
     this.platform = getActivePlatform();
@@ -54,7 +80,6 @@ class ExtensionContentScript {
     this.observeDOM();
     this.detectInput();
 
-    // Global keyboard listener for shortcuts when overlay is active
     document.addEventListener(
       "keydown",
       this.handleGlobalKeydown.bind(this),
@@ -62,15 +87,106 @@ class ExtensionContentScript {
     );
   }
 
-  private observeDOM() {
-    this.domObserver = new MutationObserver(() => {
-      if (!this.inputElement?.isConnected) {
-        this.detachInput();
-      }
+  /**
+   * Events raised while effects run (for example the input event our own
+   * write fires) are queued and processed in order after the current one.
+   */
+  private dispatch(event: ContentEvent) {
+    this.eventQueue.push(event);
+    if (this.dispatching) return;
 
-      if (!this.inputElement) {
-        this.detectInput();
+    this.dispatching = true;
+    try {
+      let next: ContentEvent | undefined;
+      while ((next = this.eventQueue.shift())) {
+        const { model, effects } = transition(this.model, next);
+        this.model = model;
+        for (const effect of effects) this.runEffect(effect);
+        this.render();
       }
+    } finally {
+      this.dispatching = false;
+    }
+  }
+
+  private runEffect(effect: ContentEffect) {
+    switch (effect.type) {
+      case "startDebounce":
+        this.debounceTimer = window.setTimeout(() => {
+          this.debounceTimer = null;
+          this.dispatch({ type: "DEBOUNCE_ELAPSED" });
+        }, effect.ms);
+        return;
+      case "clearDebounce":
+        if (this.debounceTimer) window.clearTimeout(this.debounceTimer);
+        this.debounceTimer = null;
+        return;
+      case "requestAnalysis":
+        void this.requestAnalysis(effect.text, effect.requestId);
+        return;
+      case "cancelAnalysis":
+        void this.sendRuntimeMessage({ type: "CANCEL_ANALYSIS" }).catch(
+          () => {},
+        );
+        return;
+      case "applyText":
+        this.writeInput(effect.text);
+        this.dispatch({ type: "APPLIED" });
+        return;
+    }
+  }
+
+  private render() {
+    const next = view(this.model.state);
+    const prev = this.renderedView;
+    this.renderedView = next;
+
+    if (!prev || !sameBadge(prev.badge, next.badge)) {
+      const badge = next.badge;
+      if (badge.kind === "hidden") this.badge?.hide();
+      else if (badge.kind === "saving") this.badge?.showSaving();
+      else if (badge.kind === "count") this.badge?.show(badge.count);
+      else this.badge?.showError(badge.message || "An error occurred");
+    }
+
+    if (!next.overlay) {
+      if (this.overlay?.isVisible()) this.overlay.hide();
+    } else if (
+      !this.overlay?.isVisible() ||
+      prev?.overlay?.suggestions !== next.overlay.suggestions
+    ) {
+      this.overlay?.show(next.overlay.suggestions);
+      this.overlay?.setActiveIndex(next.overlay.activeIndex);
+    } else if (prev?.overlay?.activeIndex !== next.overlay.activeIndex) {
+      this.overlay.setActiveIndex(next.overlay.activeIndex);
+    }
+
+    if (!next.ghost) {
+      this.ghostOverlay?.hide();
+    } else if (
+      prev?.ghost?.text !== next.ghost.text ||
+      prev?.ghost?.suggestion !== next.ghost.suggestion
+    ) {
+      this.ghostOverlay?.update(next.ghost.text, next.ghost.suggestion);
+    }
+  }
+
+  private observeDOM() {
+    // Chat pages mutate constantly while streaming; check at most every 250ms.
+    this.domObserver = new MutationObserver(() => {
+      if (this.detectScheduled) return;
+      this.detectScheduled = true;
+      window.setTimeout(() => {
+        this.detectScheduled = false;
+
+        if (!this.inputElement?.isConnected) {
+          this.detachInput();
+        }
+
+        if (!this.inputElement) {
+          this.detectInput();
+        }
+      }, 250);
     });
     this.domObserver.observe(document.body, { childList: true, subtree: true });
   }
@@ -88,7 +204,7 @@ class ExtensionContentScript {
       this.applyPreferences(preferences);
     } catch (error) {
       console.warn("plenz: failed to load preferences", error);
-      this.debounceMs = DEFAULT_DEBOUNCE_MS;
+      this.applyPreferences(undefined);
     }
   }
 
@@ -106,18 +222,14 @@ class ExtensionContentScript {
   }
 
   private applyPreferences(preferences: Preferences | undefined) {
-    this.debounceMs = sanitizeDebounceMs(
-      preferences?.debounceMs ?? preferences?.debounceTime,
-    );
-    this.suggestionsEnabled = preferences?.suggestionsEnabled !== false;
     this.chatContextEnabled = preferences?.chatContextEnabled === true;
-
-    if (!this.suggestionsEnabled) {
-      this.currentSuggestions = [];
-      this.overlay?.hide();
-      this.badge?.hide();
-      this.ghostOverlay?.hide();
-    }
+    this.dispatch({
+      type: "PREFERENCES_CHANGED",
+      enabled: preferences?.suggestionsEnabled !== false,
+      debounceMs: sanitizeDebounceMs(
+        preferences?.debounceMs ?? preferences?.debounceTime,
+      ),
+    });
   }
 
   private detachInput() {
@@ -125,15 +237,15 @@ class ExtensionContentScript {
       this.inputElement.removeEventListener("input", this.boundHandleInput);
     }
 
+    this.dispatch({ type: "INPUT_DETACHED" });
     this.inputElement = null;
-    this.overlay?.hide();
-    this.badge?.hide();
+    this.overlay?.destroy();
     this.badge?.destroy();
-    this.ghostOverlay?.hide();
+    this.ghostOverlay?.destroy();
     this.overlay = null;
     this.badge = null;
     this.ghostOverlay = null;
-    this.currentSuggestions = [];
+    this.renderedView = null;
   }
 
   private detectInput() {
@@ -154,71 +266,31 @@ class ExtensionContentScript {
         this.overlay = new SuggestionOverlay(container);
         this.ghostOverlay = new GhostOverlay(el);
         this.badge = new BadgeIndicator(container);
-        this.overlay.setOnSelect((suggestion) =>
-          this.applySuggestion(suggestion),
+        this.overlay.setOnSelect((index) =>
+          this.dispatch({ type: "SELECT", index }),
         );
+        this.overlay.setOnClose(() => this.dispatch({ type: "DISMISS" }));
+        this.badge.setOnClick(() => this.dispatch({ type: "OPEN_REQUESTED" }));
+        el.addEventListener("input", this.boundHandleInput);
 
-        this.hookInput(el);
+        this.dispatch({ type: "INPUT_ATTACHED" });
         break;
       }
     }
   }
 
-  private hookInput(el: HTMLElement) {
-    el.addEventListener("input", this.boundHandleInput);
-
-    // Badge click handler
-    this.badge?.setOnClick(() => {
-      if (this.currentSuggestions.length > 0) {
-        this.overlay?.show(this.currentSuggestions);
-        this.badge?.hide();
-      }
-    });
-  }
-
   private handleInput(e: Event) {
     const target = e.target as HTMLElement;
     const text = (target as any).value || target.innerText || "";
-
-    if (text.length < 10) {
-      this.currentSuggestions = [];
-      this.badge?.hide();
-      // Hide overlays if text is too short or cleared
-      if (this.overlay?.isVisible()) this.overlay.hide();
-      this.ghostOverlay?.hide();
-      return;
-    }
-
-    if (!this.suggestionsEnabled) {
-      this.currentSuggestions = [];
-      this.badge?.hide();
-      this.overlay?.hide();
-      this.ghostOverlay?.hide();
-      return;
-    }
-
-    // Clear existing timer
-    if (this.debounceTimer) {
-      window.clearTimeout(this.debounceTimer);
-    }
-
-    // Hide ghost text while typing (until new analysis arrives)
-    this.ghostOverlay?.hide();
-
-    // Set new timer
-    this.debounceTimer = window.setTimeout(() => {
-      void this.analyzePrompt(text);
-    }, this.debounceMs);
+    this.dispatch({ type: "TEXT_CHANGED", text });
   }
 
-  private async analyzePrompt(text: string) {
-    const requestId = ++this.activeAnalysisRequestId;
+  private async requestAnalysis(text: string, requestId: number) {
     const conversation = this.chatContextEnabled
       ? this.collectConversationContext(text)
       : undefined;
 
     try {
-      this.badge?.showSaving();
       const response = await this.sendRuntimeMessage<{
         suggestions?: Suggestion[];
         error?: string;
@@ -229,47 +301,30 @@ class ExtensionContentScript {
           context: {
             active_website: window.location.hostname,
             conversation,
-          }
+          },
         },
       });
-
-      if (requestId !== this.activeAnalysisRequestId) {
-        return;
-      }
-
-      if (!response) {
-        this.currentSuggestions = [];
-        this.badge?.hide();
-        this.ghostOverlay?.hide();
-        return;
-      }
 
       if (response?.error) {
         throw new Error(response.error);
       }
 
-      if (response && response.suggestions && response.suggestions.length > 0) {
-        this.currentSuggestions = response.suggestions;
-        this.badge?.show(this.currentSuggestions.length);
-        this.overlay?.show(this.currentSuggestions);
-        this.badge?.hide();
-
-        // Show ghost text for the top suggestion if applicable
-        const topSuggestion = this.currentSuggestions[0];
-        this.ghostOverlay?.update(text, topSuggestion.suggested);
-      } else {
-        this.currentSuggestions = [];
-        this.badge?.hide();
-        this.ghostOverlay?.hide();
-      }
+      this.dispatch({
+        type: "ANALYSIS_SUCCEEDED",
+        requestId,
+        suggestions: response?.suggestions ?? [],
+      });
     } catch (error) {
-      if (requestId !== this.activeAnalysisRequestId) {
-        return;
+      // The machine drops superseded responses, so only log the current one.
+      const { state } = this.model;
+      if (state.kind === "analyzing" && state.requestId === requestId) {
+        console.error("plenz Analysis Error:", error);
       }
-
-      console.error("plenz Analysis Error:", error);
-      this.badge?.showError((error as Error).message || "An error occurred");
-      this.ghostOverlay?.hide();
+      this.dispatch({
+        type: "ANALYSIS_FAILED",
+        requestId,
+        message: (error as Error).message || "An error occurred",
+      });
     }
   }
 
@@ -354,70 +409,21 @@ class ExtensionContentScript {
   }
 
   private handleGlobalKeydown(e: KeyboardEvent) {
-    // Pass-through to overlay if visible
-    if (this.overlay && this.overlay.isVisible()) {
-      if (e.key === "Tab") {
-        e.preventDefault();
-        e.stopPropagation();
-        this.acceptSuggestion();
-        return;
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        this.overlay.hide();
-        // Show badge again if we just dismissed overlay
-        if (this.currentSuggestions.length > 0) {
-          this.badge?.show(this.currentSuggestions.length);
-        }
-        return;
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        this.overlay.navigate("up");
-        return;
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        this.overlay.navigate("down");
-        return;
-      }
-    }
+    const target = e.target as Node | null;
+    const event = keyToEvent(this.model.state, {
+      key: e.key,
+      shiftKey: e.shiftKey,
+      inInput: !!(target && this.inputElement?.contains(target)),
+    });
+    if (!event) return;
 
-    // Handle Tab for Ghost Text even if overlay is NOT visible (common UX)
-    // But only if ghost text is actually visible?
-    // Note from plan: "On Accept (Tab), accept the ghost text completion (which mimics the top suggestion)."
-    // We should check if ghost overlay is visible. Unfortunately GhostOverlay doesn't expose isVisible yet, or we assume data presence.
-    // Let's add a check. `this.currentSuggestions` implies we have data.
-
-    if (
-      e.key === "Tab" &&
-      this.currentSuggestions.length > 0 &&
-      !this.overlay?.isVisible()
-    ) {
-      // Accept top suggestion
-      e.preventDefault();
-      e.stopPropagation();
-      this.acceptSuggestion();
-    }
+    e.preventDefault();
+    if (event.type !== "NAVIGATE") e.stopPropagation();
+    this.dispatch(event);
   }
 
-  private acceptSuggestion() {
-    // If overlay is active, take its selection.
-    // If only ghost text is active (overlay hidden), take top suggestion.
-
-    let suggestion: Suggestion | null = null;
-
-    if (this.overlay?.isVisible()) {
-      suggestion = this.overlay.getActiveSuggestion();
-    } else if (this.currentSuggestions.length > 0) {
-      suggestion = this.currentSuggestions[0];
-    }
-
-    if (suggestion) this.applySuggestion(suggestion);
-  }
-
-  private applySuggestion(suggestion: Suggestion) {
+  private writeInput(text: string) {
     if (!this.inputElement) return;
-
-    const text = suggestion.suggested;
 
     // Prefer actual DOM capabilities first so platform config mismatches do not break replacement.
     if (
@@ -451,13 +457,7 @@ class ExtensionContentScript {
       this.inputElement.textContent = text;
       this.inputElement.dispatchEvent(new Event("input", { bubbles: true }));
     }
-
-    this.overlay?.hide();
-    this.badge?.hide();
-    this.ghostOverlay?.hide();
-    this.currentSuggestions = [];
   }
 }
 
 new ExtensionContentScript();
-

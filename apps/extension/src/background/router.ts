@@ -1,13 +1,49 @@
 import { StorageManager } from "./storage";
 import { providers } from "@plenz/providers";
-import { AuthManager } from "./auth";
+import { AuthSession } from "./auth-session";
 import { PromptGalleryManager } from "./prompt-gallery";
 import { analyzePromptWithOrchestration } from "./prompt-orchestrator";
+
+// Content scripts run inside third-party pages, so they only get the calls they need.
+const CONTENT_SCRIPT_MESSAGES = new Set([
+  "ANALYZE_PROMPT",
+  "CANCEL_ANALYSIS",
+  "GET_PREFERENCES",
+]);
+
+const inFlightAnalyses = new Map<string, AbortController>();
+
+function isExtensionPage(sender: chrome.runtime.MessageSender) {
+  return (
+    typeof sender.url === "string" &&
+    sender.url.startsWith(chrome.runtime.getURL(""))
+  );
+}
+
+function getAnalysisKey(sender: chrome.runtime.MessageSender) {
+  return sender.tab?.id !== undefined
+    ? `${sender.tab.id}:${sender.frameId ?? 0}`
+    : "extension-page";
+}
+
+function cancelAnalysis(key: string) {
+  inFlightAnalyses.get(key)?.abort();
+  inFlightAnalyses.delete(key);
+}
 
 export async function handleMessage(
   message: any,
   sender: chrome.runtime.MessageSender,
 ) {
+  if (sender.id !== chrome.runtime.id) {
+    return { error: "Unauthorized sender." };
+  }
+
+  if (!isExtensionPage(sender) && !CONTENT_SCRIPT_MESSAGES.has(message?.type)) {
+    console.warn("plenz: blocked message from content script:", message?.type);
+    return { error: "Not allowed from this context." };
+  }
+
   switch (message.type) {
     case "GET_ACTIVE_MODEL":
       const configResult = await StorageManager.getActiveModelConfig();
@@ -64,14 +100,8 @@ export async function handleMessage(
     case "GET_ALL_MODEL_CONFIGS":
       return await StorageManager.getAllModelConfigs();
 
-    case "MIGRATE_KEYS_TO_SYNC":
-      return await StorageManager.migrateLocalToPreferredBackend();
-
     case "MIGRATE_SYNC_TO_FIREBASE":
       return await StorageManager.migrateSyncToFirebase();
-
-    case "CACHE_MODEL_CONFIGS_LOCALLY":
-      return await StorageManager.cacheSyncToLocal();
 
     case "TEST_CONNECTION": {
       const { providerId, config } = message.payload;
@@ -82,23 +112,40 @@ export async function handleMessage(
 
     case "ANALYZE_PROMPT": {
       const { prompt, context } = message.payload;
+      const key = getAnalysisKey(sender);
+      // A newer request from the same frame makes the previous one obsolete.
+      cancelAnalysis(key);
+      const controller = new AbortController();
+      inFlightAnalyses.set(key, controller);
 
       try {
-        return await analyzePromptWithOrchestration(prompt, context);
+        return await analyzePromptWithOrchestration(
+          prompt,
+          context,
+          controller.signal,
+        );
       } catch (e: any) {
         console.error("Remote analysis failed:", e);
         return { error: e.message || "Failed to analyze prompt." };
+      } finally {
+        if (inFlightAnalyses.get(key) === controller) {
+          inFlightAnalyses.delete(key);
+        }
       }
     }
 
+    case "CANCEL_ANALYSIS":
+      cancelAnalysis(getAnalysisKey(sender));
+      return { success: true };
+
     case "AUTH_SIGN_IN":
-      return await AuthManager.signIn(true);
+      return await AuthSession.signIn();
 
     case "AUTH_SIGN_OUT":
-      return await AuthManager.signOut();
+      return await AuthSession.signOut(message.payload?.keepLocalCopies === true);
 
-    case "GET_AUTH_STATUS":
-      return await AuthManager.getAuthStatus();
+    case "GET_AUTH_STATE":
+      return await AuthSession.getSnapshot();
 
     case "OPEN_PROMPT_GALLERY_PANEL": {
       const windowId = message.payload?.windowId;

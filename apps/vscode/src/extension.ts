@@ -1,5 +1,4 @@
 import * as vscode from "vscode"
-import { SYSTEM_PROMPT_TEMPLATE } from "@plenz/core"
 
 export function activate(context: vscode.ExtensionContext) {
 	let disposable = vscode.commands.registerCommand(

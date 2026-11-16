@@ -9,7 +9,9 @@ export class SuggestionOverlay {
   private visible: boolean = false;
   private suggestions: Suggestion[] = [];
   private activeIndex: number = 0;
-  private onSelect: ((suggestion: Suggestion) => void) | null = null;
+  private onSelect: ((index: number) => void) | null = null;
+  private onClose: (() => void) | null = null;
+  private readonly boundPositionOverlay = () => this.positionOverlay();
 
   constructor(anchorElement: HTMLElement) {
     this.anchorElement = anchorElement;
@@ -34,8 +36,15 @@ export class SuggestionOverlay {
   }
 
   private bindEvents() {
-    window.addEventListener("resize", () => this.positionOverlay());
-    window.addEventListener("scroll", () => this.positionOverlay(), true);
+    window.addEventListener("resize", this.boundPositionOverlay);
+    window.addEventListener("scroll", this.boundPositionOverlay, true);
+  }
+
+  public destroy() {
+    this.hide();
+    window.removeEventListener("resize", this.boundPositionOverlay);
+    window.removeEventListener("scroll", this.boundPositionOverlay, true);
+    this.shadowHost.remove();
   }
 
   public show(
@@ -125,18 +134,15 @@ export class SuggestionOverlay {
     items.forEach((item) => {
       item.addEventListener("click", () => {
         const idx = parseInt(item.getAttribute("data-index") || "0", 10);
-        this.activeIndex = idx;
-        this.render();
-        const suggestion = this.suggestions[this.activeIndex];
-        if (suggestion) {
-          this.onSelect?.(suggestion);
-        }
+        this.onSelect?.(idx);
       });
     });
 
     this.container
       .querySelector("#pl-close")
-      ?.addEventListener("click", () => this.hide());
+      ?.addEventListener("click", () =>
+        this.onClose ? this.onClose() : this.hide(),
+      );
   }
 
   private scrollToActive() {
@@ -150,32 +156,24 @@ export class SuggestionOverlay {
     });
   }
 
-  public navigate(direction: "up" | "down") {
-    if (!this.visible) return;
-
-    if (direction === "down") {
-      this.activeIndex = (this.activeIndex + 1) % this.suggestions.length;
-    } else {
-      this.activeIndex =
-        (this.activeIndex - 1 + this.suggestions.length) %
-        this.suggestions.length;
-    }
+  public setActiveIndex(index: number) {
+    if (!this.visible || index === this.activeIndex) return;
+    this.activeIndex = index;
     this.render();
     this.positionOverlay();
     this.scrollToActive();
-  }
-
-  public getActiveSuggestion(): Suggestion | null {
-    if (!this.visible || this.suggestions.length === 0) return null;
-    return this.suggestions[this.activeIndex];
   }
 
   public isVisible(): boolean {
     return this.visible;
   }
 
-  public setOnSelect(handler: (suggestion: Suggestion) => void) {
+  public setOnSelect(handler: (index: number) => void) {
     this.onSelect = handler;
+  }
+
+  public setOnClose(handler: () => void) {
+    this.onClose = handler;
   }
 
   private positionOverlay() {

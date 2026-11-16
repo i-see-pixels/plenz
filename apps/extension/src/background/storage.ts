@@ -25,6 +25,7 @@ export interface UserPreferences {
   storageBackend: StorageBackendPreference;
   suggestionsEnabled: boolean;
   chatContextEnabled: boolean;
+  providerFallbackEnabled: boolean;
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -35,6 +36,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   storageBackend: "chrome-sync",
   suggestionsEnabled: true,
   chatContextEnabled: false,
+  providerFallbackEnabled: false,
 };
 
 function getErrorMessage(error: unknown) {
@@ -74,6 +76,10 @@ function normalizePreferences(value: unknown): UserPreferences {
     typeof prefs.chatContextEnabled === "boolean"
       ? prefs.chatContextEnabled
       : DEFAULT_PREFERENCES.chatContextEnabled;
+  const providerFallbackEnabled =
+    typeof prefs.providerFallbackEnabled === "boolean"
+      ? prefs.providerFallbackEnabled
+      : DEFAULT_PREFERENCES.providerFallbackEnabled;
 
   return {
     debounceTime,
@@ -83,6 +89,7 @@ function normalizePreferences(value: unknown): UserPreferences {
     storageBackend,
     suggestionsEnabled,
     chatContextEnabled,
+    providerFallbackEnabled,
   };
 }
 

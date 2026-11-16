@@ -94,11 +94,11 @@
 | -------------- | --------- |
 | OpenAI         | Supported |
 | Google         | Supported |
-| Anthropic      | Planned   |
-| Mistral        | Planned   |
-| Groq           | Planned   |
-| OpenRouter     | Planned   |
-| Custom Adapter | Planned   |
+| Anthropic      | Supported |
+| Mistral        | Supported |
+| Groq           | Supported |
+| OpenRouter     | Supported |
+| Custom Adapter | Supported |
 
 ## Privacy and Security
 

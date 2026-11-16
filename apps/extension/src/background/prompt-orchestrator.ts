@@ -13,6 +13,10 @@ import type {
   ProviderConfig,
 } from "@plenz/types";
 import { StorageManager } from "./storage";
+import {
+  initialOrchestratorState,
+  orchestratorTransition,
+} from "./orchestrator-machine";
 
 const ANALYSIS_TIMEOUT_MS = 12_000;
 
@@ -22,6 +26,7 @@ type AttemptInput = {
   prompt: string;
   systemPrompt: string;
   context?: ProviderAnalyzeContext;
+  signal?: AbortSignal;
 };
 
 type OrchestratedAnalysisResult = Pick<AnalysisResult, "suggestions" | "latencyMs"> & {
@@ -79,6 +84,9 @@ function getContextText(context?: ProviderAnalyzeContext) {
 async function analyzeWithTimeout(input: AttemptInput): Promise<AnalysisResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ANALYSIS_TIMEOUT_MS);
+  const abortFromCaller = () => controller.abort();
+  input.signal?.addEventListener("abort", abortFromCaller);
+  if (input.signal?.aborted) controller.abort();
 
   try {
     const result = await input.provider.analyze(
@@ -95,6 +103,7 @@ async function analyzeWithTimeout(input: AttemptInput): Promise<AnalysisResult> 
     };
   } finally {
     clearTimeout(timeoutId);
+    input.signal?.removeEventListener("abort", abortFromCaller);
   }
 }
 
@@ -123,10 +132,13 @@ async function getFallbackAttempts(activeProviderId: string | null) {
     );
 }
 
+const CANCELLED_RESULT = { error: "Analysis cancelled.", cancelled: true } as const;
+
 export async function analyzePromptWithOrchestration(
   prompt: string,
   context?: ProviderAnalyzeContext,
-): Promise<OrchestratedAnalysisResult | { error: string }> {
+  signal?: AbortSignal,
+): Promise<OrchestratedAnalysisResult | { error: string; cancelled?: boolean }> {
   const prefs = await StorageManager.getPreferences();
 
   const activeConfigResult = await StorageManager.getActiveModelConfig();
@@ -152,70 +164,56 @@ export async function analyzePromptWithOrchestration(
   const intentMatch = intentDetector.detect(analysisText);
   const entities = entityExtractor.extract(analysisText, context);
   const systemPrompt = buildSystemPrompt(intentMatch, entities, context?.conversation);
-  const failedErrors: unknown[] = [];
+  // Sending the prompt to a provider the user didn't pick must be opted into.
+  // Fallbacks are only loaded once the active provider has failed.
+  let fallbackAttempts: Awaited<ReturnType<typeof getFallbackAttempts>> | null =
+    prefs.providerFallbackEnabled ? null : [];
+  let state = initialOrchestratorState<unknown>();
 
-  try {
-    const activeResult = await analyzeWithTimeout({
-      provider: activeProvider,
-      config: activeConfig,
-      prompt,
-      systemPrompt,
-      context,
-    });
-
-    return {
-      suggestions: activeResult.suggestions,
-      latencyMs: activeResult.latencyMs,
-      providerId: activeProvider.id,
-    };
-  } catch (error) {
-    failedErrors.push(error);
-    logAttemptFailure(activeProvider.id, error);
-
-    if (isRetryableError(error)) {
-      try {
-        const retryResult = await analyzeWithTimeout({
-          provider: activeProvider,
-          config: activeConfig,
-          prompt,
-          systemPrompt,
-          context,
-        });
-
-        return {
-          suggestions: retryResult.suggestions,
-          latencyMs: retryResult.latencyMs,
-          providerId: activeProvider.id,
-        };
-      } catch (retryError) {
-        failedErrors.push(retryError);
-        logAttemptFailure(activeProvider.id, retryError);
-      }
+  while (state.kind === "attempting") {
+    if (signal?.aborted) {
+      state = orchestratorTransition(state, { type: "CANCELLED" }, { fallbackCount: 0 });
+      break;
     }
-  }
 
-  const fallbackAttempts = await getFallbackAttempts(prefs.activeProviderId);
-  for (const attempt of fallbackAttempts) {
+    const { target } = state;
+    const attempt =
+      target.kind === "fallback"
+        ? fallbackAttempts?.[target.index]
+        : { provider: activeProvider, config: activeConfig };
+    if (!attempt) break;
+
     try {
-      const fallbackResult = await analyzeWithTimeout({
+      const result = await analyzeWithTimeout({
         provider: attempt.provider,
         config: attempt.config,
         prompt,
         systemPrompt,
         context,
+        signal,
       });
+      state = orchestratorTransition(state, { type: "ATTEMPT_SUCCEEDED" }, { fallbackCount: 0 });
 
       return {
-        suggestions: fallbackResult.suggestions,
-        latencyMs: fallbackResult.latencyMs,
+        suggestions: result.suggestions,
+        latencyMs: result.latencyMs,
         providerId: attempt.provider.id,
       };
     } catch (error) {
-      failedErrors.push(error);
       logAttemptFailure(attempt.provider.id, error);
+      fallbackAttempts ??= await getFallbackAttempts(prefs.activeProviderId);
+      state = orchestratorTransition(
+        state,
+        signal?.aborted
+          ? { type: "CANCELLED" }
+          : { type: "ATTEMPT_FAILED", error, retryable: isRetryableError(error) },
+        { fallbackCount: fallbackAttempts.length },
+      );
     }
   }
 
-  const lastError = failedErrors[failedErrors.length - 1];
+  if (state.kind === "cancelled") return CANCELLED_RESULT;
+
+  const lastError = state.kind === "failed" ? state.error : undefined;
   return { error: getErrorMessage(lastError) || "Failed to analyze prompt." };
 }

@@ -1,5 +1,4 @@
 import type { PublicPrompt, SavedPrompt } from "@plenz/types";
-import type { UserInfo } from "../background/auth";
 import type { GalleryFilter, PromptQueryState } from "./prompt-gallery.types";
 
 export const PUBLIC_SHARE_BASE_URL = "https://plenz.siddsingh.dev/prompts";
@@ -13,17 +12,6 @@ export function createPromptQueryState<T>(
     error: null,
     status,
   };
-}
-
-export function isUserInfo(value: unknown): value is UserInfo {
-  return (
-    !!value &&
-    typeof value === "object" &&
-    typeof (value as UserInfo).id === "string" &&
-    typeof (value as UserInfo).email === "string" &&
-    typeof (value as UserInfo).name === "string" &&
-    typeof (value as UserInfo).picture === "string"
-  );
 }
 
 export function isPublicPrompt(

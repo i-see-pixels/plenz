@@ -20,6 +20,7 @@ import {
 } from "@plenz/ui/components/select";
 import { cn } from "@plenz/ui/lib/utils";
 import { AlertTriangle, Cloud, HardDrive, LoaderCircle } from "lucide-react";
+import { useAuthSession } from "./useAuthSession";
 
 type StorageBackendPreference = "chrome-sync" | "firebase";
 
@@ -89,10 +90,6 @@ function isMigrationResponse(value: unknown): value is MigrationResponse {
 
 function isActionResponse(value: unknown): value is ActionResponse {
   return !!value && typeof value === "object" && "success" in value;
-}
-
-function isUserInfoResponse(value: unknown) {
-  return !!value && typeof value === "object" && "email" in value;
 }
 
 function getResponseError(value: unknown) {
@@ -184,7 +181,8 @@ export function ModelConfig() {
   const [saveState, setSaveState] = useState<SaveState>({
     status: "local-only",
   });
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const { auth } = useAuthSession();
+  const isSignedIn = auth.status === "signedIn";
   const [storageBackend, setStorageBackend] =
     useState<StorageBackendPreference>("chrome-sync");
   const [firebaseConfigured, setFirebaseConfigured] = useState(false);
@@ -201,13 +199,6 @@ export function ModelConfig() {
     providers.find((item) => item.id === selectedProvider) ?? providers[0];
   const usesCustomModelInput =
     selectedProvider === "custom" || selectedProvider === "openrouter";
-
-  const loadAuthStatus = async () => {
-    const response = await chrome.runtime.sendMessage({
-      type: "GET_AUTH_STATUS",
-    });
-    setIsSignedIn(isUserInfoResponse(response));
-  };
 
   const loadStorageSettings = async () => {
     const rawResponse = await chrome.runtime.sendMessage({
@@ -257,23 +248,10 @@ export function ModelConfig() {
     });
   };
 
+  // Storage settings depend on who is signed in, so reload them on every change.
   useEffect(() => {
-    void loadAuthStatus();
     void loadStorageSettings();
-  }, []);
-
-  useEffect(() => {
-    const handleAuthChange = (event: Event) => {
-      const customEvent = event as CustomEvent<{ user: unknown | null }>;
-      setIsSignedIn(!!customEvent.detail?.user);
-      void loadStorageSettings();
-    };
-
-    window.addEventListener("plenz-auth-status-changed", handleAuthChange);
-    return () => {
-      window.removeEventListener("plenz-auth-status-changed", handleAuthChange);
-    };
-  }, []);
+  }, [isSignedIn]);
 
   useEffect(() => {
     void loadConfig();
