@@ -26,7 +26,9 @@ import { cn } from "@plenz/ui/lib/utils";
 import { AlertTriangle, Cloud, HardDrive, LoaderCircle } from "lucide-react";
 import { useAuthSession } from "./useAuthSession";
 import { OnDeviceModel } from "./OnDeviceModel";
-import { sendRpc } from "../shared/rpc";
+import { isRpcFailure, sendRpc } from "../shared/rpc";
+import { SyncPassphrase } from "./SyncPassphrase";
+import type { VaultStatus } from "../background/sync-vault";
 import {
   backendNotice,
   backendTransition,
@@ -196,6 +198,7 @@ export function ModelConfig() {
   const [storageBackend, setStorageBackend] =
     useState<StorageBackendPreference>("chrome-sync");
   const [firebaseConfigured, setFirebaseConfigured] = useState(false);
+  const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null);
   const [backendState, setBackendState] = useState<BackendState>({
     kind: "idle",
   });
@@ -245,8 +248,23 @@ export function ModelConfig() {
     void loadStorageSettings();
   }, [isSignedIn]);
 
+  // The passphrase that encrypts synced keys; only relevant when Cloud Sync is possible.
+  const loadVaultStatus = async () => {
+    if (!isSignedIn || !firebaseConfigured) {
+      setVaultStatus(null);
+      return;
+    }
+    const reply = await sendRpc("GET_SYNC_VAULT_STATUS");
+    if (!isRpcFailure(reply)) setVaultStatus(reply.status);
+  };
+
+  useEffect(() => {
+    void loadVaultStatus();
+  }, [isSignedIn, firebaseConfigured]);
+
   // Load the saved config for the selected provider. Switching again before
-  // the reply arrives makes it stale, so it is dropped.
+  // the reply arrives makes it stale, so it is dropped. Unlocking Cloud Sync
+  // makes a synced key readable, so that reloads it too.
   useEffect(() => {
     let stale = false;
 
@@ -274,7 +292,7 @@ export function ModelConfig() {
     return () => {
       stale = true;
     };
-  }, [selectedProvider, isSignedIn, storageBackend]);
+  }, [selectedProvider, isSignedIn, storageBackend, vaultStatus]);
 
   useEffect(() => {
     // Set when the provider, key or URL changes again; late replies are dropped.
@@ -375,6 +393,7 @@ export function ModelConfig() {
       current: storageBackend,
       isSignedIn,
       firebaseConfigured,
+      vaultReady: vaultStatus === "unlocked",
     });
     setBackendState(next);
     if (next.kind !== "switching") {
@@ -563,6 +582,13 @@ export function ModelConfig() {
         >
           {backendLine?.message || defaultBackendMessage}
         </p>
+        {isSignedIn && firebaseConfigured ? (
+          <SyncPassphrase
+            status={vaultStatus}
+            cloudSyncActive={storageBackend === "firebase"}
+            onChanged={() => void loadVaultStatus()}
+          />
+        ) : null}
       </div>
 
       <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">

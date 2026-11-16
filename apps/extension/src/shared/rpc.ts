@@ -15,6 +15,7 @@ import type { AuthSnapshot } from "../background/auth-machine";
 import type { UserPreferences } from "../background/storage";
 import type { StorageBackendPreference } from "../background/storage-backend";
 import type { SiteStatus } from "./sites";
+import type { VaultStatus } from "../background/sync-vault";
 import type { OnDeviceAvailability } from "@plenz/providers";
 
 /** Any handler may reply with this instead (rejected sender, thrown error). */
@@ -23,6 +24,8 @@ export type RpcFailure = { error: string };
 type Success = { success: true };
 type ActionResult = { success: boolean; error?: string };
 type MigrationResult = { migrated: number; errors: string[] };
+/** `upgraded`: keys re-encrypted from the pre-passphrase format. */
+type VaultResult = { success: boolean; error?: string; upgraded?: number };
 
 export type RpcMap = {
   // Content scripts (also allowed from extension pages). Refines stream over
@@ -92,6 +95,13 @@ export type RpcMap = {
   };
   SAVE_PUBLIC_PROMPT: { payload: { prompt: PublicPrompt }; reply: { prompt: SavedPrompt } };
   DELETE_SAVED_PROMPT: { payload: { id: string }; reply: Success };
+  // Cloud Sync passphrase (end-to-end encryption of synced API keys).
+  GET_SYNC_VAULT_STATUS: { payload: void; reply: { status: VaultStatus } };
+  SET_UP_SYNC_VAULT: { payload: { passphrase: string }; reply: VaultResult };
+  UNLOCK_SYNC_VAULT: { payload: { passphrase: string }; reply: VaultResult };
+  CHANGE_SYNC_PASSPHRASE: { payload: { current: string; next: string }; reply: VaultResult };
+  LOCK_SYNC_VAULT: { payload: void; reply: VaultResult };
+  RESET_SYNC_VAULT: { payload: void; reply: VaultResult };
   /** Chrome's built-in model, as seen from the background worker. */
   GET_ON_DEVICE_STATUS: {
     payload: void;

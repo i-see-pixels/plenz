@@ -15,7 +15,8 @@ import {
   isFirebaseConfigured,
   signInToFirebase,
 } from "./firebase";
-import { toFirestoreProviderConfig } from "./encryption";
+import { SyncPassphraseRequiredError, toFirestoreProviderConfig } from "./encryption";
+import { SyncVault } from "./sync-vault";
 
 export interface UserPreferences {
   debounceTime: number;
@@ -128,12 +129,17 @@ async function writeConfigsToFirebase(configs: Record<string, ProviderConfig>) {
     const credential = await signInToFirebase(token);
     const userId = credential.user.uid;
     const db = getFirestoreDb();
+    const dataKey = await SyncVault.dataKey(userId);
+    if (!dataKey) {
+      errors.push(new SyncPassphraseRequiredError().message);
+      return { migrated: 0, errors, migratedProviderIds };
+    }
 
     for (const [providerId, config] of Object.entries(configs)) {
       try {
         await setDoc(
           doc(db, "users", userId, "model_configs", providerId),
-          await toFirestoreProviderConfig(config, userId),
+          await toFirestoreProviderConfig(config, userId, providerId, dataKey),
         );
         migratedProviderIds.push(providerId);
       } catch (error) {

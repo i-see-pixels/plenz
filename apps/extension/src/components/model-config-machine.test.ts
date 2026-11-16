@@ -58,6 +58,7 @@ describe("model config: sync method", () => {
     current: "chrome-sync",
     isSignedIn: true,
     firebaseConfigured: true,
+    vaultReady: true,
     ...overrides,
   });
   const idle: BackendState = { kind: "idle" };
@@ -71,6 +72,13 @@ describe("model config: sync method", () => {
       kind: "blocked",
       message: FIREBASE_NOT_CONFIGURED_MESSAGE,
     });
+  });
+
+  test("Cloud Sync waits for the sync passphrase to be set up and unlocked", () => {
+    const blocked = backendTransition(idle, request({ vaultReady: false }));
+    assert.equal(blocked.kind, "blocked");
+    assert.match(backendNotice(blocked)!.message, /sync passphrase/);
+    assert.equal(backendTransition(idle, request({ target: "chrome-sync", current: "firebase", vaultReady: false })).kind, "switching");
   });
 
   test("choosing the current method or clicking while switching does nothing", () => {

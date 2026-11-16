@@ -71,6 +71,8 @@ export type BackendEvent =
       current: StorageBackendPreference;
       isSignedIn: boolean;
       firebaseConfigured: boolean;
+      /** The sync passphrase is set up and unlocked on this device. */
+      vaultReady: boolean;
     }
   | { type: "SWITCH_SUCCEEDED"; migration: MigrationResult | null }
   | { type: "SWITCH_FAILED"; message: string }
@@ -108,6 +110,12 @@ export function backendTransition(
       }
       if (event.target === "firebase" && !event.firebaseConfigured) {
         return { kind: "blocked", message: FIREBASE_NOT_CONFIGURED_MESSAGE };
+      }
+      if (event.target === "firebase" && !event.vaultReady) {
+        return {
+          kind: "blocked",
+          message: "Set up or unlock your sync passphrase below before switching to Cloud Sync.",
+        };
       }
       return { kind: "switching", target: event.target };
 

@@ -14,9 +14,11 @@ import {
 import { AuthManager } from "./auth";
 import {
   fromFirestoreProviderConfig,
+  isVaultError,
   toFirestoreProviderConfig,
   type FirestoreProviderConfig,
 } from "./encryption";
+import { SyncVault } from "./sync-vault";
 import {
   getFirestoreDb,
   isFirebaseConfigured,
@@ -285,6 +287,10 @@ export class FirebaseBackend implements StorageBackend {
       updateFirebaseHealth({ type: "SUCCEEDED" });
       return result;
     } catch (error) {
+      // A locked or unset passphrase isn't an outage: say so, don't fall back.
+      if (isVaultError(error)) {
+        return { data: null, syncStatus: "error", error: getErrorMessage(error) };
+      }
       updateFirebaseHealth({
         type: "FAILED",
         error: getErrorMessage(error),
@@ -314,6 +320,8 @@ export class FirebaseBackend implements StorageBackend {
       const { config, migratedConfig } = await fromFirestoreProviderConfig(
         snapshot.data(),
         userId,
+        providerId,
+        await SyncVault.dataKey(userId),
       );
 
       if (!config) {
@@ -350,7 +358,12 @@ export class FirebaseBackend implements StorageBackend {
     return this.withFirebaseFallback(async (userId) => {
       await setDoc(
         getFirestoreModelConfigRef(userId, providerId),
-        await toFirestoreProviderConfig(config, userId),
+        await toFirestoreProviderConfig(
+          config,
+          userId,
+          providerId,
+          await SyncVault.dataKey(userId),
+        ),
       );
       return { data: null, syncStatus: "synced" };
     }, () => this.syncFallback.setModelConfig(providerId, config));
@@ -376,11 +389,13 @@ export class FirebaseBackend implements StorageBackend {
       };
       const errors: string[] = fallbackResult.error ? [fallbackResult.error] : [];
       const migrationWrites: Array<Promise<void>> = [];
+      const dataKey = await SyncVault.dataKey(userId);
+      let vaultError: string | null = null;
 
       snapshot.forEach((modelConfig) => {
         const record = modelConfig.data() as FirestoreProviderConfig;
         migrationWrites.push(
-          fromFirestoreProviderConfig(record, userId)
+          fromFirestoreProviderConfig(record, userId, modelConfig.id, dataKey)
             .then(({ config, migratedConfig }) => {
               if (!config) {
                 errors.push(
@@ -399,6 +414,10 @@ export class FirebaseBackend implements StorageBackend {
               }
             })
             .catch((error) => {
+              if (isVaultError(error)) {
+                vaultError = getErrorMessage(error); // Same for every key: report once.
+                return;
+              }
               errors.push(
                 `Failed to load ${modelConfig.id} from Cloud Sync: ${getErrorMessage(error)}`,
               );
@@ -407,6 +426,7 @@ export class FirebaseBackend implements StorageBackend {
       });
 
       await Promise.all(migrationWrites);
+      if (vaultError) errors.unshift(vaultError);
 
       return {
         data: configs,

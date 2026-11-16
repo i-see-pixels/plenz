@@ -48,6 +48,7 @@ Shared logic lives in:
 ## Security Model
 
 - BYOK architecture with local key storage.
+- Cloud Sync is end to end encrypted (`apps/extension/src/background/vault-crypto.ts`, `sync-vault.ts`). A random AES-256 data key encrypts each API key, with the account and provider bound in as additional data. The data key is wrapped with a key derived from the user's passphrase (PBKDF2-SHA-256, 600,000 iterations, random salt) and stored at `users/{uid}/sync/vault`; the passphrase and data key never leave the device. An unlocked device keeps the data key in `chrome.storage.local` until it is locked or the user signs out. Writes need the data key, so nothing weaker is written; records from older versions are re-encrypted on setup or unlock.
 - No centralized plenz prompt-processing server.
 - Content scripts can only read preferences over messaging and open refine ports; the port validates every `START` and never returns keys or configs. Everything else (model configs, keys, auth, gallery) is limited to extension pages.
 - Extension outbound network access restricted in manifest CSP and host permissions.

@@ -11,6 +11,7 @@ import {
 } from "./auth-machine";
 import { StorageManager } from "./storage";
 import { resetFirebaseHealth } from "./storage-backend";
+import { SyncVault } from "./sync-vault";
 import type { BroadcastMessage } from "../shared/rpc";
 
 /**
@@ -84,6 +85,8 @@ async function perform(effect: AuthEffect): Promise<AuthEvent> {
       return { type: "KEYS_CACHED" };
 
     case "signOut":
+      // This device's unlocked Cloud Sync key goes with the account.
+      await SyncVault.lock().catch(() => {});
       return (await AuthManager.signOut().catch(() => false))
         ? { type: "SIGNED_OUT" }
         : { type: "SIGN_OUT_FAILED", message: "Sign-out failed. Try again." };

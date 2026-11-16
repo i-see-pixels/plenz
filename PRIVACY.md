@@ -44,8 +44,10 @@ Out of the box, plenz runs only on the supported AI chat websites. On any other 
 
 - Preferences may be stored using the browser extension storage APIs.
 - Provider configuration and API credentials may be stored locally in the browser extension storage area.
-- When Cloud Sync is enabled, provider configuration is stored in Firebase. The `apiKey` field is encrypted in the client before it is written to Firestore, while non-secret fields such as model selection and optional base URL remain readable for sync purposes.
-- This Cloud Sync encryption removes plaintext API keys from Firestore records, but it does not add a user passphrase or server-side key management. Browser-local copies remain governed by the browser's storage protections.
+- When Cloud Sync is enabled, provider configuration is stored in Firebase. API keys are encrypted end to end before they leave your browser: a random key encrypts them, and that key is itself encrypted with a passphrase only you know (PBKDF2-SHA-256, 600,000 iterations). Firebase stores only the encrypted keys and the encrypted key, never your passphrase, so neither plenz nor Firebase can read your API keys. Non-secret fields such as model selection and optional base URL remain readable for sync purposes.
+- Your sync passphrase cannot be recovered. If you forget it, the synced keys can only be deleted and entered again.
+- Once you unlock Cloud Sync on a device, that device keeps the decryption key in the extension's local storage (the same place API keys are kept when sync is off) until you lock it or sign out. Browser-local copies remain governed by the browser's storage protections.
+- Keys synced by older versions, which were encrypted with a key derived from your account ID, are re-encrypted with your passphrase when you set it up or unlock Cloud Sync.
 - plenz does not require a central plenz backend to process prompt analysis.
 
 ## Data Sharing and Sale

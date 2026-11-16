@@ -8,6 +8,7 @@ import {
 import { AuthSession } from "./auth-session";
 import { PromptGalleryManager } from "./prompt-gallery";
 import { Sites } from "./sites";
+import { SyncVault } from "./sync-vault";
 import {
   CONTENT_SCRIPT_RPC,
   type RpcFailure,
@@ -172,6 +173,32 @@ const handlers: Handlers = {
     return { success: true };
   },
 
+  async GET_SYNC_VAULT_STATUS() {
+    return { status: await SyncVault.status() };
+  },
+
+  async SET_UP_SYNC_VAULT(payload) {
+    return vaultAction(() => SyncVault.setUp(String(payload?.passphrase ?? "")));
+  },
+
+  async UNLOCK_SYNC_VAULT(payload) {
+    return vaultAction(() => SyncVault.unlock(String(payload?.passphrase ?? "")));
+  },
+
+  async CHANGE_SYNC_PASSPHRASE(payload) {
+    return vaultAction(() =>
+      SyncVault.changePassphrase(String(payload?.current ?? ""), String(payload?.next ?? "")),
+    );
+  },
+
+  async LOCK_SYNC_VAULT() {
+    return vaultAction(() => SyncVault.lock());
+  },
+
+  async RESET_SYNC_VAULT() {
+    return vaultAction(() => SyncVault.reset());
+  },
+
   async GET_ON_DEVICE_STATUS() {
     // Checked here, where refines run, rather than in the asking page.
     const availability = await onDeviceAvailability();
@@ -196,6 +223,17 @@ const handlers: Handlers = {
     return Sites.disable(String(payload?.url ?? ""));
   },
 };
+
+/** Vault failures (short passphrase, network) come back as a message, not a throw. */
+async function vaultAction(
+  action: () => Promise<{ success: boolean; error?: string; upgraded?: number }>,
+) {
+  try {
+    return await action();
+  } catch (error) {
+    return { success: false, error: (error as Error).message || "Cloud Sync passphrase action failed." };
+  }
+}
 
 function isRpcType(type: unknown): type is RpcType {
   return typeof type === "string" && Object.hasOwn(handlers, type);

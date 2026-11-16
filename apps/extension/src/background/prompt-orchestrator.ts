@@ -134,12 +134,17 @@ export async function runRefine(
 ): Promise<RefineOutcome> {
   const { signal } = options;
   const prefs = await StorageManager.getPreferences();
-  const activeConfig = (await StorageManager.getActiveModelConfig()).data;
+  const activeConfigResult = await StorageManager.getActiveModelConfig();
+  const activeConfig = activeConfigResult.data;
 
   const activeProvider = providers.find((provider) => provider.id === prefs.activeProviderId);
   let primary: Attempt;
   if (activeProvider && activeConfig && isProviderConfigured(activeProvider, activeConfig)) {
     primary = { provider: activeProvider, config: activeConfig };
+  } else if (activeProvider && activeConfigResult.syncStatus === "error" && activeConfigResult.error) {
+    // The chosen provider's key exists but can't be read (e.g. Cloud Sync is
+    // locked): say why rather than quietly switching to another model.
+    return { kind: "error", message: activeConfigResult.error };
   } else {
     // Nothing set up: use Chrome's on-device model if it's already downloaded.
     const availability = await onDeviceAvailability();
