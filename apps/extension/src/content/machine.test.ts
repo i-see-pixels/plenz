@@ -72,6 +72,7 @@ describe("typing and the lint badge", () => {
         { label: "No audience or tone", hint: "b" },
         { label: "No length", hint: "c" },
       ],
+      canUndo: false,
     });
   });
 
@@ -80,6 +81,7 @@ describe("typing and the lint badge", () => {
       kind: "lint",
       score: null,
       findings: [],
+      canUndo: false,
     });
     assert.equal(view(typed(false, "hi"), LINT).badge.kind, "hidden");
   });
@@ -137,7 +139,13 @@ describe("mode picker and streaming", () => {
       { type: "REFINE_DELTA", requestId: 1, text: "Here's the prompt:\nBetter" },
       { type: "REFINE_DONE", requestId: 1, text: "Better" },
     ).model;
-    assert.deepEqual(view(model, null).panel, { kind: "result", step: "improve", output: "Better" });
+    assert.deepEqual(view(model, null).panel, {
+      kind: "result",
+      step: "improve",
+      original: PROMPT,
+      output: "Better",
+      rejected: [],
+    });
   });
 
   test("Ctrl/Cmd+Shift+Enter runs Improve straight away", () => {
@@ -227,11 +235,13 @@ describe("Ask me", () => {
 describe("accepting and dismissing", () => {
   test("accept writes the result, ignores our own input event, then idles on the new text", () => {
     const accepted = run(result(), { type: "ACCEPT" });
-    assert.deepEqual(accepted.effects, [{ type: "applyText", text: "Better prompt" }]);
+    assert.deepEqual(accepted.effects, [
+      { type: "applyResult", original: PROMPT, output: "Better prompt", rejected: [] },
+    ]);
     const { model, effects } = run(
       accepted.model,
       { type: "TEXT_CHANGED", text: "Better prompt" },
-      { type: "APPLIED" },
+      { type: "APPLIED", text: "Better prompt" },
     );
     assert.equal(model.state.kind, "idle");
     assert.equal(model.text, "Better prompt");
@@ -280,7 +290,13 @@ describe("auto-refine (opt-in)", () => {
     ).model;
     assert.deepEqual(view(done, null).badge, { kind: "ready" });
     const shown = run(done, { type: "BADGE_CLICKED" }).model;
-    assert.deepEqual(view(shown, null).panel, { kind: "result", step: "improve", output: "Better" });
+    assert.deepEqual(view(shown, null).panel, {
+      kind: "result",
+      step: "improve",
+      original: PROMPT,
+      output: "Better",
+      rejected: [],
+    });
   });
 
   test("typing again restarts the debounce", () => {
@@ -298,6 +314,61 @@ describe("auto-refine (opt-in)", () => {
     assert.deepEqual(run(tuned, { type: "TEXT_CHANGED", text: PROMPT }).effects, [
       { type: "startDebounce", ms: 900 },
     ]);
+  });
+});
+
+describe("diff choices and undo", () => {
+  const applied = () =>
+    run(result(), { type: "ACCEPT" }, { type: "APPLIED", text: "Better prompt" }).model;
+
+  test("toggling a change rejects it, toggling again takes it back", () => {
+    const once = run(result(), { type: "CHANGE_TOGGLED", index: 2 }, { type: "CHANGE_TOGGLED", index: 0 })
+      .model;
+    assert.deepEqual(view(once, null).panel, {
+      kind: "result",
+      step: "improve",
+      original: PROMPT,
+      output: "Better prompt",
+      rejected: [0, 2],
+    });
+    const back = run(once, { type: "CHANGE_TOGGLED", index: 2 }).model;
+    assert.equal(back.state.kind === "result" && back.state.rejected.join(), "0");
+    const reset = run(once, { type: "CHANGES_RESET" }).model;
+    assert.equal(reset.state.kind === "result" && reset.state.rejected.length, 0);
+  });
+
+  test("accept passes the rejected changes to the driver", () => {
+    const { effects } = run(result(), { type: "CHANGE_TOGGLED", index: 1 }, { type: "ACCEPT" });
+    assert.deepEqual(effects, [
+      { type: "applyResult", original: PROMPT, output: "Better prompt", rejected: [1] },
+    ]);
+  });
+
+  test("after a replace the badge offers undo, which restores the draft", () => {
+    const model = applied();
+    const badge = view(model, LINT).badge;
+    assert.equal(badge.kind === "lint" && badge.canUndo, true);
+
+    const { model: undoing, effects } = run(model, { type: "UNDO_REQUESTED" });
+    assert.deepEqual(effects, [{ type: "applyText", text: PROMPT }]);
+    const restored = run(
+      undoing,
+      { type: "TEXT_CHANGED", text: PROMPT },
+      { type: "APPLIED", text: PROMPT },
+    ).model;
+    assert.equal(restored.text, PROMPT);
+    assert.equal(restored.undo, null);
+  });
+
+  test("editing after a replace drops the undo", () => {
+    const edited = run(applied(), { type: "TEXT_CHANGED", text: "Better prompt!" }).model;
+    assert.equal(edited.undo, null);
+    assert.deepEqual(run(edited, { type: "UNDO_REQUESTED" }).effects, []);
+  });
+
+  test("undo is ignored while a panel is open", () => {
+    const open = run(applied(), { type: "BADGE_CLICKED" }).model;
+    assert.deepEqual(run(open, { type: "UNDO_REQUESTED" }).effects, []);
   });
 });
 

@@ -13,7 +13,13 @@ import {
   type ContentView,
   type LintSummary,
 } from "./machine";
-import { buildConversationContext, lintPrompt } from "@plenz/core";
+import {
+  applyDiff,
+  buildConversationContext,
+  diffPrompts,
+  lintPrompt,
+  type PromptDiff,
+} from "@plenz/core";
 import {
   MAX_REFINE_DRAFT_CHARS,
   REFINE_PORT,
@@ -55,6 +61,7 @@ function sameBadge(a: BadgeView, b: BadgeView) {
   if (a.kind === "lint" && b.kind === "lint") {
     return (
       a.score === b.score &&
+      a.canUndo === b.canUndo &&
       a.findings.map((f) => f.label).join("|") ===
         b.findings.map((f) => f.label).join("|")
     );
@@ -88,6 +95,7 @@ class ExtensionContentScript {
   private readonly eventQueue: ContentEvent[] = [];
   private dispatching = false;
   private lintCache: { text: string; result: LintSummary } | null = null;
+  private diffCache: { original: string; output: string; diff: PromptDiff } | null = null;
 
   constructor() {
     this.platform = getActivePlatform();
@@ -149,9 +157,18 @@ class ExtensionContentScript {
       case "cancelRefine":
         this.cancelRefine();
         return;
+      case "applyResult": {
+        const text =
+          effect.rejected.length > 0
+            ? applyDiff(this.diffFor(effect.original, effect.output), effect.rejected)
+            : effect.output;
+        this.writeInput(text);
+        this.dispatch({ type: "APPLIED", text });
+        return;
+      }
       case "applyText":
         this.writeInput(effect.text);
-        this.dispatch({ type: "APPLIED" });
+        this.dispatch({ type: "APPLIED", text: effect.text });
         return;
     }
   }
@@ -164,6 +181,15 @@ class ExtensionContentScript {
     return this.lintCache.result;
   }
 
+  /** Diff once per (draft, result) pair; the panel re-renders on every toggle. */
+  private diffFor(original: string, output: string): PromptDiff {
+    const cache = this.diffCache;
+    if (cache?.original !== original || cache.output !== output) {
+      this.diffCache = { original, output, diff: diffPrompts(original, output) };
+    }
+    return this.diffCache!.diff;
+  }
+
   private render() {
     const next = view(this.model, this.lintFor(this.model.text));
     const prev = this.renderedView;
@@ -174,12 +200,20 @@ class ExtensionContentScript {
       if (badge.kind === "hidden") this.badge?.hide();
       else if (badge.kind === "saving") this.badge?.showSaving();
       else if (badge.kind === "ready") this.badge?.showReady();
-      else if (badge.kind === "lint") this.badge?.showLint(badge.score, badge.findings);
+      else if (badge.kind === "lint") {
+        this.badge?.showLint(badge.score, badge.findings, badge.canUndo);
+      }
       else this.badge?.showError(badge.message || "An error occurred");
     }
 
     // The panel updates in place (streamed text, answers keep focus).
-    if (next.panel || prev?.panel) this.panel?.render(next.panel);
+    if (next.panel || prev?.panel) {
+      const diff =
+        next.panel?.kind === "result"
+          ? this.diffFor(next.panel.original, next.panel.output)
+          : null;
+      this.panel?.render(next.panel, diff);
+    }
   }
 
   private observeDOM() {
@@ -279,9 +313,12 @@ class ExtensionContentScript {
           onAnswer: (index, value) =>
             this.dispatch({ type: "ANSWER_CHANGED", index, value }),
           onSubmitAnswers: () => this.dispatch({ type: "ANSWERS_SUBMITTED" }),
+          onToggleChange: (index) => this.dispatch({ type: "CHANGE_TOGGLED", index }),
+          onResetChanges: () => this.dispatch({ type: "CHANGES_RESET" }),
         });
         this.badge = new BadgeIndicator(container);
         this.badge.setOnClick(() => this.dispatch({ type: "BADGE_CLICKED" }));
+        this.badge.setOnUndo(() => this.dispatch({ type: "UNDO_REQUESTED" }));
         el.addEventListener("input", this.boundHandleInput);
 
         this.dispatch({ type: "INPUT_ATTACHED" });

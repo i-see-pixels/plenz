@@ -1,4 +1,9 @@
-import { REFINE_MODE_LABELS, type RefineStep } from "@plenz/core";
+import {
+  applyDiff,
+  REFINE_MODE_LABELS,
+  type PromptDiff,
+  type RefineStep,
+} from "@plenz/core";
 import type { RefineMode } from "@plenz/types";
 import type { PanelView } from "../machine";
 import styles from "./styles.css?inline";
@@ -19,6 +24,9 @@ export type RefinePanelHandlers = {
   onDismiss(): void;
   onAnswer(index: number, value: string): void;
   onSubmitAnswers(): void;
+  /** Keep the draft's wording for one diff change (or take it back). */
+  onToggleChange(index: number): void;
+  onResetChanges(): void;
 };
 
 function stepLabel(step: RefineStep) {
@@ -61,6 +69,12 @@ export class RefinePanel {
   private readonly container: HTMLDivElement;
   private renderedKey: string | null = null;
   private output: HTMLElement | null = null;
+  private resultActions: HTMLElement | null = null;
+  /** Result view: diff of changes, or the text that will be applied. Null until decided. */
+  private showDiff: boolean | null = null;
+  private viewToggles: { diff: boolean; button: HTMLButtonElement }[] = [];
+  private lastResult: { view: Extract<PanelView, { kind: "result" }>; diff: PromptDiff | null } | null =
+    null;
   private visible = false;
   private readonly boundPosition = () => this.position();
 
@@ -92,7 +106,7 @@ export class RefinePanel {
     window.addEventListener("scroll", this.boundPosition, true);
   }
 
-  render(view: PanelView | null) {
+  render(view: PanelView | null, diff: PromptDiff | null = null) {
     if (!view) {
       this.hide();
       return;
@@ -102,8 +116,12 @@ export class RefinePanel {
     if (key !== this.renderedKey) {
       this.renderedKey = key;
       this.build(view);
-    } else if ((view.kind === "streaming" || view.kind === "result") && this.output) {
-      this.setOutput(view.output, view.kind === "streaming");
+    } else if (view.kind === "streaming" && this.output) {
+      this.setOutput(view.output, true);
+    }
+    if (view.kind === "result") {
+      this.lastResult = { view, diff };
+      this.updateResult(view, diff);
     }
 
     if (!this.visible) {
@@ -118,6 +136,8 @@ export class RefinePanel {
     this.visible = false;
     this.renderedKey = null;
     this.output = null;
+    this.resultActions = null;
+    this.lastResult = null;
     this.container.classList.remove("visible");
     this.container.replaceChildren();
   }
@@ -182,6 +202,9 @@ export class RefinePanel {
   private build(view: PanelView) {
     const body: Node[] = [];
     this.output = null;
+    this.resultActions = null;
+    this.showDiff = null;
+    this.viewToggles = [];
 
     switch (view.kind) {
       case "picking": {
@@ -210,24 +233,37 @@ export class RefinePanel {
         break;
       }
 
-      case "streaming":
-      case "result": {
-        const done = view.kind === "result";
-        body.push(this.header(`${stepLabel(view.step)} · ${done ? "ready" : "writing…"}`));
+      case "streaming": {
+        body.push(this.header(`${stepLabel(view.step)} · writing…`));
         this.output = el("div", "pl-output");
         body.push(this.output);
-        const actions = el("div", "pl-actions");
-        if (done) {
-          actions.appendChild(this.button("Replace prompt", () => this.handlers.onAccept(), true));
-          actions.appendChild(this.button("Discard", () => this.handlers.onDismiss()));
-        } else {
-          actions.appendChild(this.button("Stop", () => this.handlers.onDismiss()));
+        body.push(this.button("Stop", () => this.handlers.onDismiss()));
+        break;
+      }
+
+      case "result": {
+        body.push(this.header(`${stepLabel(view.step)} · ready`));
+        const toggles = el("div", "pl-view-toggle");
+        for (const [diff, label] of [
+          [true, "Changes"],
+          [false, "Result"],
+        ] as const) {
+          const button = this.button(label, () => {
+            this.showDiff = diff;
+            if (this.lastResult) this.updateResult(this.lastResult.view, this.lastResult.diff);
+          });
+          button.classList.add("pl-btn-small");
+          this.viewToggles.push({ diff, button });
+          toggles.appendChild(button);
         }
-        body.push(actions);
-        if (done) {
-          body.push(this.modeRow(view.step));
-          body.push(this.footer(["Tab", "replace"], ["Esc", "close"]));
-        }
+        body.push(toggles);
+        this.output = el("div", "pl-output");
+        body.push(this.output);
+        this.resultActions = el("div", "pl-actions");
+        body.push(this.resultActions);
+        body.push(this.modeRow(view.step));
+        body.push(this.footer(["Tab", "replace"], ["Esc", "close"]));
+        body.push(el("div", "pl-muted pl-note", "Click a change to keep your own wording there."));
         break;
       }
 
@@ -288,10 +324,83 @@ export class RefinePanel {
     }
 
     this.container.replaceChildren(...body);
-    if (view.kind === "streaming" || view.kind === "result") {
-      this.setOutput(view.output, view.kind === "streaming");
-    }
+    if (view.kind === "streaming") this.setOutput(view.output, true);
   }
+
+  /** Fill the result's output and actions; runs on every render so toggles update in place. */
+  private updateResult(view: Extract<PanelView, { kind: "result" }>, diff: PromptDiff | null) {
+    const output = this.output;
+    const actions = this.resultActions;
+    if (!output || !actions) return;
+
+    const changes = diff?.changeCount ?? 0;
+    const rejected = new Set(view.rejected);
+    const kept = changes - view.rejected.filter((i) => i < changes).length;
+
+    // Changes view, unless the diff would just be noise.
+    if (this.showDiff === null) {
+      this.showDiff = !!diff && changes > 0 && !diff.wholesale && diff.similarity >= 0.3;
+    }
+    for (const toggle of this.viewToggles) {
+      toggle.button.setAttribute("aria-pressed", String(toggle.diff === this.showDiff));
+      toggle.button.hidden = changes === 0;
+    }
+
+    const scroll = output.scrollTop;
+    output.classList.remove("pl-streaming");
+    if (this.showDiff && diff && changes > 0) {
+      output.replaceChildren(...this.diffNodes(diff, rejected));
+    } else {
+      output.textContent = diff ? applyDiff(diff, view.rejected) : view.output;
+    }
+    output.scrollTop = scroll;
+
+    const nodes: Node[] = [];
+    if (changes === 0) {
+      nodes.push(el("span", "pl-muted", "No changes suggested."));
+    } else {
+      const label =
+        kept === changes
+          ? "Replace prompt"
+          : kept === 0
+            ? "No changes selected"
+            : `Apply ${kept} of ${changes} change${changes === 1 ? "" : "s"}`;
+      const primary = this.button(label, () => this.handlers.onAccept(), true);
+      primary.disabled = kept === 0;
+      nodes.push(primary);
+      if (kept < changes) {
+        nodes.push(this.button("Use all changes", () => this.handlers.onResetChanges()));
+      }
+    }
+    nodes.push(this.button("Discard", () => this.handlers.onDismiss()));
+    actions.replaceChildren(...nodes);
+  }
+
+  private diffNodes(diff: PromptDiff, rejected: Set<number>): Node[] {
+    return diff.segments.map((segment) => {
+      if (segment.kind === "same") return document.createTextNode(segment.text);
+
+      const kept = rejected.has(segment.index);
+      const change = el("span", kept ? "pl-change kept-original" : "pl-change");
+      change.setAttribute("role", "button");
+      change.tabIndex = 0;
+      change.title = kept
+        ? "Using your wording here. Click to use the suggestion."
+        : "Click to keep your wording here.";
+      if (segment.removed) change.appendChild(el("del", "pl-del", segment.removed));
+      if (segment.added) change.appendChild(el("ins", "pl-ins", segment.added));
+      const toggle = () => this.handlers.onToggleChange(segment.index);
+      change.addEventListener("click", toggle);
+      change.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          toggle();
+        }
+      });
+      return change;
+    });
+  }
+
 
   /** Same width as the input, placed above it when there's room, else below. */
   private position() {

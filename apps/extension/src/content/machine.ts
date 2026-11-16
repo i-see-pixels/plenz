@@ -30,8 +30,16 @@ export type ContentState =
   /** Ask me: waiting for the clarifying questions. */
   | { kind: "asking"; requestId: number }
   | { kind: "answering"; questions: string[]; answers: string[] }
-  | { kind: "result"; step: RefineStep; output: string; visible: boolean }
-  | { kind: "applying"; text: string }
+  /** `rejected` lists diff changes the user chose to keep their own wording for. */
+  | {
+      kind: "result";
+      step: RefineStep;
+      output: string;
+      visible: boolean;
+      rejected: number[];
+    }
+  /** Writing into the chat input; `previous` is the draft being replaced. */
+  | { kind: "applying"; previous: string; undoing: boolean }
   | { kind: "failed"; step: RefineStep; message: string; visible: boolean };
 
 export type ContentModel = {
@@ -43,6 +51,8 @@ export type ContentModel = {
   autoRefine: boolean;
   debounceMs: number;
   lastRequestId: number;
+  /** The last replace, while the input still holds exactly what was applied. */
+  undo: { previous: string; applied: string } | null;
 };
 
 export type ContentEvent =
@@ -66,9 +76,14 @@ export type ContentEvent =
   | { type: "REFINE_FAILED"; requestId: number; message: string }
   | { type: "ANSWER_CHANGED"; index: number; value: string }
   | { type: "ANSWERS_SUBMITTED" }
+  /** Click a change in the diff: keep the draft's wording there (or take it back). */
+  | { type: "CHANGE_TOGGLED"; index: number }
+  | { type: "CHANGES_RESET" }
   | { type: "ACCEPT" }
   | { type: "DISMISS" }
-  | { type: "APPLIED" };
+  /** The driver wrote `text` into the chat input. */
+  | { type: "APPLIED"; text: string }
+  | { type: "UNDO_REQUESTED" };
 
 export type ContentEffect =
   | { type: "startDebounce"; ms: number }
@@ -81,6 +96,8 @@ export type ContentEffect =
       answers?: ClarifyingAnswer[];
     }
   | { type: "cancelRefine" }
+  /** Write the result, keeping the draft's wording for the rejected changes. */
+  | { type: "applyResult"; original: string; output: string; rejected: number[] }
   | { type: "applyText"; text: string };
 
 export type TransitionResult = {
@@ -100,7 +117,13 @@ export function createContentModel(
     autoRefine,
     debounceMs,
     lastRequestId: 0,
+    undo: null,
   };
+}
+
+/** Undo is offered only while the input still holds exactly what was applied. */
+export function canUndo(model: ContentModel) {
+  return model.undo !== null && model.text === model.undo.applied;
 }
 
 /** Effects needed to abandon whatever async work the current state owns. */
@@ -206,8 +229,12 @@ export function transition(
       if (state.kind === "detached" || state.kind === "applying") {
         return unchanged(model);
       }
-      // Editing the draft makes any open panel or running refine stale.
-      const next = { ...model, text: event.text };
+      // Editing the draft makes any open panel, running refine or undo stale.
+      const next = {
+        ...model,
+        text: event.text,
+        undo: model.undo?.applied === event.text ? model.undo : null,
+      };
       const effects = exitEffects(state);
       if (!canRefine(next) || !model.autoRefine) {
         return to(next, { kind: "idle" }, effects);
@@ -274,6 +301,7 @@ export function transition(
         step: state.step,
         output: event.text,
         visible: state.visible,
+        rejected: [],
       });
 
     case "QUESTIONS_READY":
@@ -313,10 +341,39 @@ export function transition(
         state.questions.map((question, i) => ({ question, answer: state.answers[i] ?? "" })),
       );
 
+    case "CHANGE_TOGGLED": {
+      if (state.kind !== "result" || !state.visible || event.index < 0) {
+        return unchanged(model);
+      }
+      const rejected = state.rejected.includes(event.index)
+        ? state.rejected.filter((i) => i !== event.index)
+        : [...state.rejected, event.index].sort((a, b) => a - b);
+      return to(model, { ...state, rejected });
+    }
+
+    case "CHANGES_RESET":
+      return state.kind === "result" && state.rejected.length > 0
+        ? to(model, { ...state, rejected: [] })
+        : unchanged(model);
+
     case "ACCEPT":
       if (state.kind !== "result" || !state.visible) return unchanged(model);
-      return to(model, { kind: "applying", text: state.output }, [
-        { type: "applyText", text: state.output },
+      return to(model, { kind: "applying", previous: model.text, undoing: false }, [
+        {
+          type: "applyResult",
+          original: model.text,
+          output: state.output,
+          rejected: state.rejected,
+        },
+      ]);
+
+    case "UNDO_REQUESTED":
+      if ((state.kind !== "idle" && state.kind !== "debouncing") || !canUndo(model)) {
+        return unchanged(model);
+      }
+      return to(model, { kind: "applying", previous: model.text, undoing: true }, [
+        ...exitEffects(state),
+        { type: "applyText", text: model.undo!.previous },
       ]);
 
     case "DISMISS":
@@ -325,10 +382,16 @@ export function transition(
         : unchanged(model);
 
     case "APPLIED":
-      // The applied prompt is now the draft (its own input event was ignored).
-      return state.kind === "applying"
-        ? to({ ...model, text: state.text }, { kind: "idle" })
-        : unchanged(model);
+      // What was written is now the draft (its own input event was ignored).
+      if (state.kind !== "applying") return unchanged(model);
+      return to(
+        {
+          ...model,
+          text: event.text,
+          undo: state.undoing ? null : { previous: state.previous, applied: event.text },
+        },
+        { kind: "idle" },
+      );
   }
 }
 
@@ -386,7 +449,7 @@ export const MAX_LINT_CHIPS = 3;
 export type BadgeView =
   | { kind: "hidden" }
   /** Local lint result; score is null when the draft can't be scored. */
-  | { kind: "lint"; score: number | null; findings: LintChip[] }
+  | { kind: "lint"; score: number | null; findings: LintChip[]; canUndo: boolean }
   | { kind: "saving" }
   /** A background refine finished; click to see it. */
   | { kind: "ready" }
@@ -397,7 +460,14 @@ export type PanelView =
   | { kind: "streaming"; step: RefineStep; output: string }
   | { kind: "asking" }
   | { kind: "answering"; questions: string[]; answers: string[] }
-  | { kind: "result"; step: RefineStep; output: string }
+  | {
+      kind: "result";
+      step: RefineStep;
+      /** The draft being replaced, for the diff. */
+      original: string;
+      output: string;
+      rejected: number[];
+    }
   | { kind: "failed"; step: RefineStep; message: string };
 
 export type ContentView = {
@@ -424,6 +494,7 @@ function lintBadge(model: ContentModel, lint: LintSummary | null): BadgeView {
     kind: "lint",
     score: lint.assessed ? lint.score : null,
     findings: topChips(lint),
+    canUndo: canUndo(model),
   };
 }
 
@@ -451,7 +522,16 @@ export function view(model: ContentModel, lint: LintSummary | null): ContentView
       };
     case "result":
       return state.visible
-        ? { badge: HIDDEN, panel: { kind: "result", step: state.step, output: state.output } }
+        ? {
+            badge: HIDDEN,
+            panel: {
+              kind: "result",
+              step: state.step,
+              original: model.text,
+              output: state.output,
+              rejected: state.rejected,
+            },
+          }
         : { badge: { kind: "ready" }, panel: null };
     case "failed":
       return state.visible

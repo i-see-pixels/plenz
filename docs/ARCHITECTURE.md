@@ -20,7 +20,8 @@ Shared logic lives in:
 4. Each refine opens a `chrome.runtime.Port` (`apps/extension/src/shared/refine-port.ts`) and sends `START`. The background builds the mode's prompt (`buildRefineRequest` in `@plenz/core`) and streams the provider's reply back as `DELTA` chunks, then one `DONE` (cleaned text), `QUESTIONS` (Ask me) or `ERROR`.
 5. Closing the port (typing, Esc, switching mode, navigating away) aborts the provider request. Retries and the opt-in fallback to other providers only happen before the first chunk reaches the user; a stalled stream times out.
 6. Ask me is two steps: the questions come back first, the user answers what they can, and a `compose` refine writes the prompt from the answers.
-7. The finished prompt replaces the draft via "Replace prompt" or Tab in the chat input. Esc closes the panel.
+7. The finished prompt is shown as a word-level diff against the draft (`diffPrompts` in `@plenz/core`), or as the plain result when the rewrite is mostly new text. Clicking a change keeps the draft's wording there; "Replace prompt" (or Tab in the chat input) writes the accepted changes only (`applyDiff`). Esc closes the panel.
+8. After a replace the badge offers Undo, which restores the previous draft. It stays available until the chat input is edited.
 
 ## Provider Layer
 

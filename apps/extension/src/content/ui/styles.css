@@ -366,6 +366,71 @@
   outline-offset: 0;
 }
 
+.pl-view-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.pl-view-toggle .pl-btn[aria-pressed="true"] {
+  background: var(--pl-bg-hover);
+  border-color: color-mix(in srgb, var(--pl-text-secondary) 50%, white);
+}
+
+/* Diff: one change = what was removed, then what was added. Click to keep the original. */
+.pl-change {
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.pl-change:hover,
+.pl-change:focus-visible {
+  outline: 1px dashed var(--pl-text-secondary);
+  outline-offset: 1px;
+}
+
+.pl-del {
+  background: color-mix(in srgb, #dc2626 12%, white);
+  color: #991b1b;
+  text-decoration: line-through;
+}
+
+.pl-ins {
+  background: color-mix(in srgb, #16a34a 14%, white);
+  color: #14532d;
+  text-decoration: none;
+}
+
+/* Kept original: the draft's words read normally, the suggestion is struck. */
+.pl-change.kept-original .pl-del {
+  background: none;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pl-change.kept-original .pl-ins {
+  background: none;
+  color: var(--pl-text-secondary);
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.pl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pl-undo {
+  margin-left: 6px;
+  padding: 0 6px;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-left: 1px solid currentColor;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .pl-error {
   color: #dc2626;
   line-height: 1.45;

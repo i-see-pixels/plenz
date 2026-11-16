@@ -24,6 +24,7 @@ export class BadgeIndicator {
   private visible: boolean = false;
   private resizeObserver: ResizeObserver;
   private readonly boundUpdatePosition: () => void;
+  private onUndo: (() => void) | null = null;
 
   constructor(anchorElement: HTMLElement) {
     this.anchorElement = anchorElement;
@@ -125,7 +126,7 @@ export class BadgeIndicator {
    * Local check result. Clicking refines; hovering lists what's missing.
    * A null score means the draft couldn't be scored (refine still works).
    */
-  public showLint(score: number | null, findings: LintBadgeChip[]) {
+  public showLint(score: number | null, findings: LintBadgeChip[], canUndo = false) {
     const band =
       score === null ? "lint-ok" : score >= 80 ? "lint-good" : score >= 50 ? "lint-ok" : "lint-weak";
     this.setTone("lint", band);
@@ -166,6 +167,18 @@ export class BadgeIndicator {
     // Reading the panel must not trigger a (paid) refine; only the pill does.
     panel.addEventListener("click", (event) => event.stopPropagation());
     this.badge.appendChild(panel);
+
+    if (canUndo) {
+      const undo = el("button", "pl-undo", "Undo");
+      (undo as HTMLButtonElement).type = "button";
+      undo.title = "Put back the draft you had before replacing it";
+      // Its own action: don't also open the mode picker.
+      undo.addEventListener("click", (event) => {
+        event.stopPropagation();
+        this.onUndo?.();
+      });
+      this.badge.appendChild(undo);
+    }
     this.reveal();
   }
 
@@ -183,6 +196,10 @@ export class BadgeIndicator {
 
   public setOnClick(handler: () => void) {
     this.badge.addEventListener("click", handler);
+  }
+
+  public setOnUndo(handler: () => void) {
+    this.onUndo = handler;
   }
 
   public destroy() {
