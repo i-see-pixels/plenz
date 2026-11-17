@@ -103,7 +103,9 @@ export type ContentEffect =
   | { type: "cancelRefine" }
   /** Write the result, keeping the draft's wording for the rejected changes. */
   | { type: "applyResult"; original: string; output: string; rejected: number[] }
-  | { type: "applyText"; text: string };
+  | { type: "applyText"; text: string }
+  /** For local learning: a finished result was replaced (accepted) or set aside. */
+  | { type: "recordRefine"; mode: RefineMode; accepted: boolean };
 
 export type TransitionResult = {
   model: ContentModel;
@@ -194,6 +196,12 @@ function beginRefine(
   };
 }
 
+/** Learning effect for leaving a visible result without replacing the draft. */
+function setAside(state: ContentState): ContentEffect[] {
+  if (state.kind !== "result" || !state.visible) return [];
+  return [{ type: "recordRefine", mode: state.step === "compose" ? "ask" : state.step, accepted: false }];
+}
+
 function isCurrent(state: ContentState, requestId: number) {
   return (
     (state.kind === "streaming" || state.kind === "asking") &&
@@ -272,8 +280,11 @@ export function transition(
           return unchanged(model);
       }
 
-    case "MODE_CHOSEN":
-      return isPanelOpen(state) ? beginRefine(model, event.mode, true) : unchanged(model);
+    case "MODE_CHOSEN": {
+      if (!isPanelOpen(state)) return unchanged(model);
+      const next = beginRefine(model, event.mode, true);
+      return { ...next, effects: [...setAside(state), ...next.effects] };
+    }
 
     case "SLASH_INSERT":
       // Only while typing: the menu is never open over the refine panel.
@@ -301,8 +312,10 @@ export function transition(
         case "debouncing":
         case "picking":
         case "result":
-        case "failed":
-          return beginRefine(model, "improve", true);
+        case "failed": {
+          const next = beginRefine(model, "improve", true);
+          return { ...next, effects: [...setAside(state), ...next.effects] };
+        }
         case "streaming":
           // Show a background refine rather than starting another one.
           return state.visible ? unchanged(model) : to(model, { ...state, visible: true });
@@ -385,6 +398,11 @@ export function transition(
       if (state.kind !== "result" || !state.visible) return unchanged(model);
       return to(model, { kind: "applying", previous: model.text, undoing: false }, [
         {
+          type: "recordRefine",
+          mode: state.step === "compose" ? "ask" : state.step,
+          accepted: true,
+        },
+        {
           type: "applyResult",
           original: model.text,
           output: state.output,
@@ -403,7 +421,7 @@ export function transition(
 
     case "DISMISS":
       return isPanelOpen(state)
-        ? to(model, { kind: "idle" }, exitEffects(state))
+        ? to(model, { kind: "idle" }, [...setAside(state), ...exitEffects(state)])
         : unchanged(model);
 
     case "APPLIED":
@@ -507,10 +525,17 @@ function topChips(lint: LintSummary | null): LintChip[] {
   return lint.findings.slice(0, MAX_LINT_CHIPS).map(({ label, hint }) => ({ label, hint }));
 }
 
-/** Long or unstructured drafts are better served by Tighten. */
-export function recommendedMode(lint: LintSummary | null): RefineMode {
+/**
+ * Long or unstructured drafts are better served by Tighten; otherwise the
+ * mode the user keeps accepting (see shared/learning.ts), else Improve.
+ */
+export function recommendedMode(
+  lint: LintSummary | null,
+  preferred: RefineMode | null = null,
+): RefineMode {
   const ids = new Set(lint?.findings.map((f) => f.id));
-  return ids.has("too_long") || ids.has("wall_of_text") ? "tighten" : "improve";
+  if (ids.has("too_long") || ids.has("wall_of_text")) return "tighten";
+  return preferred ?? "improve";
 }
 
 function lintBadge(model: ContentModel, lint: LintSummary | null): BadgeView {
@@ -523,7 +548,11 @@ function lintBadge(model: ContentModel, lint: LintSummary | null): BadgeView {
   };
 }
 
-export function view(model: ContentModel, lint: LintSummary | null): ContentView {
+export function view(
+  model: ContentModel,
+  lint: LintSummary | null,
+  preferredMode: RefineMode | null = null,
+): ContentView {
   const { state } = model;
   switch (state.kind) {
     case "idle":
@@ -532,7 +561,11 @@ export function view(model: ContentModel, lint: LintSummary | null): ContentView
     case "picking":
       return {
         badge: HIDDEN,
-        panel: { kind: "picking", recommended: recommendedMode(lint), findings: topChips(lint) },
+        panel: {
+          kind: "picking",
+          recommended: recommendedMode(lint, preferredMode),
+          findings: topChips(lint),
+        },
       };
     case "streaming":
       return state.visible

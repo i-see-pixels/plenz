@@ -116,6 +116,16 @@ describe("mode picker and streaming", () => {
     );
   });
 
+  test("otherwise the mode the user keeps accepting is suggested", () => {
+    assert.equal(recommendedMode(LINT, "structure"), "structure");
+    assert.equal(
+      recommendedMode({ ...LINT, findings: [{ id: "too_long", label: "", hint: "" }] }, "structure"),
+      "tighten",
+    );
+    const panel = view(picking(), LINT, "ask").panel;
+    assert.equal(panel?.kind === "picking" && panel.recommended, "ask");
+  });
+
   test("choosing a mode streams it into the panel", () => {
     const { model, effects } = run(picking(), { type: "MODE_CHOSEN", mode: "tighten" });
     assert.deepEqual(effects, [
@@ -236,6 +246,7 @@ describe("accepting and dismissing", () => {
   test("accept writes the result, ignores our own input event, then idles on the new text", () => {
     const accepted = run(result(), { type: "ACCEPT" });
     assert.deepEqual(accepted.effects, [
+      { type: "recordRefine", mode: "improve", accepted: true },
       { type: "applyResult", original: PROMPT, output: "Better prompt", rejected: [] },
     ]);
     const { model, effects } = run(
@@ -340,6 +351,7 @@ describe("diff choices and undo", () => {
   test("accept passes the rejected changes to the driver", () => {
     const { effects } = run(result(), { type: "CHANGE_TOGGLED", index: 1 }, { type: "ACCEPT" });
     assert.deepEqual(effects, [
+      { type: "recordRefine", mode: "improve", accepted: true },
       { type: "applyResult", original: PROMPT, output: "Better prompt", rejected: [1] },
     ]);
   });
@@ -453,5 +465,48 @@ describe("slash command inserts", () => {
 
   test("ignored while the panel is open", () => {
     assert.deepEqual(run(picking(), { type: "SLASH_INSERT", text: "Other" }).effects, []);
+  });
+});
+
+describe("learning outcomes", () => {
+  const records = (effects: ContentEffect[]) => effects.filter((e) => e.type === "recordRefine");
+
+  test("closing or replacing a result with another mode counts as set aside", () => {
+    assert.deepEqual(records(run(result(), { type: "DISMISS" }).effects), [
+      { type: "recordRefine", mode: "improve", accepted: false },
+    ]);
+    assert.deepEqual(records(run(result(), { type: "MODE_CHOSEN", mode: "tighten" }).effects), [
+      { type: "recordRefine", mode: "improve", accepted: false },
+    ]);
+    assert.deepEqual(records(run(result(), { type: "REFINE_REQUESTED" }).effects), [
+      { type: "recordRefine", mode: "improve", accepted: false },
+    ]);
+  });
+
+  test("Ask me results are recorded as the ask mode", () => {
+    const answering = run(picking(), { type: "MODE_CHOSEN", mode: "ask" }, {
+      type: "QUESTIONS_READY",
+      requestId: 1,
+      questions: ["Who is it for?"],
+    }).model;
+    const composed = run(answering, { type: "ANSWERS_SUBMITTED" }, {
+      type: "REFINE_DONE",
+      requestId: 2,
+      text: "Composed",
+    }).model;
+    assert.deepEqual(records(run(composed, { type: "ACCEPT" }).effects), [
+      { type: "recordRefine", mode: "ask", accepted: true },
+    ]);
+  });
+
+  test("nothing is recorded for a stopped stream, the picker, or a background result", () => {
+    assert.deepEqual(records(run(streaming(), { type: "DISMISS" }).effects), []);
+    assert.deepEqual(records(run(picking(), { type: "DISMISS" }).effects), []);
+    const hidden = run(typed(true), { type: "DEBOUNCE_ELAPSED" }, {
+      type: "REFINE_DONE",
+      requestId: 1,
+      text: "Better",
+    }).model;
+    assert.deepEqual(records(run(hidden, { type: "TEXT_CHANGED", text: PROMPT + "!" }).effects), []);
   });
 });

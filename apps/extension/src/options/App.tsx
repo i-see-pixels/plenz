@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import logo from "../assets/logo.svg";
 import { AuthStatus } from "../components/AuthStatus";
 import { ContextCards } from "../components/ContextCards";
+import { LocalLearning } from "../components/LocalLearning";
 import { ModelConfig } from "../components/ModelConfig";
 import { isRpcFailure, sendRpc } from "../shared/rpc";
 import {
@@ -318,6 +319,20 @@ export function App() {
           </CardHeader>
           <CardContent className="px-4 py-4">
             <ContextCards />
+          </CardContent>
+        </Card>
+
+        <Card className="gap-0 rounded-md border-border py-0 shadow-none">
+          <CardHeader className="gap-0 font-mono border-b border-border px-4 pt-4">
+            <CardTitle className="font-mono text-lg font-semibold tracking-[0.16em] uppercase">
+              Learned from use
+            </CardTitle>
+            <CardDescription className="text-xs">
+              How plenz adapts to the way you work, on this device only.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 py-4">
+            <LocalLearning />
           </CardContent>
         </Card>
       </div>

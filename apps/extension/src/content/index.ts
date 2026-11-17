@@ -27,6 +27,7 @@ import {
   buildConversationContext,
   diffPrompts,
   lintPrompt,
+  type LintResult,
   type PromptDiff,
 } from "@plenz/core";
 import {
@@ -45,6 +46,13 @@ import {
   type InsertablePrompt,
 } from "../shared/rpc";
 import type { ConversationContext } from "@plenz/types";
+import {
+  hiddenChecks,
+  LEARNING_STORAGE_KEY,
+  normalizeLearning,
+  preferredMode,
+} from "../shared/learning";
+import type { RefineMode } from "@plenz/types";
 import {
   CONTEXT_CARDS_STORAGE_KEY,
   normalizeCards,
@@ -117,7 +125,12 @@ class ExtensionContentScript {
   private renderedView: ContentView | null = null;
   private readonly eventQueue: ContentEvent[] = [];
   private dispatching = false;
-  private lintCache: { text: string; result: LintSummary } | null = null;
+  private lintCache: { text: string; raw: LintResult; result: LintSummary } | null = null;
+  /** From local learning: the mode to suggest, and checks the user keeps ignoring. */
+  private preferredMode: RefineMode | null = null;
+  private hiddenChecks = new Set<string>();
+  /** Checks flagged at some point on the draft being written (for learning). */
+  private seenChecks = new Set<string>();
   private diffCache: { original: string; output: string; diff: PromptDiff } | null = null;
 
   constructor() {
@@ -128,7 +141,7 @@ class ExtensionContentScript {
   }
 
   private async init() {
-    await Promise.all([this.loadPreferences(), this.loadCards()]);
+    await Promise.all([this.loadPreferences(), this.loadCards(), this.loadLearning()]);
     this.observePreferenceChanges();
     this.observeDOM();
     this.detectInput();
@@ -200,15 +213,66 @@ class ExtensionContentScript {
         this.writeInput(effect.text);
         this.dispatch({ type: "APPLIED", text: effect.text });
         return;
+      case "recordRefine":
+        void this.sendRuntimeMessage("RECORD_LEARNING", {
+          type: "refine",
+          mode: effect.mode,
+          accepted: effect.accepted,
+        }).catch(() => {});
+        return;
     }
   }
 
   /** Lint once per distinct draft; render runs on every event. */
   private lintFor(text: string): LintSummary {
     if (this.lintCache?.text !== text) {
-      this.lintCache = { text, result: lintPrompt(text) };
+      const raw = lintPrompt(text);
+      if (raw.assessed) for (const finding of raw.findings) this.seenChecks.add(finding.id);
+      this.lintCache = { text, raw, result: this.withoutHidden(raw) };
     }
     return this.lintCache.result;
+  }
+
+  /** Checks the user keeps ignoring aren't shown and don't cost points. */
+  private withoutHidden(raw: LintResult): LintSummary {
+    if (!raw.assessed || this.hiddenChecks.size === 0) return raw;
+    const findings = raw.findings.filter((finding) => !this.hiddenChecks.has(finding.id));
+    const penalty = findings.reduce((sum, finding) => sum + finding.weight, 0);
+    return { ...raw, findings, score: Math.max(0, 100 - penalty) };
+  }
+
+  private async loadLearning() {
+    try {
+      const stored = await chrome.storage.local.get(LEARNING_STORAGE_KEY);
+      this.setLearning(stored[LEARNING_STORAGE_KEY]);
+    } catch (error) {
+      console.warn("plenz: failed to load learning", error);
+    }
+  }
+
+  private setLearning(value: unknown) {
+    const learning = normalizeLearning(value);
+    this.preferredMode = preferredMode(learning);
+    this.hiddenChecks = hiddenChecks(learning);
+    if (this.lintCache) {
+      this.lintCache = { ...this.lintCache, result: this.withoutHidden(this.lintCache.raw) };
+    }
+    this.render();
+  }
+
+  /**
+   * Enter in a chat site's composer sends the draft: checks still flagged
+   * were sent past (ignored), ones flagged earlier but gone were fixed.
+   */
+  private recordSent() {
+    const raw = this.lintCache?.text === this.model.text ? this.lintCache.raw : lintPrompt(this.model.text);
+    const seen = this.seenChecks;
+    this.seenChecks = new Set();
+    if (!raw.assessed) return;
+    const ignored: string[] = raw.findings.map((finding) => finding.id);
+    const fixed = [...seen].filter((id) => !ignored.includes(id));
+    if (ignored.length === 0 && fixed.length === 0) return;
+    void this.sendRuntimeMessage("RECORD_LEARNING", { type: "sent", fixed, ignored }).catch(() => {});
   }
 
   /** Diff once per (draft, result) pair; the panel re-renders on every toggle. */
@@ -221,7 +285,7 @@ class ExtensionContentScript {
   }
 
   private render() {
-    const next = view(this.model, this.lintFor(this.model.text));
+    const next = view(this.model, this.lintFor(this.model.text), this.preferredMode);
     const prev = this.renderedView;
     this.renderedView = next;
 
@@ -387,6 +451,9 @@ class ExtensionContentScript {
       if (areaName === "local" && changes[CONTEXT_CARDS_STORAGE_KEY]) {
         this.setCards(changes[CONTEXT_CARDS_STORAGE_KEY].newValue);
       }
+      if (areaName === "local" && changes[LEARNING_STORAGE_KEY]) {
+        this.setLearning(changes[LEARNING_STORAGE_KEY].newValue);
+      }
       if (areaName !== "local" || !changes[PREFERENCES_STORAGE_KEY]) {
         return;
       }
@@ -424,6 +491,7 @@ class ExtensionContentScript {
     this.badge = null;
     this.slashMenu = null;
     this.slash = null;
+    this.seenChecks = new Set();
     this.renderedView = null;
   }
 
@@ -592,16 +660,27 @@ class ExtensionContentScript {
 
   private handleGlobalKeydown(e: KeyboardEvent) {
     const target = e.target as Node | null;
-    if (target && this.inputElement?.contains(target) && this.handleSlashKey(e)) {
+    const inInput = !!(target && this.inputElement?.contains(target));
+    if (inInput && this.handleSlashKey(e)) {
       e.preventDefault();
       e.stopPropagation();
       return;
+    }
+    // Chat sites send on Enter; other sites the user turned on may not.
+    if (
+      inInput &&
+      this.adapter !== genericAdapter &&
+      e.key === "Enter" &&
+      !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.isComposing &&
+      (this.model.state.kind === "idle" || this.model.state.kind === "debouncing")
+    ) {
+      this.recordSent();
     }
     const event = keyToEvent(this.model.state, {
       key: e.key,
       shiftKey: e.shiftKey,
       modKey: e.ctrlKey || e.metaKey,
-      inInput: !!(target && this.inputElement?.contains(target)),
+      inInput,
     });
     if (!event) return;
 

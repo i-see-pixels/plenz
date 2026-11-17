@@ -7,6 +7,8 @@ import {
 } from "@plenz/providers";
 import { AuthSession } from "./auth-session";
 import { InsertablePrompts } from "./insertable-prompts";
+import { LearningStore } from "./learning-store";
+import { parseLearningEvent } from "../shared/learning";
 import { PromptGalleryManager } from "./prompt-gallery";
 import { Sites } from "./sites";
 import { SyncVault } from "./sync-vault";
@@ -138,6 +140,18 @@ const handlers: Handlers = {
         payload?.category === "newest" ? "newest" : "trending",
       ),
     };
+  },
+
+  async RECORD_LEARNING(payload) {
+    const event = parseLearningEvent(payload);
+    if (!event) return { error: "Invalid learning event." };
+    await LearningStore.record(event);
+    return { success: true };
+  },
+
+  async RESET_LEARNING() {
+    await LearningStore.reset();
+    return { success: true };
   },
 
   async LIST_INSERTABLE_PROMPTS() {

@@ -250,3 +250,54 @@ test.describe("the / command", () => {
     expect(await shadow.visible(SLASH, ".pl-slash-item")).toBe(false);
   });
 });
+
+test.describe("local learning", () => {
+  const learningIn = (serviceWorker: import("@playwright/test").Worker) =>
+    serviceWorker.evaluate(async () => (await chrome.storage.local.get("learning")).learning ?? null);
+
+  test("replacing with a result and sending a draft are recorded on this device", async ({
+    context,
+    serviceWorker,
+  }) => {
+    const page = await openFixture(context, "chatgpt");
+    const shadow = await ShadowDom.attach(page);
+    await typeDraft(page, "chatgpt");
+    await refineToResult(page, shadow);
+    await page.keyboard.press("Tab");
+    await expect
+      .poll(async () => (await learningIn(serviceWorker))?.modes?.improve)
+      .toEqual({ accepted: 1, dismissed: 0 });
+
+    await page.locator(FIXTURES.chatgpt.composer).fill("");
+    await typeDraft(page, "chatgpt");
+    await page.keyboard.press("Enter");
+    await expect
+      .poll(async () => (await learningIn(serviceWorker))?.checks?.no_audience?.ignored)
+      .toBe(1);
+  });
+
+  test("a mode you keep accepting is suggested, and a check you keep ignoring is hidden", async ({
+    context,
+    serviceWorker,
+  }) => {
+    await serviceWorker.evaluate(async () => {
+      await chrome.storage.local.set({
+        learning: {
+          modes: { structure: { accepted: 4, dismissed: 1 } },
+          checks: { no_audience: { fixed: 0, ignored: 6 } },
+        },
+      });
+    });
+    const page = await openFixture(context, "chatgpt");
+    const shadow = await ShadowDom.attach(page);
+    await typeDraft(page, "chatgpt");
+
+    // 70 with three 10-point checks; the ignored one no longer counts.
+    await expect.poll(() => shadow.text(BADGE, ".pl-lint-score")).toBe("80");
+    await shadow.click(BADGE, ".pl-lint-score");
+    await expect
+      .poll(() => shadow.text(PANEL, ".pl-mode-card.recommended .pl-mode-name"))
+      .toBe("Structure");
+    expect(await shadow.text(PANEL, ".pl-muted")).not.toContain("audience");
+  });
+});

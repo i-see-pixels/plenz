@@ -50,6 +50,7 @@ Out of the box, plenz runs only on the supported AI chat websites. On any other 
 - Once you unlock Cloud Sync on a device, that device keeps the decryption key in the extension's local storage (the same place API keys are kept when sync is off) until you lock it or sign out. Browser-local copies remain governed by the browser's storage protections.
 - Keys synced by older versions, which were encrypted with a key derived from your account ID, are re-encrypted with your passphrase when you set it up or unlock Cloud Sync.
 - When you type `/` in a chat box, the extension's own script on that page asks the extension for your saved prompts (if you are signed in) and the public gallery's trending prompts, to list them in the menu. The list is shown in plenz's own overlay, and nothing is added to the page's chat box unless you pick it.
+- Local learning: plenz counts which refine modes you accept or close, and which prompt checks were still flagged when you sent a draft (check names and counts only, never prompt text). These counts are stored only in this browser's local extension storage, are never synced or sent anywhere, and can be erased from the settings page.
 - Context cards are stored only in this browser's local extension storage and are never synced. A card's text is added to your draft only when you click it in the refine panel; from then on it is part of the prompt like anything else you typed.
 - plenz does not require a central plenz backend to process prompt analysis.
 

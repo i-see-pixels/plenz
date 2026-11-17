@@ -17,6 +17,7 @@ import type { StorageBackendPreference } from "../background/storage-backend";
 import type { SiteStatus } from "./sites";
 import type { VaultStatus } from "../background/sync-vault";
 import type { OnDeviceAvailability } from "@plenz/providers";
+import type { LearningEvent } from "./learning";
 
 /** A prompt the in-page `/` command can insert (see ../content/slash.ts). */
 export type InsertablePrompt = {
@@ -41,6 +42,8 @@ export type RpcMap = {
   GET_PREFERENCES: { payload: void; reply: UserPreferences };
   /** Saved and gallery prompts for the `/` command (titles and text only). */
   LIST_INSERTABLE_PROMPTS: { payload: void; reply: { prompts: InsertablePrompt[] } };
+  /** Local learning: a refine outcome or a sent draft (see ./learning.ts). */
+  RECORD_LEARNING: { payload: LearningEvent; reply: Success };
 
   // Extension pages only
   SET_PREFERENCES: {
@@ -124,6 +127,8 @@ export type RpcMap = {
   /** Call after the popup was granted the site's host permission. */
   ENABLE_SITE: { payload: { url: string; tabId?: number }; reply: ActionResult };
   DISABLE_SITE: { payload: { url: string }; reply: ActionResult };
+  /** Forget what plenz learned locally. */
+  RESET_LEARNING: { payload: void; reply: Success };
 };
 
 export type RpcType = keyof RpcMap;
@@ -143,6 +148,7 @@ export type RpcMessage = {
 export const CONTENT_SCRIPT_RPC: ReadonlySet<RpcType> = new Set<RpcType>([
   "GET_PREFERENCES",
   "LIST_INSERTABLE_PROMPTS",
+  "RECORD_LEARNING",
 ]);
 
 export type PayloadArgs<K extends RpcType> = RpcPayload<K> extends void

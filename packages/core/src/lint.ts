@@ -150,6 +150,12 @@ const CHECKS: Check[] = [
   },
 ];
 
+/** Each check's short label, for settings and summaries. */
+export const LINT_CHECK_LABELS = Object.fromEntries(CHECKS.map((check) => [check.id, check.label])) as Record<
+  LintCheckId,
+  string
+>;
+
 /** The rubric's word patterns are English; skip drafts that are mostly other scripts. */
 function isMostlyLatin(text: string) {
   const letters = text.match(/\p{L}/gu) ?? [];

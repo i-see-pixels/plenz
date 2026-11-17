@@ -34,6 +34,7 @@
 - Click the badge to pick a mode, or press Ctrl/Cmd+Shift+Enter for Improve; opt in to refine automatically after a pause.
 - Context cards: save notes you keep retyping (about you, a project, a tone) in settings and add one above your draft from the refine panel in one click. Stored on this device only.
 - Type `/` at the start of a line in the chat box to search your context cards, saved prompts and the gallery's trending prompts, then press Enter to insert one.
+- Learns locally: the refine mode you keep accepting becomes the suggested one, and a prompt check you keep sending past stops being shown. See or reset it in settings; it never leaves your device.
 - See exactly what changed: a word-level diff where you can keep your own wording for any change, then replace in one click, with Undo.
 - Provider-agnostic architecture with BYOK.
 - Works on ChatGPT, Claude, Gemini and Perplexity, and on any other site you turn it on for from the popup.
