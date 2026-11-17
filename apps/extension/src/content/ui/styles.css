@@ -7,6 +7,11 @@
   --pl-accent: #f97316;
   --pl-accent-secondary: #0f766e;
   --pl-border: #d6d6ce;
+  /* What tints are mixed into: the panel background. */
+  --pl-mix: #ffffff;
+  --pl-danger: #dc2626;
+  --pl-danger-text: #991b1b;
+  --pl-success-text: #14532d;
   --pl-radius-sm: 4px;
   --pl-radius-md: 6px;
   --pl-radius-lg: 8px;
@@ -27,7 +32,7 @@
 
 .pl-badge {
   position: static;
-  background: color-mix(in srgb, var(--pl-accent) 12%, white);
+  background: color-mix(in srgb, var(--pl-accent) 12%, var(--pl-mix));
   color: var(--pl-accent);
   padding: 3px 8px;
   border-radius: 999px;
@@ -43,12 +48,12 @@
   pointer-events: auto;
   white-space: nowrap;
   transition: background-color 0.15s ease;
-  border: 1px solid color-mix(in srgb, var(--pl-accent) 45%, white);
+  border: 1px solid color-mix(in srgb, var(--pl-accent) 45%, var(--pl-mix));
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
 }
 
 .pl-badge:hover {
-  background: color-mix(in srgb, var(--pl-accent) 18%, white);
+  background: color-mix(in srgb, var(--pl-accent) 18%, var(--pl-mix));
 }
 
 /* Local prompt check: score pill, colored by band, with a hover panel. */
@@ -58,14 +63,14 @@
 
 .pl-badge.lint-good {
   color: var(--pl-accent-secondary);
-  background: color-mix(in srgb, var(--pl-accent-secondary) 10%, white);
-  border-color: color-mix(in srgb, var(--pl-accent-secondary) 40%, white);
+  background: color-mix(in srgb, var(--pl-accent-secondary) 10%, var(--pl-mix));
+  border-color: color-mix(in srgb, var(--pl-accent-secondary) 40%, var(--pl-mix));
 }
 
 .pl-badge.lint-weak {
-  color: #dc2626;
-  background: color-mix(in srgb, #dc2626 10%, white);
-  border-color: color-mix(in srgb, #dc2626 40%, white);
+  color: var(--pl-danger);
+  background: color-mix(in srgb, var(--pl-danger) 10%, var(--pl-mix));
+  border-color: color-mix(in srgb, var(--pl-danger) 40%, var(--pl-mix));
 }
 
 .pl-lint-score {
@@ -133,13 +138,13 @@
 }
 
 .pl-badge.error {
-  background: color-mix(in srgb, #ef4444 12%, white);
-  color: #ef4444;
-  border-color: color-mix(in srgb, #ef4444 45%, white);
+  background: color-mix(in srgb, var(--pl-danger) 12%, var(--pl-mix));
+  color: var(--pl-danger);
+  border-color: color-mix(in srgb, var(--pl-danger) 45%, var(--pl-mix));
 }
 
 .pl-badge.error:hover {
-  background: color-mix(in srgb, #ef4444 18%, white);
+  background: color-mix(in srgb, var(--pl-danger) 18%, var(--pl-mix));
 }
 
 .pl-overlay {
@@ -184,12 +189,21 @@
 }
 
 .pl-close-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
   cursor: pointer;
   color: var(--pl-text-secondary);
   font-size: 14px;
   line-height: 1;
   padding: 2px;
   border-radius: 4px;
+}
+
+.pl-close-btn:focus-visible {
+  outline: 2px solid var(--pl-accent);
+  outline-offset: 1px;
 }
 
 .pl-close-btn:hover {
@@ -252,7 +266,7 @@
 }
 
 .pl-mode-card.recommended {
-  border-color: color-mix(in srgb, var(--pl-accent) 55%, white);
+  border-color: color-mix(in srgb, var(--pl-accent) 55%, var(--pl-mix));
 }
 
 .pl-mode-name {
@@ -362,7 +376,7 @@
 }
 
 .pl-input:focus {
-  outline: 2px solid color-mix(in srgb, var(--pl-accent) 60%, white);
+  outline: 2px solid color-mix(in srgb, var(--pl-accent) 60%, var(--pl-mix));
   outline-offset: 0;
 }
 
@@ -373,7 +387,7 @@
 
 .pl-view-toggle .pl-btn[aria-pressed="true"] {
   background: var(--pl-bg-hover);
-  border-color: color-mix(in srgb, var(--pl-text-secondary) 50%, white);
+  border-color: color-mix(in srgb, var(--pl-text-secondary) 50%, var(--pl-mix));
 }
 
 /* Diff: one change = what was removed, then what was added. Click to keep the original. */
@@ -389,14 +403,14 @@
 }
 
 .pl-del {
-  background: color-mix(in srgb, #dc2626 12%, white);
-  color: #991b1b;
+  background: color-mix(in srgb, var(--pl-danger) 12%, var(--pl-mix));
+  color: var(--pl-danger-text);
   text-decoration: line-through;
 }
 
 .pl-ins {
-  background: color-mix(in srgb, #16a34a 14%, white);
-  color: #14532d;
+  background: color-mix(in srgb, #16a34a 14%, var(--pl-mix));
+  color: var(--pl-success-text);
   text-decoration: none;
 }
 
@@ -432,7 +446,7 @@
 }
 
 .pl-error {
-  color: #dc2626;
+  color: var(--pl-danger);
   line-height: 1.45;
 }
 
@@ -502,4 +516,25 @@
 .pl-slash-foot {
   margin-top: 4px;
   padding: 0 8px 2px;
+}
+
+/* Dark pages (see ui/theme.ts): same roles, darker surfaces. */
+:host(.pl-dark) {
+  --pl-bg-primary: #1c1c1a;
+  --pl-bg-secondary: #262624;
+  --pl-bg-hover: #31312e;
+  --pl-text-primary: #ececea;
+  --pl-text-secondary: #a8a8a0;
+  --pl-accent: #fb923c;
+  --pl-accent-secondary: #2dd4bf;
+  --pl-border: #3f3f3b;
+  --pl-mix: #1c1c1a;
+  --pl-danger: #f87171;
+  --pl-danger-text: #fecaca;
+  --pl-success-text: #bbf7d0;
+  color-scheme: dark;
+}
+
+.pl-error-detail {
+  overflow-wrap: anywhere;
 }

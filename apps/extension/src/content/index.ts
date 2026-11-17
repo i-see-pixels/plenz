@@ -516,6 +516,7 @@ class ExtensionContentScript {
       onSubmitAnswers: () => this.dispatch({ type: "ANSWERS_SUBMITTED" }),
       onToggleChange: (index) => this.dispatch({ type: "CHANGE_TOGGLED", index }),
       onResetChanges: () => this.dispatch({ type: "CHANGES_RESET" }),
+      onOpenSettings: () => void this.sendRuntimeMessage("OPEN_SETTINGS").catch(() => {}),
     });
     this.panel.setCards(this.cards);
     this.badge = new BadgeIndicator(container);
@@ -574,7 +575,13 @@ class ExtensionContentScript {
           return;
         case "ERROR":
           settle();
-          fail(message.message);
+          this.dispatch({
+            type: "REFINE_FAILED",
+            requestId,
+            message: message.message,
+            detail: message.detail,
+            fixInSettings: message.fixInSettings,
+          });
           return;
       }
     });

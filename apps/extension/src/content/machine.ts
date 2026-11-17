@@ -41,7 +41,10 @@ export type ContentState =
     }
   /** Writing into the chat input; `previous` is the draft being replaced. */
   | { kind: "applying"; previous: string; undoing: boolean }
-  | { kind: "failed"; step: RefineStep; message: string; visible: boolean };
+  | { kind: "failed"; step: RefineStep; visible: boolean } & RefineFailureView;
+
+/** Why a refine failed: plain message, provider detail, and whether settings can fix it. */
+export type RefineFailureView = { message: string; detail?: string; fixInSettings?: boolean };
 
 export type ContentModel = {
   state: ContentState;
@@ -78,7 +81,7 @@ export type ContentEvent =
   | { type: "REFINE_DELTA"; requestId: number; text: string }
   | { type: "REFINE_DONE"; requestId: number; text: string }
   | { type: "QUESTIONS_READY"; requestId: number; questions: string[] }
-  | { type: "REFINE_FAILED"; requestId: number; message: string }
+  | ({ type: "REFINE_FAILED"; requestId: number } & RefineFailureView)
   | { type: "ANSWER_CHANGED"; index: number; value: string }
   | { type: "ANSWERS_SUBMITTED" }
   /** Click a change in the diff: keep the draft's wording there (or take it back). */
@@ -358,6 +361,8 @@ export function transition(
         kind: "failed",
         step: state.kind === "streaming" ? state.step : "ask",
         message: event.message,
+        detail: event.detail,
+        fixInSettings: event.fixInSettings,
         visible: state.kind === "streaming" ? state.visible : true,
       });
 
@@ -511,7 +516,7 @@ export type PanelView =
       output: string;
       rejected: number[];
     }
-  | { kind: "failed"; step: RefineStep; message: string };
+  | ({ kind: "failed"; step: RefineStep } & RefineFailureView);
 
 export type ContentView = {
   badge: BadgeView;
@@ -593,7 +598,16 @@ export function view(
         : { badge: { kind: "ready" }, panel: null };
     case "failed":
       return state.visible
-        ? { badge: HIDDEN, panel: { kind: "failed", step: state.step, message: state.message } }
+        ? {
+            badge: HIDDEN,
+            panel: {
+              kind: "failed",
+              step: state.step,
+              message: state.message,
+              ...(state.detail ? { detail: state.detail } : {}),
+              ...(state.fixInSettings ? { fixInSettings: true } : {}),
+            },
+          }
         : { badge: { kind: "error", message: state.message }, panel: null };
     default:
       return { badge: HIDDEN, panel: null };

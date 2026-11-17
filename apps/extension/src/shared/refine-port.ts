@@ -34,7 +34,8 @@ export type RefineServerMessage =
   | { type: "DELTA"; text: string }
   | { type: "DONE"; text: string; providerId: string }
   | { type: "QUESTIONS"; questions: string[]; providerId: string }
-  | { type: "ERROR"; message: string };
+  /** `message` is plain language; `detail` is the provider's wording. */
+  | { type: "ERROR"; message: string; detail?: string; fixInSettings?: boolean };
 
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === "string");

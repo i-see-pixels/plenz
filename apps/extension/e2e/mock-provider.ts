@@ -8,7 +8,8 @@ export type MockRequest = {
   finished: boolean;
 };
 
-export type MockReply = { chunks: string[]; delayMs?: number };
+/** `error` answers with that HTTP status and message instead of a stream. */
+export type MockReply = { chunks: string[]; delayMs?: number; error?: { status: number; message: string } };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -35,9 +36,15 @@ export async function startMockProvider(reply: (request: MockRequest) => MockRep
     res.on("close", () => {
       if (!record.finished) record.aborted = true;
     });
+    const { chunks, delayMs = 15, error } = reply(record);
+    if (error) {
+      record.finished = true;
+      res.writeHead(error.status, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: { message: error.message } }));
+      return;
+    }
     res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
 
-    const { chunks, delayMs = 15 } = reply(record);
     for (const text of chunks) {
       if (record.aborted) return;
       res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);

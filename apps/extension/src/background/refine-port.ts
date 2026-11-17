@@ -53,7 +53,8 @@ export function handleRefinePort(port: chrome.runtime.Port) {
     } else if (outcome.kind === "questions") {
       send({ type: "QUESTIONS", questions: outcome.questions, providerId: outcome.providerId });
     } else {
-      send({ type: "ERROR", message: outcome.message });
+      const { message: text, detail, fixInSettings } = outcome.failure;
+      send({ type: "ERROR", message: text, detail, fixInSettings });
     }
     port.disconnect();
   };

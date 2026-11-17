@@ -1,11 +1,12 @@
 import styles from "./styles.css?inline";
+import { followPageTheme } from "./theme";
 
 const ZAP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>`;
 const ALERT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-alert"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`;
 
 const TONE_CLASSES = ["error", "lint", "lint-good", "lint-ok", "lint-weak"];
 const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform);
-const REFINE_SHORTCUT = IS_MAC ? "⌘⇧Enter" : "Ctrl+Shift+Enter";
+const REFINE_SHORTCUT = IS_MAC ? "Cmd+Shift+Enter" : "Ctrl+Shift+Enter";
 
 export type LintBadgeChip = { label: string; hint: string };
 
@@ -83,6 +84,7 @@ export class BadgeIndicator {
   }
 
   private reveal() {
+    if (!this.visible) followPageTheme(this.shadowHost, this.anchorElement);
     this.badge.style.display = "flex";
     this.badge.style.alignItems = "center";
     this.visible = true;

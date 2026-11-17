@@ -149,6 +149,11 @@ const handlers: Handlers = {
     return { success: true };
   },
 
+  async OPEN_SETTINGS() {
+    await chrome.runtime.openOptionsPage();
+    return { success: true };
+  },
+
   async RESET_LEARNING() {
     await LearningStore.reset();
     return { success: true };

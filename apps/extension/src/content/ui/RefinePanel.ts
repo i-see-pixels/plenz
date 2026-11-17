@@ -8,6 +8,7 @@ import type { RefineMode } from "@plenz/types";
 import type { ContextCard } from "../../shared/context-cards";
 import type { PanelView } from "../machine";
 import styles from "./styles.css?inline";
+import { followPageTheme } from "./theme";
 
 const MODES: { mode: RefineMode; blurb: string }[] = [
   { mode: "improve", blurb: "Clearer and more specific" },
@@ -17,7 +18,8 @@ const MODES: { mode: RefineMode; blurb: string }[] = [
 ];
 
 const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform);
-const MOD = IS_MAC ? "⌘" : "Ctrl";
+// Spelled out: symbol keys like ⇧ are missing from many monospace fonts.
+const MOD = IS_MAC ? "Cmd" : "Ctrl";
 
 export type RefinePanelHandlers = {
   onMode(mode: RefineMode): void;
@@ -30,6 +32,8 @@ export type RefinePanelHandlers = {
   /** Keep the draft's wording for one diff change (or take it back). */
   onToggleChange(index: number): void;
   onResetChanges(): void;
+  /** Open plenz's settings page (for failures settings can fix). */
+  onOpenSettings(): void;
 };
 
 function stepLabel(step: RefineStep) {
@@ -73,6 +77,8 @@ export class RefinePanel {
   private renderedKey: string | null = null;
   private output: HTMLElement | null = null;
   private resultActions: HTMLElement | null = null;
+  /** The result's hint line, which depends on the Changes/Result view. */
+  private resultNote: HTMLElement | null = null;
   /** Result view: diff of changes, or the text that will be applied. Null until decided. */
   private showDiff: boolean | null = null;
   private viewToggles: { diff: boolean; button: HTMLButtonElement }[] = [];
@@ -132,6 +138,7 @@ export class RefinePanel {
     }
 
     if (!this.visible) {
+      followPageTheme(this.shadowHost, this.anchorElement);
       this.visible = true;
       this.container.classList.add("visible");
     }
@@ -144,6 +151,7 @@ export class RefinePanel {
     this.renderedKey = null;
     this.output = null;
     this.resultActions = null;
+    this.resultNote = null;
     this.lastResult = null;
     this.container.classList.remove("visible");
     this.container.replaceChildren();
@@ -235,6 +243,7 @@ export class RefinePanel {
     const body: Node[] = [];
     this.output = null;
     this.resultActions = null;
+    this.resultNote = null;
     this.showDiff = null;
     this.viewToggles = [];
 
@@ -261,7 +270,7 @@ export class RefinePanel {
         }
         body.push(grid);
         body.push(this.cardRow());
-        body.push(this.footer(["Esc", "close"], [`${MOD}⇧Enter`, "Improve"]));
+        body.push(this.footer(["Esc", "close"], [`${MOD}+Shift+Enter`, "Improve"]));
         body.push(el("div", "pl-muted pl-note", "Each mode is one call to your AI provider."));
         break;
       }
@@ -296,7 +305,8 @@ export class RefinePanel {
         body.push(this.resultActions);
         body.push(this.modeRow(view.step));
         body.push(this.footer(["Tab", "replace"], ["Esc", "close"]));
-        body.push(el("div", "pl-muted pl-note", "Click a change to keep your own wording there."));
+        this.resultNote = el("div", "pl-muted pl-note");
+        body.push(this.resultNote);
         break;
       }
 
@@ -338,17 +348,25 @@ export class RefinePanel {
         actions.appendChild(this.button("Write prompt", () => this.handlers.onSubmitAnswers(), true));
         actions.appendChild(this.button("Cancel", () => this.handlers.onDismiss()));
         body.push(actions);
-        body.push(this.footer([`${MOD}Enter`, "write prompt"], ["Esc", "close"]));
+        body.push(this.footer([`${MOD}+Enter`, "write prompt"], ["Esc", "close"]));
         requestAnimationFrame(() => inputs[0]?.focus());
         break;
       }
 
       case "failed": {
         body.push(this.header(`${stepLabel(view.step)} · failed`));
-        body.push(el("div", "pl-error", view.message));
+        const error = el("div", "pl-error", view.message);
+        error.setAttribute("role", "alert");
+        body.push(error);
+        if (view.detail) body.push(el("div", "pl-muted pl-note pl-error-detail", view.detail));
         const retry: RefineMode = view.step === "compose" ? "ask" : view.step;
         const actions = el("div", "pl-actions");
-        actions.appendChild(this.button("Try again", () => this.handlers.onMode(retry), true));
+        if (view.fixInSettings) {
+          actions.appendChild(this.button("Open settings", () => this.handlers.onOpenSettings(), true));
+        }
+        actions.appendChild(
+          this.button("Try again", () => this.handlers.onMode(retry), !view.fixInSettings),
+        );
         actions.appendChild(this.button("Close", () => this.handlers.onDismiss()));
         body.push(actions);
         body.push(this.modeRow(view.step));
@@ -387,6 +405,14 @@ export class RefinePanel {
       output.textContent = diff ? applyDiff(diff, view.rejected) : view.output;
     }
     output.scrollTop = scroll;
+    if (this.resultNote) {
+      this.resultNote.textContent =
+        changes === 0
+          ? ""
+          : this.showDiff
+            ? "Click a change to keep your own wording there."
+            : "This is the prompt that will replace your draft.";
+    }
 
     const nodes: Node[] = [];
     if (changes === 0) {

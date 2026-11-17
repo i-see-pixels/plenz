@@ -307,3 +307,32 @@ test.describe("local learning", () => {
     expect(await shadow.text(PANEL, ".pl-muted")).not.toContain("audience");
   });
 });
+
+test("a rejected API key explains itself and offers to open settings", async ({ context }) => {
+  reply = () => ({ chunks: [], error: { status: 401, message: "Incorrect API key provided: test-key" } });
+  const page = await openFixture(context, "chatgpt");
+  const shadow = await ShadowDom.attach(page);
+  await typeDraft(page, "chatgpt");
+  await page.keyboard.press(REFINE);
+
+  await expect.poll(() => shadow.text(PANEL, ".pl-error")).toContain("rejected the API key");
+  expect(await shadow.text(PANEL, ".pl-error-detail")).toBe("401: Incorrect API key provided: test-key");
+
+  const settings = context.waitForEvent("page");
+  await shadow.click(PANEL, ".pl-actions .pl-btn-primary");
+  expect((await settings).url()).toContain("/src/options/index.html");
+});
+
+test("on a dark page the overlays turn dark", async ({ context }) => {
+  const page = await openFixture(context, "chatgpt");
+  await page.evaluate(() => {
+    document.body.style.background = "#212121";
+    document.body.style.color = "#eee";
+  });
+  const shadow = await ShadowDom.attach(page);
+  await typeDraft(page, "chatgpt");
+  await expect.poll(() => shadow.visible(BADGE, ".pl-lint-score")).toBe(true);
+  expect(await page.evaluate(() => document.getElementById("plenz-badge-host")!.classList.contains("pl-dark"))).toBe(
+    true,
+  );
+});

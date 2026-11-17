@@ -1,5 +1,6 @@
 import type { SlashItem, SlashSource } from "../slash";
 import styles from "./styles.css?inline";
+import { followPageTheme } from "./theme";
 
 const SOURCE_LABELS: Record<SlashSource, string> = {
   card: "Card",
@@ -78,6 +79,7 @@ export class SlashMenu {
     this.container.replaceChildren(...children);
 
     if (!this.visible) {
+      followPageTheme(this.shadowHost, this.anchorElement);
       this.visible = true;
       this.container.classList.add("visible");
     }

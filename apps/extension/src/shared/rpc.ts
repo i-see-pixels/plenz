@@ -44,6 +44,8 @@ export type RpcMap = {
   LIST_INSERTABLE_PROMPTS: { payload: void; reply: { prompts: InsertablePrompt[] } };
   /** Local learning: a refine outcome or a sent draft (see ./learning.ts). */
   RECORD_LEARNING: { payload: LearningEvent; reply: Success };
+  /** Open plenz's settings page (from a refine error that settings can fix). */
+  OPEN_SETTINGS: { payload: void; reply: Success };
 
   // Extension pages only
   SET_PREFERENCES: {
@@ -149,6 +151,7 @@ export const CONTENT_SCRIPT_RPC: ReadonlySet<RpcType> = new Set<RpcType>([
   "GET_PREFERENCES",
   "LIST_INSERTABLE_PROMPTS",
   "RECORD_LEARNING",
+  "OPEN_SETTINGS",
 ]);
 
 export type PayloadArgs<K extends RpcType> = RpcPayload<K> extends void

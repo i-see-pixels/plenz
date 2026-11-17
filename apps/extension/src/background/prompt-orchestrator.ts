@@ -1,3 +1,4 @@
+import { describeRefineError, type RefineFailure } from "../shared/refine-errors";
 import {
   isProviderConfigured,
   ON_DEVICE_MODEL_ID,
@@ -29,7 +30,19 @@ type Attempt = { provider: ProviderAdapter; config: ProviderConfig };
 export type RefineOutcome =
   | { kind: "text"; text: string; providerId: string }
   | { kind: "questions"; questions: string[]; providerId: string }
-  | { kind: "error"; message: string; cancelled?: boolean };
+  | { kind: "error"; failure: RefineFailure; cancelled?: boolean };
+
+const failed = (failure: RefineFailure): RefineOutcome => ({ kind: "error", failure });
+/** The provider's error, explained (see ../shared/refine-errors.ts). */
+const providerFailure = (error: unknown) =>
+  failed(
+    describeRefineError(
+      { status: getErrorStatus(error), message: getErrorMessage(error) },
+      { online: navigator.onLine },
+    ),
+  );
+/** A plain message from plenz itself, shown as is. */
+const plainFailure = (message: string) => failed(describeRefineError({ message }));
 
 function getErrorStatus(error: unknown) {
   return typeof error === "object" &&
@@ -122,7 +135,11 @@ async function getFallbackAttempts(primaryProviderId: string) {
     );
 }
 
-const CANCELLED: RefineOutcome = { kind: "error", message: "Refine cancelled.", cancelled: true };
+const CANCELLED: RefineOutcome = {
+  kind: "error",
+  failure: describeRefineError({ message: "Refine cancelled." }),
+  cancelled: true,
+};
 
 /**
  * Run one refine. Retries and (opt-in) fallbacks only happen before the first
@@ -144,19 +161,23 @@ export async function runRefine(
   } else if (activeProvider && activeConfigResult.syncStatus === "error" && activeConfigResult.error) {
     // The chosen provider's key exists but can't be read (e.g. Cloud Sync is
     // locked): say why rather than quietly switching to another model.
-    return { kind: "error", message: activeConfigResult.error };
+    return failed(describeRefineError({ message: activeConfigResult.error }, { setup: true }));
   } else {
     // Nothing set up: use Chrome's on-device model if it's already downloaded.
     const availability = await onDeviceAvailability();
     const onDevice = providers.find((provider) => provider.id === ON_DEVICE_PROVIDER_ID);
     if (availability !== "available" || !onDevice) {
-      return {
-        kind: "error",
-        message:
-          availability === "unavailable"
-            ? "No AI provider is set up. Add an API key in the extension settings."
-            : `No AI provider is set up. ${onDeviceStatusMessage(availability)}`,
-      };
+      return failed(
+        describeRefineError(
+          {
+            message:
+              availability === "unavailable"
+                ? "No AI provider is set up. Add an API key in the extension settings."
+                : `No AI provider is set up. ${onDeviceStatusMessage(availability)}`,
+          },
+          { setup: true },
+        ),
+      );
     }
     primary = { provider: onDevice, config: { apiKey: "", model: ON_DEVICE_MODEL_ID } };
   }
@@ -200,18 +221,18 @@ export async function runRefine(
         const questions = parseClarifyingQuestions(result.text);
         return questions.length > 0
           ? { kind: "questions", questions, providerId: attempt.provider.id }
-          : { kind: "error", message: "No clarifying questions came back. Try another mode." };
+          : plainFailure("No clarifying questions came back. Try another mode.");
       }
 
       const text = cleanRefineOutput(result.text);
       return text
         ? { kind: "text", text, providerId: attempt.provider.id }
-        : { kind: "error", message: "The provider returned an empty prompt. Try again." };
+        : plainFailure("The provider returned an empty prompt. Try again.");
     } catch (error) {
       if (signal.aborted) return CANCELLED;
       logAttemptFailure(attempt.provider.id, error);
       if (sentToUser) {
-        return { kind: "error", message: getErrorMessage(error) || "The refine stopped early." };
+        return providerFailure(error);
       }
       fallbackAttempts ??= await getFallbackAttempts(primary.provider.id);
       state = orchestratorTransition(
@@ -222,6 +243,5 @@ export async function runRefine(
     }
   }
 
-  const lastError = state.kind === "failed" ? state.error : undefined;
-  return { kind: "error", message: getErrorMessage(lastError) || "Failed to refine prompt." };
+  return providerFailure(state.kind === "failed" ? state.error : undefined);
 }

@@ -510,3 +510,22 @@ describe("learning outcomes", () => {
     assert.deepEqual(records(run(hidden, { type: "TEXT_CHANGED", text: PROMPT + "!" }).effects), []);
   });
 });
+
+describe("failure details", () => {
+  test("the panel gets the provider detail and whether settings can fix it", () => {
+    const failed = run(streaming(), {
+      type: "REFINE_FAILED",
+      requestId: 1,
+      message: "Your provider rejected the API key.",
+      detail: "401: Incorrect API key",
+      fixInSettings: true,
+    }).model;
+    assert.deepEqual(view(failed, null).panel, {
+      kind: "failed",
+      step: "improve",
+      message: "Your provider rejected the API key.",
+      detail: "401: Incorrect API key",
+      fixInSettings: true,
+    });
+  });
+});
