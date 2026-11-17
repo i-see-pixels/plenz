@@ -1,6 +1,7 @@
 import { handleRefinePort } from "./refine-port"
 import { handleMessage } from "./router"
 import { Sites } from "./sites"
+import { WELCOME_PAGE } from "../shared/setup"
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	handleMessage(message, sender)
@@ -20,6 +21,13 @@ chrome.permissions.onAdded.addListener(({ origins }) => {
 	Sites.onPermissionsAdded(origins).catch((error) =>
 		console.warn("plenz: enabling site failed", error),
 	)
+})
+
+// First install only: updates and reloads keep the user where they were.
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+	if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
+		void chrome.tabs.create({ url: chrome.runtime.getURL(WELCOME_PAGE) })
+	}
 })
 
 console.log("plenz Service Worker active")

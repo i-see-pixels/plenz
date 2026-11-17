@@ -28,6 +28,11 @@ Shared logic lives in:
 
 The badge, refine panel and `/` menu follow the page they sit on rather than the OS theme: when one appears, `followPageTheme` (`content/ui/theme.ts`) checks the first mostly opaque background behind the chat box and switches the overlay's variables to the dark set if it is dark.
 
+## First Run
+
+- On first install (not updates) the background opens the welcome page (`apps/extension/src/welcome/`): connect a model with the same `ModelConfig` as settings, try it on a chat site, and optionally sign in. The manifest doesn't name this page, so `vite.config.ts` adds it as a build input.
+- `setupState` (`apps/extension/src/shared/setup.ts`) mirrors the orchestrator's choice: a configured provider, else Chrome's on-device model when it's available, else setup is needed. The welcome page and popup read it through `useSetupState`, which re-checks on any storage change. Until refines can run, the popup leads with "Finish setup", which reopens the welcome page.
+
 ## Other Sites
 
 - The manifest only injects the content script on the supported chat sites. For any other site, the popup's "Use plenz on [site]" asks for that site's optional host permission, and the background registers the content script for it with `chrome.scripting` (`apps/extension/src/background/sites.ts`).

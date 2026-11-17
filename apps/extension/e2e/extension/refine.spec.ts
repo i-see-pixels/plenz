@@ -318,9 +318,11 @@ test("a rejected API key explains itself and offers to open settings", async ({ 
   await expect.poll(() => shadow.text(PANEL, ".pl-error")).toContain("rejected the API key");
   expect(await shadow.text(PANEL, ".pl-error-detail")).toBe("401: Incorrect API key provided: test-key");
 
-  const settings = context.waitForEvent("page");
+  // The install's welcome tab may open meanwhile, so look for this one by URL.
   await shadow.click(PANEL, ".pl-actions .pl-btn-primary");
-  expect((await settings).url()).toContain("/src/options/index.html");
+  await expect
+    .poll(() => context.pages().map((tab) => tab.url()))
+    .toContainEqual(expect.stringContaining("/src/options/index.html"));
 });
 
 test("on a dark page the overlays turn dark", async ({ context }) => {

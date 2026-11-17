@@ -8,6 +8,12 @@ import manifest from "./public/manifest.json";
 export default defineConfig(() => {
   return {
     plugins: [tailwindcss(), preact(), crx({ manifest })],
+    // Pages the manifest doesn't name still need building.
+    build: {
+      rollupOptions: {
+        input: { welcome: resolve(__dirname, "src/welcome/index.html") },
+      },
+    },
     server: {
       port: 5173,
       strictPort: true,
