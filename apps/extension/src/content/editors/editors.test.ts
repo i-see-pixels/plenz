@@ -60,7 +60,7 @@ const FIXTURES = {
         <div data-testid="user-message">What is RAG?</div>
         <div data-testid="answer">Retrieval-augmented generation</div>
       </main>
-      <form><textarea placeholder="Ask anything...">perplexity draft</textarea></form>`,
+      <div role="textbox" contenteditable="true" data-lexical-editor="true"><p>perplexity draft</p></div>`,
     messages: [
       { role: "user", text: "What is RAG?" },
       { role: "assistant", text: "Retrieval-augmented generation" },
@@ -106,6 +106,11 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
 }
 
 describe("finding the composer", () => {
+  test("Perplexity's older textarea composer still works", () => {
+    const doc = page("https://www.perplexity.ai/", `<textarea placeholder="Ask anything...">older</textarea>`);
+    assert.equal(readText(findPlatformAdapter("www.perplexity.ai")!.findInput(doc)!), "older");
+  });
+
   test("skips disabled and read-only fields", () => {
     const doc = page(
       "https://www.perplexity.ai/",

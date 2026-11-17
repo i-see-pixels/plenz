@@ -1,0 +1,48 @@
+name: Live site smoke
+
+# Daily canary against the real ChatGPT, Claude, Gemini and Perplexity pages:
+# does each adapter still find the composer, and does the extension respond?
+# Sites behind a bot check or sign-in form are skipped, not failed. A failure
+# here usually means a site changed its markup (see docs/ADDING_A_PLATFORM.md).
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Chrome extension
+        run: pnpm build:chrome
+
+      - name: Install Playwright Chromium
+        run: pnpm -C apps/extension exec playwright install --with-deps chromium
+
+      - name: Run live smoke test
+        run: pnpm -C apps/extension e2e:live
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-smoke-report
+          path: |
+            apps/extension/playwright-report
+            apps/extension/test-results
+          retention-days: 14

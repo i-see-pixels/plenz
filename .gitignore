@@ -9,6 +9,10 @@ dist
 out/
 build
 
+# Playwright
+playwright-report/
+test-results/
+
 # Turbo
 .turbo/
 

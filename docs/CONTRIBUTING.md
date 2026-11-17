@@ -32,7 +32,12 @@ For full setup instructions, see `DEVELOPMENT.md`.
 - Include screenshots for UI changes.
 - Run checks before opening a PR:
   - `pnpm type-check`
-  - `pnpm test:unit`
+  - `pnpm test:unit` (core, providers and extension unit tests)
+  - `pnpm build:chrome`, then `pnpm -C apps/extension e2e` (the built extension in Chromium on fixture pages; run `pnpm -C apps/extension exec playwright install chromium` once first)
+
+## Live site smoke test
+
+`pnpm -C apps/extension e2e:live` opens the real ChatGPT, Claude, Gemini and Perplexity pages with the built extension and checks that each adapter still finds the composer. It also runs daily in CI (`.github/workflows/live-smoke.yml`). Sites that show a bot check or sign-in form to a fresh browser are skipped, not failed. A failure usually means a site changed its markup: update the selectors in `apps/extension/src/content/editors/platforms.ts` and the matching fixture.
 
 ## Code Style
 

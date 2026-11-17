@@ -13,7 +13,7 @@
     "lint:ui-primitives": "node scripts/check-no-app-local-ui.mjs",
     "format": "turbo format",
     "test": "turbo test",
-    "test:unit": "echo \"No unit tests are configured yet.\"",
+    "test:unit": "pnpm -C packages/core test && pnpm -C packages/providers test && pnpm -C apps/extension test",
     "type-check": "turbo type-check"
   },
   "repository": {

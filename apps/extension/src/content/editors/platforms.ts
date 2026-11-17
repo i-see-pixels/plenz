@@ -14,7 +14,8 @@ type PlatformSpec = {
   containerSelector: string;
 };
 
-const PLATFORMS: PlatformSpec[] = [
+/** Exported for the live-site smoke test, which checks these against the real pages. */
+export const PLATFORMS: PlatformSpec[] = [
   {
     name: "chatgpt",
     hosts: ["chatgpt.com", "chat.openai.com"],
@@ -53,7 +54,13 @@ const PLATFORMS: PlatformSpec[] = [
   {
     name: "perplexity",
     hosts: ["perplexity.ai"],
-    inputSelectors: ['textarea[placeholder*="Ask"]', "textarea.overflow-auto"],
+    // A Lexical rich editor as of late 2026; the textareas are the older composer.
+    inputSelectors: [
+      '[data-lexical-editor="true"][contenteditable="true"]',
+      'div[role="textbox"][contenteditable="true"]',
+      'textarea[placeholder*="Ask"]',
+      "textarea.overflow-auto",
+    ],
     messageSelectors: [
       { selector: '[data-testid="user-message"]', role: "user" },
       { selector: '[data-testid="answer"]', role: "assistant" },
