@@ -173,6 +173,29 @@ test("a context card from the picker goes above the draft without calling the pr
   await expect.poll(() => composerText(page, "perplexity")).toBe(DRAFT);
 });
 
+test("an empty chat box shows a quiet badge that offers context cards, not refines", async ({
+  context,
+  serviceWorker,
+}) => {
+  const CARD = "I'm the PM at a small analytics startup.";
+  await serviceWorker.evaluate(async (text) => {
+    await chrome.storage.local.set({ contextCards: [{ id: "me", title: "About me", text }] });
+  }, CARD);
+  const page = await openFixture(context, "perplexity");
+  const shadow = await ShadowDom.attach(page);
+  await page.locator(FIXTURES.perplexity.composer).click();
+
+  await expect.poll(() => shadow.visible(BADGE, ".pl-badge.idle")).toBe(true);
+  await shadow.click(BADGE, ".pl-badge.idle");
+  await expect.poll(() => shadow.text(PANEL, ".pl-card-chip")).toBe("About me");
+  expect(await shadow.visible(PANEL, ".pl-mode-card")).toBe(false);
+  expect(await shadow.text(PANEL, ".pl-note")).toContain("type /");
+
+  await shadow.click(PANEL, ".pl-card-chip");
+  await expect.poll(() => composerText(page, "perplexity")).toBe(CARD);
+  expect(mock.requests).toHaveLength(0);
+});
+
 test.describe("the / command", () => {
   const SLASH = "plenz-slash-menu";
   const CARDS = [

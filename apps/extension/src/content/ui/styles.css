@@ -56,6 +56,17 @@
   background: color-mix(in srgb, var(--pl-accent) 18%, var(--pl-mix));
 }
 
+/* Short draft: a quiet mark that brightens on hover. */
+.pl-badge.idle {
+  padding: 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.pl-badge.idle:hover {
+  opacity: 1;
+}
+
 /* Local prompt check: score pill, colored by band, with a hover panel. */
 .pl-badge.lint {
   position: relative;

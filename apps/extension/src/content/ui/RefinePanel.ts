@@ -55,7 +55,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
 function structureKey(view: PanelView) {
   switch (view.kind) {
     case "picking":
-      return `picking:${view.recommended}:${view.findings.map((f) => f.label).join("|")}`;
+      return `picking:${view.canRefine}:${view.recommended}:${view.findings.map((f) => f.label).join("|")}`;
     case "streaming":
     case "result":
     case "failed":
@@ -249,6 +249,15 @@ export class RefinePanel {
 
     switch (view.kind) {
       case "picking": {
+        if (!view.canRefine) {
+          // Nothing to refine yet: offer what works on an empty draft.
+          body.push(this.header("plenz"));
+          body.push(el("div", "pl-muted pl-gap", "Write a few more words and plenz can refine your prompt."));
+          body.push(this.cardRow());
+          body.push(el("div", "pl-muted pl-note", "Tip: type / at the start of a line to insert a saved prompt."));
+          body.push(this.footer(["Esc", "close"]));
+          break;
+        }
         body.push(this.header("Refine prompt"));
         if (view.findings.length > 0) {
           body.push(

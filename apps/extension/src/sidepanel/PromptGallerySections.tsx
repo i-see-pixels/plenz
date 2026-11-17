@@ -1,6 +1,7 @@
 import type { PublicPrompt, SavedPrompt } from "@plenz/types"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, type ReactNode } from "react"
 import { AuthStatus } from "../components/AuthStatus"
+import { sendRpc } from "../shared/rpc"
 import { Badge } from "@plenz/ui/components/badge"
 import { Button } from "@plenz/ui/components/button"
 import {
@@ -156,42 +157,72 @@ export function PromptGalleryToasts() {
 }
 
 export function PromptGalleryContent() {
-  const { state, view } = usePromptGallery()
+  const { actions, state, view } = usePromptGallery()
 
   if (view.activeLoading) {
     return <PromptGalleryLoadingState />
   }
 
   if (view.activeError) {
+    const offline = !navigator.onLine
     return (
       <PromptGalleryMessageCard
-        title="Prompt gallery unavailable"
-        description={view.activeError}
+        title="Couldn't load prompts"
+        description={
+          offline
+            ? "You're offline. Reconnect and try again."
+            : "Something went wrong reaching the prompt library. Try again in a moment."
+        }
+        detail={offline ? undefined : view.activeError}
         tone="error"
-      />
+      >
+        <Button onClick={actions.retry}>Try again</Button>
+      </PromptGalleryMessageCard>
     )
   }
 
   if (view.isSavedViewLocked) {
     return (
       <PromptGalleryMessageCard
-        title="Sign in required"
-        description="Trending and newly added prompts stay visible for everyone. Sign in with Google to see only your saved prompts and add private prompts to the library."
-      />
+        title="Your saved prompts"
+        description="Sign in with Google to keep your own prompts here and save ones you like from Trending. Trending and Newly added work without an account."
+      >
+        <Button onClick={() => void sendRpc("AUTH_SIGN_IN")}>Sign in with Google</Button>
+      </PromptGalleryMessageCard>
     )
   }
 
   if (view.selectedPrompts.length === 0) {
+    const search = state.searchTerm.trim()
+    if (search) {
+      return (
+        <PromptGalleryMessageCard
+          title="No matches"
+          description={`No prompts here match "${search}". Try other words or another tab.`}
+        >
+          <Button variant="outline" onClick={() => actions.setSearchTerm("")}>
+            Clear search
+          </Button>
+        </PromptGalleryMessageCard>
+      )
+    }
+    if (state.activeFilter === "saved") {
+      return (
+        <PromptGalleryMessageCard
+          title="No saved prompts yet"
+          description="Press Save on a prompt in Trending to keep it, or add your own. Saved prompts also show up when you type / in a chat box."
+        >
+          <Button onClick={actions.openCreatePromptModal}>Add a prompt</Button>
+          <Button variant="outline" onClick={() => actions.setActiveFilter("trending")}>
+            Browse Trending
+          </Button>
+        </PromptGalleryMessageCard>
+      )
+    }
     return (
       <PromptGalleryMessageCard
-        title="No prompts found"
-        description={
-          state.searchTerm.trim()
-            ? "Try a different search term or switch to another category."
-            : state.activeFilter === "saved"
-              ? "Saved prompts will appear here after you add or save one."
-              : "The editorial catalog is empty right now."
-        }
+        title="Nothing here yet"
+        description="New prompts show up here as they're added. Check back soon."
       />
     )
   }
@@ -207,7 +238,7 @@ export function PromptGalleryContent() {
 
 function PromptGalleryLoadingState() {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading prompts">
       <Skeleton className="h-36 w-full rounded-sm" />
       <Skeleton className="h-36 w-full rounded-sm" />
       <Skeleton className="h-36 w-full rounded-sm" />
@@ -216,26 +247,39 @@ function PromptGalleryLoadingState() {
 }
 
 function PromptGalleryMessageCard({
+  children,
   description,
+  detail,
   title,
   tone = "default",
 }: {
+  children?: ReactNode
   description: string
+  /** Technical detail, e.g. the error as reported. */
+  detail?: string
   title: string
   tone?: "default" | "error"
 }) {
   return (
-    <Card className="gap-0 rounded-md border-border py-0 shadow-none">
-      <CardContent className="px-4 py-4">
+    <Card
+      className="gap-0 rounded-md border-border py-0 shadow-none"
+      role={tone === "error" ? "alert" : "status"}
+      data-gallery-state={title}
+    >
+      <CardContent className="flex flex-col gap-2 px-4 py-4">
         <p
           className={`font-mono text-[10px] font-semibold tracking-[0.16em] uppercase ${tone === "error" ? "text-accent-signal" : "text-muted-foreground"
             }`}
         >
           {title}
         </p>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           {description}
         </p>
+        {detail ? (
+          <p className="font-mono text-xs break-words text-muted-foreground">{detail}</p>
+        ) : null}
+        {children ? <div className="mt-1 flex flex-wrap gap-2">{children}</div> : null}
       </CardContent>
     </Card>
   )

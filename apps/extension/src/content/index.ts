@@ -292,6 +292,7 @@ class ExtensionContentScript {
       if (badge.kind === "hidden") this.badge?.hide();
       else if (badge.kind === "saving") this.badge?.showSaving();
       else if (badge.kind === "ready") this.badge?.showReady();
+      else if (badge.kind === "idle") this.badge?.showIdle();
       else if (badge.kind === "lint") {
         this.badge?.showLint(badge.score, badge.findings, badge.canUndo);
       }

@@ -452,6 +452,11 @@ export function PromptGalleryProvider({
       : state.activeFilter === "newest"
         ? state.publicNewestPrompts
         : state.savedPrompts
+  const retry = () => {
+    if (state.activeFilter === "saved") void loadSavedPrompts()
+    else void loadPublicPrompts(state.activeFilter)
+  }
+
   const isSavedViewLocked =
     state.activeFilter === "saved" && !state.authLoading && !state.user
 
@@ -463,6 +468,7 @@ export function PromptGalleryProvider({
       deleteSavedPrompt,
       openCreatePromptModal,
       openEditSavedPromptModal,
+      retry,
       submitPromptDraft,
       setActiveFilter,
       setDraftPrompt,

@@ -272,7 +272,8 @@ export function transition(
         case "idle":
         case "debouncing":
         case "failed":
-          return canRefine(model)
+          // A short draft still opens the picker, for context cards.
+          return model.enabled
             ? to(model, { kind: "picking" }, exitEffects(state))
             : unchanged(model);
         case "streaming":
@@ -496,6 +497,8 @@ export const MAX_LINT_CHIPS = 3;
 
 export type BadgeView =
   | { kind: "hidden" }
+  /** Draft too short to score or refine: a small mark that opens the cards. */
+  | { kind: "idle" }
   /** Local lint result; score is null when the draft can't be scored. */
   | { kind: "lint"; score: number | null; findings: LintChip[]; canUndo: boolean }
   | { kind: "saving" }
@@ -504,7 +507,13 @@ export type BadgeView =
   | { kind: "error"; message: string };
 
 export type PanelView =
-  | { kind: "picking"; recommended: RefineMode; findings: LintChip[] }
+  | {
+      kind: "picking";
+      recommended: RefineMode;
+      findings: LintChip[];
+      /** False for a short draft: only context cards are offered. */
+      canRefine: boolean;
+    }
   | { kind: "streaming"; step: RefineStep; output: string }
   | { kind: "asking" }
   | { kind: "answering"; questions: string[]; answers: string[] }
@@ -544,7 +553,8 @@ export function recommendedMode(
 }
 
 function lintBadge(model: ContentModel, lint: LintSummary | null): BadgeView {
-  if (!lint || !canRefine(model)) return HIDDEN;
+  if (!model.enabled) return HIDDEN;
+  if (!lint || !canRefine(model)) return { kind: "idle" };
   return {
     kind: "lint",
     score: lint.assessed ? lint.score : null,
@@ -569,7 +579,8 @@ export function view(
         panel: {
           kind: "picking",
           recommended: recommendedMode(lint, preferredMode),
-          findings: topChips(lint),
+          findings: canRefine(model) ? topChips(lint) : [],
+          canRefine: canRefine(model),
         },
       };
     case "streaming":

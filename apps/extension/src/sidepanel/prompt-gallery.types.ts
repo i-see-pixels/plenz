@@ -53,6 +53,8 @@ export interface PromptGalleryActions {
   deleteSavedPrompt: (prompt: SavedPrompt) => Promise<void>;
   openCreatePromptModal: () => void;
   openEditSavedPromptModal: (prompt: SavedPrompt) => void;
+  /** Load the current list again after it failed. */
+  retry: () => void;
   submitPromptDraft: () => Promise<void>;
   setActiveFilter: (filter: GalleryFilter) => void;
   setDraftPrompt: (value: string) => void;

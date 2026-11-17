@@ -4,7 +4,7 @@ import { followPageTheme } from "./theme";
 const ZAP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>`;
 const ALERT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-alert"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`;
 
-const TONE_CLASSES = ["error", "lint", "lint-good", "lint-ok", "lint-weak"];
+const TONE_CLASSES = ["error", "idle", "lint", "lint-good", "lint-ok", "lint-weak"];
 const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform);
 const REFINE_SHORTCUT = IS_MAC ? "Cmd+Shift+Enter" : "Ctrl+Shift+Enter";
 
@@ -106,6 +106,18 @@ export class BadgeIndicator {
     this.setTone();
     this.badge.innerHTML = `${ZAP_ICON} <span style="margin-left:4px">${count}</span>`;
     this.badge.title = "";
+    this.reveal();
+  }
+
+  /**
+   * The draft is too short to score: just a mark, so context cards and the
+   * `/` command are easy to find before there's anything to refine.
+   */
+  public showIdle() {
+    this.setTone("idle");
+    this.badge.innerHTML = ZAP_ICON;
+    this.badge.title = "plenz: click for context cards, or type / for saved prompts";
+    this.badge.setAttribute("aria-label", "plenz: context cards and saved prompts");
     this.reveal();
   }
 

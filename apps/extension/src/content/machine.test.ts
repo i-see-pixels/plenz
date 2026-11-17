@@ -76,14 +76,15 @@ describe("typing and the lint badge", () => {
     });
   });
 
-  test("an unscored draft still gets a refine badge; short drafts get none", () => {
+  test("an unscored draft still gets a refine badge; short drafts get a quiet one", () => {
     assert.deepEqual(view(typed(), { assessed: false, score: 100, findings: [] }).badge, {
       kind: "lint",
       score: null,
       findings: [],
       canUndo: false,
     });
-    assert.equal(view(typed(false, "hi"), LINT).badge.kind, "hidden");
+    assert.deepEqual(view(typed(false, "hi"), LINT).badge, { kind: "idle" });
+    assert.deepEqual(view(typed(false, ""), LINT).badge, { kind: "idle" });
   });
 
   test("disabling suggestions hides everything and stops pending work", () => {
@@ -186,9 +187,20 @@ describe("mode picker and streaming", () => {
     assert.equal(run(failed, { type: "MODE_CHOSEN", mode: "improve" }).model.state.kind, "streaming");
   });
 
-  test("refine is ignored for short drafts", () => {
+  test("short drafts can't be refined, but the badge still offers context cards", () => {
     assert.deepEqual(run(typed(false, "hi"), { type: "REFINE_REQUESTED" }).effects, []);
-    assert.equal(run(typed(false, "hi"), { type: "BADGE_CLICKED" }).model.state.kind, "idle");
+    const picker = run(typed(false, "hi"), { type: "BADGE_CLICKED" }).model;
+    assert.equal(picker.state.kind, "picking");
+    assert.deepEqual(view(picker, LINT).panel, {
+      kind: "picking",
+      recommended: "improve",
+      findings: [],
+      canRefine: false,
+    });
+    assert.deepEqual(run(picker, { type: "MODE_CHOSEN", mode: "improve" }).effects, []);
+    assert.deepEqual(run(picker, { type: "CARD_CHOSEN", text: "I'm a designer." }).effects, [
+      { type: "applyText", text: "I'm a designer.\n\nhi" },
+    ]);
   });
 });
 
