@@ -1,6 +1,7 @@
 import { expect, test } from "../fixtures";
 import { modeOf, startMockProvider, type MockReply } from "../mock-provider";
 import { composerText, FIXTURES, openFixture, useMockProvider, type FixtureName } from "../pages";
+import type { Learning } from "../../src/shared/learning";
 import { ShadowDom } from "../shadow";
 
 const BADGE = "plenz-badge-host";
@@ -253,7 +254,9 @@ test.describe("the / command", () => {
 
 test.describe("local learning", () => {
   const learningIn = (serviceWorker: import("@playwright/test").Worker) =>
-    serviceWorker.evaluate(async () => (await chrome.storage.local.get("learning")).learning ?? null);
+    serviceWorker.evaluate(
+      async () => ((await chrome.storage.local.get("learning")).learning ?? null) as Learning | null,
+    );
 
   test("replacing with a result and sending a draft are recorded on this device", async ({
     context,
