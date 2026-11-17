@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { Badge } from "@plenz/ui/components/badge";
 import { Button } from "@plenz/ui/components/button";
 import { Input } from "@plenz/ui/components/input";
@@ -13,13 +13,17 @@ import {
 
 type Status = { kind: "idle" | "saving" | "saved" } | { kind: "error"; message: string };
 
+/** How long after the last keystroke the cards save. */
+const SAVE_DELAY_MS = 500;
+
 /**
  * Edit the context cards offered in the refine picker. Saved on this device
- * only (chrome.storage.local); cards with no text are dropped on save.
+ * only (chrome.storage.local) as you edit; cards with no text aren't saved.
  */
 export function ContextCards() {
   const [cards, setCards] = useState<ContextCard[]>([]);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const saveTimer = useRef<number | null>(null);
 
   useEffect(() => {
     void chrome.storage.local
@@ -29,13 +33,18 @@ export function ContextCards() {
 
   const edit = (next: ContextCard[]) => {
     setCards(next);
-    setStatus({ kind: "idle" });
+    setStatus({ kind: "saving" });
+    if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      saveTimer.current = null;
+      void save(next);
+    }, SAVE_DELAY_MS);
   };
   const update = (id: string, patch: Partial<ContextCard>) =>
     edit(cards.map((card) => (card.id === id ? { ...card, ...patch } : card)));
 
-  const save = async () => {
-    setStatus({ kind: "saving" });
+  // The list on screen keeps half-written cards; only finished ones are saved.
+  const save = async (cards: ContextCard[]) => {
     try {
       // An untitled card is named after its first words rather than dropped.
       const kept = normalizeCards(
@@ -45,7 +54,6 @@ export function ContextCards() {
         })),
       );
       await chrome.storage.local.set({ [CONTEXT_CARDS_STORAGE_KEY]: kept });
-      setCards(kept);
       setStatus({ kind: "saved" });
     } catch (error) {
       setStatus({ kind: "error", message: (error as Error).message });
@@ -99,11 +107,14 @@ export function ContextCards() {
         >
           Add card
         </Button>
-        <Button onClick={save} disabled={status.kind === "saving"}>
-          {status.kind === "saving" ? "Saving..." : "Save cards"}
-        </Button>
-        <Badge variant="outline">
-          {status.kind === "saved" ? "Saved" : status.kind === "error" ? "Error" : "This device"}
+        <Badge variant="outline" role="status">
+          {status.kind === "saving"
+            ? "Saving…"
+            : status.kind === "saved"
+              ? "Saved"
+              : status.kind === "error"
+                ? "Error"
+                : "This device"}
         </Badge>
       </div>
       <p className="text-xs text-muted-foreground">

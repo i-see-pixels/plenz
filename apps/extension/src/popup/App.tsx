@@ -336,7 +336,7 @@ export function App() {
                 htmlFor="suggestions-enabled"
                 className="text-sm font-medium leading-none"
               >
-                Enable suggestions
+                Show plenz on chat sites
               </label>
               <Switch
                 id="suggestions-enabled"
@@ -352,7 +352,7 @@ export function App() {
                 htmlFor="chat-context-enabled"
                 className="text-sm font-medium leading-none"
               >
-                Use chat conversation
+                Use the current conversation
               </label>
               <Switch
                 id="chat-context-enabled"

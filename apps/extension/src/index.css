@@ -83,6 +83,41 @@
   --accent-secondary: oklch(0.57 0.09 196);
 }
 
+
+/* Dark set for plenz's own pages, chosen by followThemePreference. Same warm
+   neutrals as the in-page overlays' dark set. After :root so it wins. */
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.18 0.004 56);
+  --foreground: oklch(0.94 0.003 95);
+  --card: oklch(0.215 0.004 56);
+  --card-foreground: oklch(0.94 0.003 95);
+  --popover: oklch(0.215 0.004 56);
+  --popover-foreground: oklch(0.94 0.003 95);
+  --primary: oklch(0.94 0.003 95);
+  --primary-foreground: oklch(0.19 0.004 56);
+  --secondary: oklch(0.3 0.03 196);
+  --secondary-foreground: oklch(0.92 0.02 196);
+  --muted: oklch(0.25 0.004 56);
+  --muted-foreground: oklch(0.72 0.005 95);
+  --accent: oklch(0.27 0.004 56);
+  --accent-foreground: oklch(0.94 0.003 95);
+  --destructive: oklch(0.7 0.19 25);
+  --border: oklch(0.33 0.004 56);
+  --input: oklch(0.36 0.004 56);
+  --ring: oklch(0.74 0.17 55);
+  --sidebar: oklch(0.2 0.004 56);
+  --sidebar-foreground: oklch(0.94 0.003 95);
+  --sidebar-primary: oklch(0.94 0.003 95);
+  --sidebar-primary-foreground: oklch(0.19 0.004 56);
+  --sidebar-accent: oklch(0.27 0.004 56);
+  --sidebar-accent-foreground: oklch(0.94 0.003 95);
+  --sidebar-border: oklch(0.33 0.004 56);
+  --sidebar-ring: oklch(0.74 0.17 55);
+  --accent-signal: oklch(0.74 0.17 55);
+  --accent-secondary: oklch(0.68 0.09 196);
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground antialiased;

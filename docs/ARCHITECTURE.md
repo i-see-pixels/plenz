@@ -28,6 +28,10 @@ Shared logic lives in:
 
 The badge, refine panel and `/` menu follow the page they sit on rather than the OS theme: when one appears, `followPageTheme` (`content/ui/theme.ts`) checks the first mostly opaque background behind the chat box and switches the overlay's variables to the dark set if it is dark.
 
+plenz's own pages (popup, settings, welcome, gallery) follow the Appearance setting instead: `followThemePreference` (`shared/theme-preference.ts`) runs before each page renders, toggles `.dark` on `<html>` from `preferences.theme` in `chrome.storage.sync` (System follows the OS), and keeps it in step with later changes. The last value is cached in `localStorage` so a page opens in the right theme without a flash.
+
+Settings save as they change. Preferences go through `SET_PREFERENCES` and are mirrored into `chrome.storage.local`, which chat pages listen to; context cards save half a second after the last edit.
+
 ## First Run
 
 - On first install (not updates) the background opens the welcome page (`apps/extension/src/welcome/`): connect a model with the same `ModelConfig` as settings, try it on a chat site, and optionally sign in. The manifest doesn't name this page, so `vite.config.ts` adds it as a build input.
