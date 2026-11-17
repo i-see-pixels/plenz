@@ -14,7 +14,7 @@ Shared logic lives in:
 
 ## Browser Extension Data Flow
 
-1. The content script picks the site's editor adapter (`apps/extension/src/content/editors/`), which finds the composer, reads the draft and chat messages, and writes text back through the editor's own input path (paste, then `insertText`, then a direct DOM write) so the page's undo keeps working.
+1. The content script picks the site's editor adapter (`apps/extension/src/content/editors/`), which finds the composer, reads the draft and chat messages, and writes text back through the editor's own input path (`insertText`, then paste, then a direct DOM write, each checked before moving on) so the page's undo keeps working.
 2. As the user types, the content script lints the draft locally (`lintPrompt` in `@plenz/core`): deterministic rubric checks with a score and up to three chips on the badge. No network call.
 3. Clicking the badge opens the refine panel's mode picker (Improve, Tighten, Structure, Ask me) without calling the provider. Picking a mode, or pressing Ctrl/Cmd+Shift+Enter for Improve, starts a refine. With "Refine automatically while typing" on, Improve also runs in the background after a debounced pause and the badge shows "Ready" when it finishes.
 4. Each refine opens a `chrome.runtime.Port` (`apps/extension/src/shared/refine-port.ts`) and sends `START`. The background builds the mode's prompt (`buildRefineRequest` in `@plenz/core`) and streams the provider's reply back as `DELTA` chunks, then one `DONE` (cleaned text), `QUESTIONS` (Ask me) or `ERROR`.

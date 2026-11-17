@@ -87,7 +87,7 @@ test("the badge's Undo restores the draft", async ({ context }) => {
   await expect.poll(() => composerText(page, "chatgpt")).toBe(DRAFT);
 });
 
-test("rich editors receive the replacement as one paste", async ({ context }) => {
+test("rich editors that track their own selection get the whole draft replaced", async ({ context }) => {
   const page = await openFixture(context, "claude");
   const shadow = await ShadowDom.attach(page);
   await typeDraft(page, "claude");
@@ -95,7 +95,8 @@ test("rich editors receive the replacement as one paste", async ({ context }) =>
   await page.keyboard.press("Tab");
 
   await expect.poll(() => composerText(page, "claude")).toBe(IMPROVED);
-  expect(await page.evaluate(() => (window as unknown as { __pastes: number }).__pastes)).toBe(1);
+  // Native insertText took it, so the site never saw a paste it could turn into an attachment.
+  expect(await page.evaluate(() => (window as unknown as { __pastes: number }).__pastes)).toBe(0);
 });
 
 test("textareas get the replacement with their native undo intact", async ({ context }) => {
@@ -270,6 +271,8 @@ test.describe("local learning", () => {
     await expect
       .poll(async () => (await learningIn(serviceWorker))?.modes?.improve)
       .toEqual({ accepted: 1, dismissed: 0 });
+    // The accept is recorded before the replace finishes writing.
+    await expect.poll(() => composerText(page, "chatgpt")).toBe(IMPROVED);
 
     await page.locator(FIXTURES.chatgpt.composer).fill("");
     await typeDraft(page, "chatgpt");

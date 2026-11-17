@@ -206,12 +206,10 @@ class ExtensionContentScript {
             ? applyDiff(this.diffFor(effect.original, effect.output), effect.rejected)
             : effect.output;
         this.writeInput(text);
-        this.dispatch({ type: "APPLIED", text });
         return;
       }
       case "applyText":
         this.writeInput(effect.text);
-        this.dispatch({ type: "APPLIED", text: effect.text });
         return;
       case "recordRefine":
         void this.sendRuntimeMessage("RECORD_LEARNING", {
@@ -689,10 +687,15 @@ class ExtensionContentScript {
     this.dispatch(event);
   }
 
-  /** Through the editor's own input path where possible, so the page's undo keeps working. */
+  /**
+   * Through the editor's own input path where possible, so the page's undo
+   * keeps working. The write takes a few tasks; APPLIED follows it, so the
+   * input events it fires meanwhile are still ignored as our own.
+   */
   private writeInput(text: string) {
-    if (!this.inputElement || !this.adapter) return;
-    this.adapter.write(this.inputElement, text);
+    const applied = () => this.dispatch({ type: "APPLIED", text });
+    if (!this.inputElement || !this.adapter) return applied();
+    void this.adapter.write(this.inputElement, text).finally(applied);
   }
 }
 

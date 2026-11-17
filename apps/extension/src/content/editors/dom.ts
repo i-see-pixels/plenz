@@ -90,8 +90,25 @@ function writeDirect(input: HTMLElement, text: string) {
   }
 }
 
+/**
+ * Let the page run what it queued: selectionchange handlers, deferred editor
+ * commits. A message task, not setTimeout, which background tabs throttle to 1s.
+ */
+function nextTask(input: HTMLElement) {
+  const win = input.ownerDocument.defaultView as (Window & typeof globalThis) | null;
+  const Channel = win?.MessageChannel ?? MessageChannel;
+  return new Promise<void>((resolve) => {
+    const channel = new Channel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      resolve();
+    };
+    channel.port2.postMessage(null);
+  });
+}
+
 /** Replace the whole draft, preferring paths that keep the editor's undo. */
-export function writeText(input: HTMLElement, text: string): WriteMethod {
+export async function writeText(input: HTMLElement, text: string): Promise<WriteMethod> {
   if (isTextField(input)) {
     selectAll(input);
     if (execInsertText(input, text) && input.value === text) return "insertText";
@@ -99,13 +116,26 @@ export function writeText(input: HTMLElement, text: string): WriteMethod {
     return "direct";
   }
 
-  selectAll(input);
-  // If the editor claimed the paste it may apply it asynchronously, so trust it.
-  if (dispatchPaste(input, text)) return "paste";
+  // Rich editors (ProseMirror, Lexical) keep their own copy of the selection and
+  // only sync it on selectionchange, which arrives a task later; writing before
+  // then lands on the old caret and replaces part of the draft. Native
+  // insertText goes first: it edits the DOM selection itself, and unlike a
+  // paste it can't be turned into an attachment by the site. Each attempt is
+  // checked once the editor has rendered it, and the next starts from a fresh
+  // select-all, so a late or partial write is overwritten, not added to.
+  const attempts: Array<[WriteMethod, () => boolean]> = [
+    ["insertText", () => execInsertText(input, text)],
+    ["paste", () => dispatchPaste(input, text)],
+  ];
+  for (const [method, write] of attempts) {
+    selectAll(input);
+    await nextTask(input);
+    if (!write()) continue;
+    await nextTask(input);
+    if (sameText(readText(input), text)) return method;
+  }
 
   selectAll(input);
-  if (execInsertText(input, text) && sameText(readText(input), text)) return "insertText";
-
   writeDirect(input, text);
   return "direct";
 }

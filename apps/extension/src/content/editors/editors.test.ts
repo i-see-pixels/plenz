@@ -156,8 +156,71 @@ describe("finding the composer", () => {
   });
 });
 
+/**
+ * Like ProseMirror and Lexical: the editor keeps its own copy of the selection,
+ * synced from the DOM when selectionchange is delivered (a later task in
+ * Chrome), and applies a paste to that copy, not to the DOM selection.
+ */
+function modelEditor(doc: Document, draft: string) {
+  doc.body.innerHTML = `<div id="ed" contenteditable="true"><p>${draft}</p></div>`;
+  const editor = doc.getElementById("ed")!;
+  const win = doc.defaultView!;
+  const state = { text: draft, allSelected: false, pastes: 0 };
+  doc.addEventListener("selectionchange", () => {
+    const selection = win.getSelection();
+    const covers = !!selection && !selection.isCollapsed && selection.toString().trim() === state.text;
+    win.setTimeout(() => (state.allSelected = covers), 0);
+  });
+  editor.addEventListener("paste", (event) => {
+    const data = (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? "";
+    event.preventDefault();
+    state.pastes++;
+    // Replace what the editor thinks is selected; otherwise insert at the caret (the end).
+    state.text = state.allSelected ? data : state.text + data;
+    editor.innerHTML = `<p>${state.text}</p>`;
+  });
+  return { editor, state };
+}
+
 describe("writing the draft", () => {
-  test("a rich editor that handles paste gets the text as one paste", () => {
+  test("an editor that syncs its selection later still gets the whole draft replaced", async () => {
+    const { editor, state } = modelEditor(page("https://claude.ai/", ""), "old draft");
+
+    assert.equal(await writeText(editor, "new prompt"), "paste");
+    assert.equal(state.pastes, 1);
+    assert.equal(readText(editor).trim(), "new prompt");
+  });
+
+  test("an editor that takes the paste but doesn't show it (e.g. as an attachment) still gets the text", async () => {
+    const doc = page("https://chatgpt.com/", `<div id="ed" contenteditable="true"><p>old draft</p></div>`);
+    const editor = doc.getElementById("ed")!;
+    editor.addEventListener("paste", (event) => {
+      event.preventDefault();
+      editor.innerHTML = "<p></p>";
+    });
+
+    await writeText(editor, "a long refined prompt");
+    assert.ok(sameText(readText(editor), "a long refined prompt"), readText(editor));
+  });
+
+  test("an editor that applies the paste a moment later isn't written twice", async () => {
+    const doc = page("https://claude.ai/", `<div id="ed" contenteditable="true"><p>old draft</p></div>`);
+    const editor = doc.getElementById("ed")!;
+    let pastes = 0;
+    editor.addEventListener("paste", (event) => {
+      const data = (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? "";
+      event.preventDefault();
+      pastes++;
+      // Lexical commits its update in a microtask.
+      queueMicrotask(() => (editor.innerHTML = `<p>${data}</p>`));
+    });
+
+    assert.equal(await writeText(editor, "new prompt"), "paste");
+    assert.equal(pastes, 1);
+    assert.equal(readText(editor).trim(), "new prompt");
+  });
+
+  test("a rich editor that handles paste gets the text as one paste", async () => {
     const doc = page("https://claude.ai/", `<div id="ed" contenteditable="true"><p>old draft</p></div>`);
     const editor = doc.getElementById("ed")!;
     let pastes = 0;
@@ -171,31 +234,31 @@ describe("writing the draft", () => {
     });
     editor.addEventListener("input", () => inputs++);
 
-    assert.equal(writeText(editor, "new prompt"), "paste");
+    assert.equal(await writeText(editor, "new prompt"), "paste");
     assert.equal(pastes, 1);
     assert.equal(readText(editor).trim(), "new prompt");
     assert.equal(inputs, 0, "no extra synthetic input event when the editor handled it");
   });
 
-  test("a plain contenteditable falls back and still fires input", () => {
+  test("a plain contenteditable falls back and still fires input", async () => {
     const doc = page("https://claude.ai/", `<div id="ed" contenteditable="true">old draft</div>`);
     const editor = doc.getElementById("ed")!;
     let inputs = 0;
     editor.addEventListener("input", () => inputs++);
 
-    const method = writeText(editor, "new prompt");
+    const method = await writeText(editor, "new prompt");
     assert.ok(method === "insertText" || method === "direct", method);
     assert.ok(sameText(readText(editor), "new prompt"));
     assert.ok(inputs >= 1);
   });
 
-  test("a textarea gets the full text and an input event", () => {
+  test("a textarea gets the full text and an input event", async () => {
     const doc = page("https://www.perplexity.ai/", `<textarea id="ta">old draft</textarea>`);
     const textarea = doc.getElementById("ta") as HTMLTextAreaElement;
     let inputs = 0;
     textarea.addEventListener("input", () => inputs++);
 
-    const method = writeText(textarea, "line one\nline two");
+    const method = await writeText(textarea, "line one\nline two");
     assert.ok(method === "insertText" || method === "direct", method);
     assert.equal(textarea.value, "line one\nline two");
     assert.ok(inputs >= 1);

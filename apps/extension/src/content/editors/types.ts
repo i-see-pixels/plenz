@@ -16,7 +16,7 @@ export interface EditorAdapter {
   findInput(doc: Document): HTMLElement | null;
   read(input: HTMLElement): string;
   /** Replace the whole draft through the editor's own input path where possible. */
-  write(input: HTMLElement, text: string): WriteMethod;
+  write(input: HTMLElement, text: string): Promise<WriteMethod>;
   /** Visible chat messages, oldest first, excluding the composer itself. */
   readMessages(doc: Document, input: HTMLElement | null): ChatMessage[];
   /** Element the badge and refine panel position against. */

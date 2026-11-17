@@ -17,7 +17,11 @@ export const FIXTURES = {
     composer: "#prompt-textarea",
     html: SHELL(`<form><div id="prompt-textarea" contenteditable="true"></div></form>`),
   },
-  /** A rich editor that claims paste the way ProseMirror does, and counts pastes. */
+  /**
+   * A rich editor that, like ProseMirror and Lexical, keeps its own copy of the
+   * selection (synced when the async selectionchange arrives) and applies a
+   * paste to that copy. Counts pastes.
+   */
   claude: {
     url: "https://claude.ai/new",
     composer: ".ProseMirror",
@@ -25,11 +29,18 @@ export const FIXTURES = {
 <script>
   window.__pastes = 0;
   const editor = document.querySelector(".ProseMirror");
+  let allSelected = false;
+  document.addEventListener("selectionchange", () => {
+    const selection = getSelection();
+    allSelected = !selection.isCollapsed && selection.toString().trim() === editor.innerText.trim();
+  });
   editor.addEventListener("paste", (event) => {
     event.preventDefault();
     window.__pastes++;
     const text = event.clipboardData.getData("text/plain");
-    editor.innerHTML = text.split("\\n").map((line) => "<p>" + (line || "<br>") + "</p>").join("");
+    const html = text.split("\\n").map((line) => "<p>" + (line || "<br>") + "</p>").join("");
+    if (allSelected) editor.innerHTML = html;
+    else editor.insertAdjacentHTML("beforeend", html);
   });
 </script>`),
   },
