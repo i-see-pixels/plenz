@@ -19,7 +19,14 @@ export const PLATFORMS: PlatformSpec[] = [
   {
     name: "chatgpt",
     hosts: ["chatgpt.com", "chat.openai.com"],
-    inputSelectors: ["#prompt-textarea", '[data-id="root"] textarea'],
+    // As of Nov 2026: signed in, a ProseMirror editor with no id inside [data-composer-input];
+    // signed out, a plain textarea (name="prompt"). #prompt-textarea is the older composer.
+    inputSelectors: [
+      '[data-composer-input] .ProseMirror[contenteditable="true"]',
+      "#prompt-textarea",
+      'form textarea[name="prompt"]',
+      '[data-id="root"] textarea',
+    ],
     messageSelectors: [
       { selector: '[data-message-author-role="user"]', role: "user" },
       { selector: '[data-message-author-role="assistant"]', role: "assistant" },

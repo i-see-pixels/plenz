@@ -106,6 +106,26 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
 }
 
 describe("finding the composer", () => {
+  test("ChatGPT's signed-in composer (Nov 2026) is found", () => {
+    // Trimmed from the live page: a ProseMirror editor with no id, in a fieldset.
+    const doc = page(
+      "https://chatgpt.com/",
+      `<fieldset><div data-composer-body=""><div data-composer-input="" data-composer-layout="single-line">
+        <div data-rich-text-layout="single-line" role="presentation">
+          <div contenteditable="true" aria-multiline="true" role="textbox" class="ProseMirror" aria-label="Ask ChatGPT"><p>signed-in draft</p></div>
+        </div></div></div></fieldset>`,
+    );
+    assert.equal(readText(findPlatformAdapter("chatgpt.com")!.findInput(doc)!).trim(), "signed-in draft");
+  });
+
+  test("ChatGPT's textarea composer (Nov 2026) is found", () => {
+    const doc = page(
+      "https://chatgpt.com/",
+      `<form><div><textarea id="mobile-composer-prompt" name="prompt" placeholder="Ask ChatGPT">draft</textarea></div></form>`,
+    );
+    assert.equal(readText(findPlatformAdapter("chatgpt.com")!.findInput(doc)!), "draft");
+  });
+
   test("Perplexity's older textarea composer still works", () => {
     const doc = page("https://www.perplexity.ai/", `<textarea placeholder="Ask anything...">older</textarea>`);
     assert.equal(readText(findPlatformAdapter("www.perplexity.ai")!.findInput(doc)!), "older");
