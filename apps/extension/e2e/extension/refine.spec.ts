@@ -173,6 +173,26 @@ test("a context card from the picker goes above the draft without calling the pr
   await expect.poll(() => composerText(page, "perplexity")).toBe(DRAFT);
 });
 
+test("the badge and panel work from the keyboard and are named for screen readers", async ({
+  context,
+}) => {
+  const page = await openFixture(context, "chatgpt");
+  const shadow = await ShadowDom.attach(page);
+  await typeDraft(page, "chatgpt");
+  await expect.poll(() => shadow.visible(BADGE, ".pl-lint-score")).toBe(true);
+
+  const badge = await shadow.accessible(BADGE, ".pl-badge-main");
+  expect(badge?.role).toBe("button");
+  expect(badge?.name).toMatch(/^Prompt score \d+ of 100\. Refine/);
+
+  await shadow.focus(BADGE, ".pl-badge-main");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => shadow.visible(PANEL, ".pl-mode-card")).toBe(true);
+  expect(await shadow.accessible(PANEL, ".pl-refine")).toEqual({ role: "dialog", name: "Refine prompt" });
+  expect(await shadow.text(PANEL, ".pl-sr-only")).toContain("Choose a mode");
+  expect(mock.requests).toHaveLength(0);
+});
+
 test("an empty chat box shows a quiet badge that offers context cards, not refines", async ({
   context,
   serviceWorker,

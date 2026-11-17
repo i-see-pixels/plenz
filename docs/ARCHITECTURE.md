@@ -32,6 +32,12 @@ plenz's own pages (popup, settings, welcome, gallery) follow the Appearance sett
 
 Settings save as they change. Preferences go through `SET_PREFERENCES` and are mirrored into `chrome.storage.local`, which chat pages listen to; context cards save half a second after the last edit.
 
+## Accessibility
+
+- Focus stays in the chat box while plenz is open (its keys are handled there), so the overlays announce changes instead of taking focus: the refine panel is a non-modal `dialog` with a polite live region ("Choose a mode", "Improve ready. Press Tab…"), failures use `role="alert"`, and the `/` menu announces the highlighted item.
+- The badge's icon and label are a real `<button>` (`.pl-badge-main`) beside Undo, so it is reachable by keyboard and named in every state; its hint panel also opens on focus.
+- Small accent and danger text use darker tones (`--pl-accent-text`, `--pl-danger-text`) to meet WCAG AA on the light overlays. Overlays and extension pages drop transitions and animations under `prefers-reduced-motion`.
+
 ## First Run
 
 - On first install (not updates) the background opens the welcome page (`apps/extension/src/welcome/`): connect a model with the same `ModelConfig` as settings, try it on a chat site, and optionally sign in. The manifest doesn't name this page, so `vite.config.ts` adds it as a build input.

@@ -5,6 +5,8 @@
   --pl-text-primary: #171717;
   --pl-text-secondary: #606059;
   --pl-accent: #f97316;
+  /* Accent for small text: plain orange is under 3:1 on white. */
+  --pl-accent-text: #9a3412;
   --pl-accent-secondary: #0f766e;
   --pl-border: #d6d6ce;
   /* What tints are mixed into: the panel background. */
@@ -33,7 +35,7 @@
 .pl-badge {
   position: static;
   background: color-mix(in srgb, var(--pl-accent) 12%, var(--pl-mix));
-  color: var(--pl-accent);
+  color: var(--pl-accent-text);
   padding: 3px 8px;
   border-radius: 999px;
   font-family: var(--pl-font-mono);
@@ -59,12 +61,36 @@
 /* Short draft: a quiet mark that brightens on hover. */
 .pl-badge.idle {
   padding: 4px;
-  opacity: 0.6;
+  opacity: 0.75;
   transition: opacity 0.15s ease;
 }
 
-.pl-badge.idle:hover {
+.pl-badge.idle:hover,
+.pl-badge.idle:focus-within {
   opacity: 1;
+}
+
+/* The badge's clickable part (icon and label) as a plain-looking button. */
+.pl-badge-main {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.pl-badge-main:focus-visible,
+.pl-undo:focus-visible {
+  outline: 2px solid var(--pl-accent);
+  outline-offset: 3px;
 }
 
 /* Local prompt check: score pill, colored by band, with a hover panel. */
@@ -79,7 +105,7 @@
 }
 
 .pl-badge.lint-weak {
-  color: var(--pl-danger);
+  color: var(--pl-danger-text);
   background: color-mix(in srgb, var(--pl-danger) 10%, var(--pl-mix));
   border-color: color-mix(in srgb, var(--pl-danger) 40%, var(--pl-mix));
 }
@@ -150,7 +176,7 @@
 
 .pl-badge.error {
   background: color-mix(in srgb, var(--pl-danger) 12%, var(--pl-mix));
-  color: var(--pl-danger);
+  color: var(--pl-danger-text);
   border-color: color-mix(in srgb, var(--pl-danger) 45%, var(--pl-mix));
 }
 
@@ -193,7 +219,7 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--pl-accent);
+  color: var(--pl-accent-text);
   margin-bottom: 8px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--pl-border);
@@ -297,7 +323,7 @@
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--pl-accent);
+  color: var(--pl-accent-text);
 }
 
 .pl-output {
@@ -537,6 +563,7 @@
   --pl-text-primary: #ececea;
   --pl-text-secondary: #a8a8a0;
   --pl-accent: #fb923c;
+  --pl-accent-text: #fb923c;
   --pl-accent-secondary: #2dd4bf;
   --pl-border: #3f3f3b;
   --pl-mix: #1c1c1a;
@@ -548,4 +575,27 @@
 
 .pl-error-detail {
   overflow-wrap: anywhere;
+}
+
+/* Read by screen readers, not shown. */
+.pl-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Respect "reduce motion": no fades or blinking cursor. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

@@ -79,6 +79,7 @@ export function PromptGalleryToolbar() {
             actions.setSearchTerm((event.target as HTMLInputElement).value)
           }
           placeholder="Search by title or prompt text"
+          aria-label="Search prompts"
           className="pl-9"
         />
       </div>
@@ -116,6 +117,7 @@ function PromptGalleryFilterButton({
       variant={state.activeFilter === filter ? "default" : "outline"}
       size="sm"
       onClick={() => actions.setActiveFilter(filter)}
+      aria-pressed={state.activeFilter === filter}
       className="justify-between"
     >
       <span>{label}</span>
@@ -356,6 +358,7 @@ function PromptGalleryPromptActions({
         size="icon"
         onClick={() => void actions.sharePrompt(prompt)}
         disabled={!prompt.canShare}
+        aria-label={`Share "${prompt.title}"`}
         title={
           prompt.canShare
             ? "Copy a public share link"
@@ -369,6 +372,8 @@ function PromptGalleryPromptActions({
         variant="ghost"
         size="icon"
         onClick={() => void actions.copyPrompt(prompt)}
+        aria-label={`Copy "${prompt.title}"`}
+        title="Copy prompt"
       >
         <CopyIcon data-icon="inline-start" className="size-4" />
       </Button>
@@ -452,6 +457,7 @@ function SavedPromptActions({
         onClick={() => void actions.deleteSavedPrompt(prompt)}
         className="text-destructive hover:text-destructive hover:bg-destructive/10"
         title="Remove saved prompt"
+        aria-label={`Remove "${prompt.title}" from saved`}
       >
         <Trash2Icon data-icon="inline-start" className="size-4" />
       </Button>
@@ -463,6 +469,7 @@ function SavedPromptActions({
           disabled={isBusy}
           onClick={() => actions.openEditSavedPromptModal(prompt)}
           title="Edit private prompt"
+          aria-label={`Edit "${prompt.title}"`}
         // className="size-5"
         >
           <SquarePenIcon data-icon="inline-start" className="size-4" />

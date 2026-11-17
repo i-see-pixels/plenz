@@ -22,6 +22,8 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text?
 export class SlashMenu {
   private readonly shadowHost: HTMLDivElement;
   private readonly container: HTMLDivElement;
+  /** Focus stays in the chat box, so the highlighted item is announced. */
+  private readonly status: HTMLDivElement;
   private visible = false;
   private readonly boundPosition = () => this.position();
 
@@ -42,6 +44,10 @@ export class SlashMenu {
     this.container.setAttribute("role", "listbox");
     this.container.setAttribute("aria-label", "Insert a prompt");
     shadowRoot.appendChild(this.container);
+    this.status = el("div", "pl-sr-only");
+    this.status.setAttribute("role", "status");
+    this.status.setAttribute("aria-live", "polite");
+    shadowRoot.appendChild(this.status);
     document.body.appendChild(this.shadowHost);
 
     window.addEventListener("resize", this.boundPosition);
@@ -62,6 +68,7 @@ export class SlashMenu {
     }
     items.forEach((item, index) => {
       const row = el("div", "pl-slash-item");
+      row.id = `pl-slash-${index}`;
       row.setAttribute("role", "option");
       row.setAttribute("aria-selected", String(index === selected));
       if (index === selected) row.classList.add("selected");
@@ -77,6 +84,13 @@ export class SlashMenu {
     });
     children.push(el("div", "pl-footer pl-slash-foot", "↑↓ choose · Enter insert · Esc close"));
     this.container.replaceChildren(...children);
+    const current = items[selected];
+    const said = current
+      ? `${current.title}, ${SOURCE_LABELS[current.source]}. ${selected + 1} of ${items.length}.`
+      : loading
+        ? "Loading prompts."
+        : "No matching prompts.";
+    if (this.status.textContent !== said) this.status.textContent = said;
 
     if (!this.visible) {
       followPageTheme(this.shadowHost, this.anchorElement);
@@ -92,6 +106,7 @@ export class SlashMenu {
     this.visible = false;
     this.container.classList.remove("visible");
     this.container.replaceChildren();
+    this.status.textContent = "";
   }
 
   destroy() {

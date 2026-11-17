@@ -300,7 +300,7 @@ export function App() {
                 onValueChange={handleModelChange}
                 disabled={!modelStatus.configured}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full" aria-label="Active model">
                   <SelectValue placeholder="Select a model..." />
                 </SelectTrigger>
                 <SelectContent>

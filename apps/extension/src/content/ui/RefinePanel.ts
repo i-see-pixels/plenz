@@ -68,12 +68,38 @@ function structureKey(view: PanelView) {
 }
 
 /**
+ * What a screen reader hears when the panel changes. Focus stays in the chat
+ * box, so changes are announced rather than focused.
+ */
+function announcement(view: PanelView): string {
+  switch (view.kind) {
+    case "picking":
+      return view.canRefine
+        ? "plenz refine panel. Choose a mode, or press Escape to close."
+        : "plenz panel. Add a context card, or press Escape to close.";
+    case "streaming":
+      return `${stepLabel(view.step)}: writing.`;
+    case "asking":
+      return "Thinking of questions.";
+    case "answering":
+      return `${view.questions.length} questions to answer.`;
+    case "result":
+      return `${stepLabel(view.step)} ready. Press Tab to replace your draft, or Escape to close.`;
+    default:
+      // Failures use role="alert" in the panel itself.
+      return "";
+  }
+}
+
+/**
  * The refine panel: mode picker, streamed output, Ask me questions and the
  * finished result. It only renders what the content machine's view says.
  */
 export class RefinePanel {
   private readonly shadowHost: HTMLDivElement;
   private readonly container: HTMLDivElement;
+  /** Polite live region beside the panel, so it survives rebuilds. */
+  private readonly status: HTMLDivElement;
   private renderedKey: string | null = null;
   private output: HTMLElement | null = null;
   private resultActions: HTMLElement | null = null;
@@ -103,6 +129,8 @@ export class RefinePanel {
     this.container = el("div", "pl-container pl-overlay pl-refine");
     this.container.style.position = "fixed";
     this.container.style.zIndex = "2147483647";
+    // Not modal: focus stays in the chat box, where the keys are handled.
+    this.container.setAttribute("role", "dialog");
     // Keep keystrokes in our inputs away from the page's own shortcuts.
     for (const type of ["keydown", "keyup", "keypress", "input"]) {
       this.container.addEventListener(type, (event) => {
@@ -110,6 +138,10 @@ export class RefinePanel {
       });
     }
     shadowRoot.appendChild(this.container);
+    this.status = el("div", "pl-sr-only");
+    this.status.setAttribute("role", "status");
+    this.status.setAttribute("aria-live", "polite");
+    shadowRoot.appendChild(this.status);
     document.body.appendChild(this.shadowHost);
 
     window.addEventListener("resize", this.boundPosition);
@@ -129,6 +161,7 @@ export class RefinePanel {
     if (key !== this.renderedKey) {
       this.renderedKey = key;
       this.build(view);
+      this.status.textContent = announcement(view);
     } else if (view.kind === "streaming" && this.output) {
       this.setOutput(view.output, true);
     }
@@ -155,6 +188,7 @@ export class RefinePanel {
     this.lastResult = null;
     this.container.classList.remove("visible");
     this.container.replaceChildren();
+    this.status.textContent = "";
   }
 
   /** The saved context cards; the picker shows them on its next render. */
@@ -172,6 +206,8 @@ export class RefinePanel {
   private header(title: string) {
     const header = el("div", "pl-header");
     header.appendChild(el("span", "", title));
+    // Named from the text, not the heading: Chrome would read it in capitals.
+    this.container.setAttribute("aria-label", title);
     const close = el("button", "pl-close-btn", "✕");
     close.type = "button";
     close.title = "Close (Esc)";
@@ -236,6 +272,7 @@ export class RefinePanel {
     if (!this.output) return;
     this.output.textContent = text;
     this.output.classList.toggle("pl-streaming", streaming);
+    this.output.setAttribute("aria-busy", String(streaming));
     if (streaming) this.output.scrollTop = this.output.scrollHeight;
   }
 

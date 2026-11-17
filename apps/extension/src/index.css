@@ -155,3 +155,14 @@
   background: color-mix(in oklch, var(--muted-foreground) 54%, transparent);
   background-clip: content-box;
 }
+
+/* Respect "reduce motion" on plenz's own pages too. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

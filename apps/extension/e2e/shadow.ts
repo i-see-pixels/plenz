@@ -32,11 +32,26 @@ export class ShadowDom {
     return nodeId || null;
   }
 
+  /**
+   * Resolve a node to a JS object. The overlays rebuild while streaming, so
+   * a node found a moment ago may be gone: that reads as "not there".
+   */
+  private async resolve(nodeId: number) {
+    try {
+      const { object } = await this.cdp.send("DOM.resolveNode", { nodeId });
+      return object;
+    } catch (error) {
+      if (/No node with given id/.test((error as Error).message)) return null;
+      throw error;
+    }
+  }
+
   /** Text of the element, or null if it isn't there. */
   async text(hostId: string, selector: string): Promise<string | null> {
     const nodeId = await this.find(hostId, selector);
     if (!nodeId) return null;
-    const { object } = await this.cdp.send("DOM.resolveNode", { nodeId });
+    const object = await this.resolve(nodeId);
+    if (!object) return null;
     const { result } = await this.cdp.send("Runtime.callFunctionOn", {
       objectId: object.objectId,
       functionDeclaration: "function () { return this.textContent; }",
@@ -49,13 +64,33 @@ export class ShadowDom {
   async visible(hostId: string, selector: string): Promise<boolean> {
     const nodeId = await this.find(hostId, selector);
     if (!nodeId) return false;
-    const { object } = await this.cdp.send("DOM.resolveNode", { nodeId });
+    const object = await this.resolve(nodeId);
+    if (!object) return false;
     const { result } = await this.cdp.send("Runtime.callFunctionOn", {
       objectId: object.objectId,
       functionDeclaration: "function () { return this.checkVisibility(); }",
       returnByValue: true,
     });
     return result.value === true;
+  }
+
+  /** Move keyboard focus to the element. */
+  async focus(hostId: string, selector: string) {
+    const nodeId = await this.find(hostId, selector);
+    if (!nodeId) throw new Error(`No ${selector} in #${hostId}`);
+    await this.cdp.send("DOM.focus", { nodeId });
+  }
+
+  /** Role and accessible name, as a screen reader gets them. */
+  async accessible(hostId: string, selector: string): Promise<{ role?: string; name?: string } | null> {
+    const nodeId = await this.find(hostId, selector);
+    if (!nodeId) return null;
+    const { nodes } = await this.cdp.send("Accessibility.getPartialAXTree", {
+      nodeId,
+      fetchRelatives: false,
+    });
+    const node = nodes[0];
+    return { role: node?.role?.value as string | undefined, name: node?.name?.value as string | undefined };
   }
 
   /** Click the element's centre with the real mouse. */

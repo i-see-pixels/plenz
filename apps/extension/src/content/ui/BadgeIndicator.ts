@@ -17,6 +17,20 @@ function el(tag: string, className: string, text?: string) {
   return node;
 }
 
+/**
+ * The badge's clickable part: a real button, so it can be reached with Tab
+ * and has a name. Clicks bubble to the badge's handler; Undo sits beside it.
+ */
+function mainButton(label: string, text?: string) {
+  const button = el("button", "pl-badge-main") as HTMLButtonElement;
+  button.type = "button";
+  button.setAttribute("aria-label", label);
+  button.innerHTML = ZAP_ICON;
+  button.firstElementChild?.setAttribute("aria-hidden", "true");
+  if (text !== undefined) button.appendChild(el("span", "pl-badge-text", text));
+  return button;
+}
+
 export class BadgeIndicator {
   private anchorElement: HTMLElement;
   private shadowHost: HTMLDivElement;
@@ -95,7 +109,7 @@ export class BadgeIndicator {
   private setTone(...classes: string[]) {
     this.badge.classList.remove(...TONE_CLASSES);
     this.badge.classList.add(...classes);
-    this.badge.removeAttribute("aria-label");
+    this.badge.title = "";
   }
 
   public show(count: number) {
@@ -104,8 +118,7 @@ export class BadgeIndicator {
       return;
     }
     this.setTone();
-    this.badge.innerHTML = `${ZAP_ICON} <span style="margin-left:4px">${count}</span>`;
-    this.badge.title = "";
+    this.badge.replaceChildren(mainButton(`${count} suggestions`, String(count)));
     this.reveal();
   }
 
@@ -115,24 +128,22 @@ export class BadgeIndicator {
    */
   public showIdle() {
     this.setTone("idle");
-    this.badge.innerHTML = ZAP_ICON;
+    this.badge.replaceChildren(mainButton("plenz: context cards and saved prompts"));
     this.badge.title = "plenz: click for context cards, or type / for saved prompts";
-    this.badge.setAttribute("aria-label", "plenz: context cards and saved prompts");
     this.reveal();
   }
 
   /** A background refine finished; clicking shows it. */
   public showReady() {
     this.setTone("lint", "lint-good");
-    this.badge.innerHTML = `${ZAP_ICON} <span style="margin-left:4px">Ready</span>`;
+    this.badge.replaceChildren(mainButton("Refined prompt ready. Show it.", "Ready"));
     this.badge.title = "Refined prompt ready. Click to see it.";
     this.reveal();
   }
 
   public showSaving() {
     this.setTone();
-    this.badge.innerHTML = `${ZAP_ICON} <span style="margin-left:4px">...</span>`;
-    this.badge.title = "";
+    this.badge.replaceChildren(mainButton("Refining in the background. Show progress.", "..."));
     this.reveal();
   }
 
@@ -144,18 +155,18 @@ export class BadgeIndicator {
     const band =
       score === null ? "lint-ok" : score >= 80 ? "lint-good" : score >= 50 ? "lint-ok" : "lint-weak";
     this.setTone("lint", band);
-    this.badge.title = "";
-    this.badge.setAttribute(
-      "aria-label",
+    const main = mainButton(
       score === null
         ? `Refine prompt (${REFINE_SHORTCUT})`
-        : `Prompt score ${score} of 100. Click to refine (${REFINE_SHORTCUT}).`,
+        : `Prompt score ${score} of 100. Refine (${REFINE_SHORTCUT}).`,
     );
-
-    this.badge.innerHTML = ZAP_ICON;
-    this.badge.appendChild(el("span", "pl-lint-score", score === null ? "Refine" : String(score)));
+    main.appendChild(el("span", "pl-lint-score", score === null ? "Refine" : String(score)));
+    // The hover panel doubles as the button's description for screen readers.
+    main.setAttribute("aria-describedby", "pl-lint-panel");
+    this.badge.replaceChildren(main);
 
     const panel = el("div", "pl-lint-panel");
+    panel.id = "pl-lint-panel";
     panel.appendChild(
       el(
         "div",
@@ -198,7 +209,10 @@ export class BadgeIndicator {
 
   public showError(message?: string) {
     this.setTone("error");
-    this.badge.innerHTML = `${ALERT_ICON}`;
+    const main = mainButton(`Refine failed: ${message || "an error occurred"}. Show details.`);
+    main.innerHTML = ALERT_ICON;
+    main.firstElementChild?.setAttribute("aria-hidden", "true");
+    this.badge.replaceChildren(main);
     this.badge.title = message || "An error occurred";
     this.reveal();
   }
