@@ -6,6 +6,7 @@ import {
   providers,
 } from "@plenz/providers";
 import { AuthSession } from "./auth-session";
+import { InsertablePrompts } from "./insertable-prompts";
 import { PromptGalleryManager } from "./prompt-gallery";
 import { Sites } from "./sites";
 import { SyncVault } from "./sync-vault";
@@ -107,10 +108,12 @@ const handlers: Handlers = {
   },
 
   async AUTH_SIGN_IN() {
+    InsertablePrompts.invalidate();
     return AuthSession.signIn();
   },
 
   async AUTH_SIGN_OUT(payload) {
+    InsertablePrompts.invalidate();
     return AuthSession.signOut(payload?.keepLocalCopies === true);
   },
 
@@ -137,6 +140,10 @@ const handlers: Handlers = {
     };
   },
 
+  async LIST_INSERTABLE_PROMPTS() {
+    return { prompts: await InsertablePrompts.list() };
+  },
+
   async LIST_SAVED_PROMPTS() {
     return {
       prompts: await PromptGalleryManager.listSavedPrompts(),
@@ -144,6 +151,7 @@ const handlers: Handlers = {
   },
 
   async CREATE_SAVED_PROMPT(payload) {
+    InsertablePrompts.invalidate();
     return {
       prompt: await PromptGalleryManager.createCustomPrompt({
         title: payload?.title ?? "",
@@ -153,6 +161,7 @@ const handlers: Handlers = {
   },
 
   async UPDATE_SAVED_PROMPT(payload) {
+    InsertablePrompts.invalidate();
     return {
       prompt: await PromptGalleryManager.updateSavedPrompt({
         id: payload?.id ?? "",
@@ -163,12 +172,14 @@ const handlers: Handlers = {
   },
 
   async SAVE_PUBLIC_PROMPT(payload) {
+    InsertablePrompts.invalidate();
     return {
       prompt: await PromptGalleryManager.savePublicPrompt(payload?.prompt),
     };
   },
 
   async DELETE_SAVED_PROMPT(payload) {
+    InsertablePrompts.invalidate();
     await PromptGalleryManager.deleteSavedPrompt(payload?.id ?? "");
     return { success: true };
   },

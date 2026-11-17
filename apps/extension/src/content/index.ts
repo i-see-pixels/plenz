@@ -3,6 +3,13 @@ import { findPlatformAdapter } from "./editors/platforms";
 import type { EditorAdapter } from "./editors/types";
 import { BadgeIndicator } from "./ui/BadgeIndicator";
 import { RefinePanel } from "./ui/RefinePanel";
+import { SlashMenu } from "./ui/SlashMenu";
+import {
+  matchSlashItems,
+  parseSlashQuery,
+  replaceSlashCommand,
+  type SlashItem,
+} from "./slash";
 import {
   createContentModel,
   keyToEvent,
@@ -35,8 +42,14 @@ import {
   type RpcFailure,
   type RpcReply,
   type RpcType,
+  type InsertablePrompt,
 } from "../shared/rpc";
 import type { ConversationContext } from "@plenz/types";
+import {
+  CONTEXT_CARDS_STORAGE_KEY,
+  normalizeCards,
+  type ContextCard,
+} from "../shared/context-cards";
 
 const PREFERENCES_STORAGE_KEY = "preferences";
 const DEFAULT_DEBOUNCE_MS = 500;
@@ -91,6 +104,14 @@ class ExtensionContentScript {
   private detectScheduled = false;
   private rollingSummary = "";
   private conversationUrl = window.location.href;
+  private cards: ContextCard[] = [];
+  private slashMenu: SlashMenu | null = null;
+  /** The open `/` menu: its query, matches and highlighted row. */
+  private slash: { query: string; items: SlashItem[]; selected: number } | null = null;
+  /** Esc closed the menu for this exact draft; typing reopens it. */
+  private slashDismissedFor: string | null = null;
+  private prompts: { at: number; list: InsertablePrompt[] } | null = null;
+  private promptsLoading = false;
 
   private model: ContentModel = createContentModel();
   private renderedView: ContentView | null = null;
@@ -107,12 +128,14 @@ class ExtensionContentScript {
   }
 
   private async init() {
-    await this.loadPreferences();
+    await Promise.all([this.loadPreferences(), this.loadCards()]);
     this.observePreferenceChanges();
     this.observeDOM();
     this.detectInput();
 
-    document.addEventListener(
+    // Window capture runs before any page listener, so Enter in the `/` menu
+    // can never reach the site and send the half-typed command.
+    window.addEventListener(
       "keydown",
       this.handleGlobalKeydown.bind(this),
       true,
@@ -221,6 +244,91 @@ class ExtensionContentScript {
           : null;
       this.panel?.render(next.panel, diff);
     }
+
+    this.renderSlash();
+  }
+
+  /** Show, update or hide the `/` menu for the current draft. */
+  private renderSlash() {
+    const { state, text, enabled } = this.model;
+    const query =
+      enabled && (state.kind === "idle" || state.kind === "debouncing") && text !== this.slashDismissedFor
+        ? parseSlashQuery(text)
+        : null;
+    if (query === null || !this.slashMenu) {
+      this.slash = null;
+      this.slashMenu?.hide();
+      return;
+    }
+
+    this.loadPrompts();
+    const items = matchSlashItems(
+      [
+        ...this.cards.map((card) => ({ ...card, source: "card" as const })),
+        ...(this.prompts?.list ?? []),
+      ],
+      query,
+    );
+    // A typed query with nothing behind it is probably not a command ("/etc").
+    if (items.length === 0 && query && !this.promptsLoading) {
+      this.slash = null;
+      this.slashMenu.hide();
+      return;
+    }
+    const selected =
+      this.slash?.query === query ? Math.min(this.slash.selected, Math.max(0, items.length - 1)) : 0;
+    this.slash = { query, items, selected };
+    this.slashMenu.render(items, selected, this.promptsLoading);
+  }
+
+  /** Saved and gallery prompts, fetched when the menu opens (cached for a minute). */
+  private loadPrompts() {
+    if (this.promptsLoading || (this.prompts && Date.now() - this.prompts.at < 60_000)) return;
+    this.promptsLoading = true;
+    void this.sendRuntimeMessage("LIST_INSERTABLE_PROMPTS")
+      .then((reply) => {
+        const list = reply && !isRpcFailure(reply) ? reply.prompts : [];
+        this.prompts = { at: Date.now(), list };
+      })
+      .catch(() => {
+        this.prompts = { at: Date.now(), list: [] };
+      })
+      .finally(() => {
+        this.promptsLoading = false;
+        this.renderSlash();
+      });
+  }
+
+  private pickSlashItem(index: number) {
+    const item = this.slash?.items[index];
+    if (!item) return;
+    this.dispatch({ type: "SLASH_INSERT", text: replaceSlashCommand(this.model.text, item.text) });
+  }
+
+  /** Keys for the open `/` menu; true when the key was used. */
+  private handleSlashKey(e: KeyboardEvent) {
+    const slash = this.slash;
+    if (!slash || e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return false;
+    const count = slash.items.length;
+    switch (e.key) {
+      case "ArrowDown":
+      case "ArrowUp":
+        if (count === 0) return false;
+        slash.selected = (slash.selected + (e.key === "ArrowDown" ? 1 : count - 1)) % count;
+        this.slashMenu?.render(slash.items, slash.selected, this.promptsLoading);
+        return true;
+      case "Enter":
+      case "Tab":
+        if (e.shiftKey || count === 0) return false;
+        this.pickSlashItem(slash.selected);
+        return true;
+      case "Escape":
+        this.slashDismissedFor = this.model.text;
+        this.renderSlash();
+        return true;
+      default:
+        return false;
+    }
   }
 
   private observeDOM() {
@@ -259,8 +367,26 @@ class ExtensionContentScript {
     }
   }
 
+  private async loadCards() {
+    try {
+      const stored = await chrome.storage.local.get(CONTEXT_CARDS_STORAGE_KEY);
+      this.setCards(stored[CONTEXT_CARDS_STORAGE_KEY]);
+    } catch (error) {
+      console.warn("plenz: failed to load context cards", error);
+    }
+  }
+
+  private setCards(value: unknown) {
+    this.cards = normalizeCards(value);
+    this.panel?.setCards(this.cards);
+    this.render();
+  }
+
   private observePreferenceChanges() {
     chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === "local" && changes[CONTEXT_CARDS_STORAGE_KEY]) {
+        this.setCards(changes[CONTEXT_CARDS_STORAGE_KEY].newValue);
+      }
       if (areaName !== "local" || !changes[PREFERENCES_STORAGE_KEY]) {
         return;
       }
@@ -293,8 +419,11 @@ class ExtensionContentScript {
     this.inputElement = null;
     this.panel?.destroy();
     this.badge?.destroy();
+    this.slashMenu?.destroy();
     this.panel = null;
     this.badge = null;
+    this.slashMenu = null;
+    this.slash = null;
     this.renderedView = null;
   }
 
@@ -310,6 +439,10 @@ class ExtensionContentScript {
     this.inputElement = el;
     this.panel = new RefinePanel(container, {
       onMode: (mode) => this.dispatch({ type: "MODE_CHOSEN", mode }),
+      onCard: (id) => {
+        const card = this.cards.find((entry) => entry.id === id);
+        if (card) this.dispatch({ type: "CARD_CHOSEN", text: card.text });
+      },
       onAccept: () => this.dispatch({ type: "ACCEPT" }),
       onDismiss: () => this.dispatch({ type: "DISMISS" }),
       onAnswer: (index, value) =>
@@ -318,9 +451,11 @@ class ExtensionContentScript {
       onToggleChange: (index) => this.dispatch({ type: "CHANGE_TOGGLED", index }),
       onResetChanges: () => this.dispatch({ type: "CHANGES_RESET" }),
     });
+    this.panel.setCards(this.cards);
     this.badge = new BadgeIndicator(container);
     this.badge.setOnClick(() => this.dispatch({ type: "BADGE_CLICKED" }));
     this.badge.setOnUndo(() => this.dispatch({ type: "UNDO_REQUESTED" }));
+    this.slashMenu = new SlashMenu(container, (index) => this.pickSlashItem(index));
     el.addEventListener("input", this.boundHandleInput);
 
     this.dispatch({ type: "INPUT_ATTACHED" });
@@ -457,6 +592,11 @@ class ExtensionContentScript {
 
   private handleGlobalKeydown(e: KeyboardEvent) {
     const target = e.target as Node | null;
+    if (target && this.inputElement?.contains(target) && this.handleSlashKey(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     const event = keyToEvent(this.model.state, {
       key: e.key,
       shiftKey: e.shiftKey,

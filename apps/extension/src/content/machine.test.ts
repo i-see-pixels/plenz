@@ -404,3 +404,54 @@ describe("keyToEvent", () => {
     assert.equal(keyToEvent(typed().state, key("Enter", { shiftKey: true })), null);
   });
 });
+
+describe("context cards", () => {
+  const CARD = "I run a two-person bakery.";
+
+  test("choosing a card in the picker writes it above the draft, with undo", () => {
+    const { model: applying, effects } = run(picking(), { type: "CARD_CHOSEN", text: CARD });
+    const withCardText = `${CARD}\n\n${PROMPT}`;
+    assert.deepEqual(effects, [{ type: "applyText", text: withCardText }]);
+    assert.equal(isPanelOpen(applying.state), false);
+
+    const done = run(applying, { type: "APPLIED", text: withCardText }).model;
+    assert.equal(done.state.kind, "idle");
+    assert.deepEqual(done.undo, { previous: PROMPT, applied: withCardText });
+  });
+
+  test("a card already at the top just closes the picker", () => {
+    const model = run(picking(), { type: "CARD_CHOSEN", text: PROMPT });
+    assert.deepEqual(model.effects, []);
+    assert.equal(model.model.state.kind, "idle");
+  });
+
+  test("ignored outside the picker", () => {
+    for (const model of [typed(), streaming(), result()]) {
+      assert.deepEqual(run(model, { type: "CARD_CHOSEN", text: CARD }).effects, []);
+    }
+  });
+});
+
+describe("slash command inserts", () => {
+  test("replaces the draft while typing, with undo", () => {
+    const start = typed(true, "/launch");
+    assert.equal(start.state.kind, "idle"); // too short to refine
+    const { model, effects } = run(start, { type: "SLASH_INSERT", text: "Write a launch email" });
+    assert.deepEqual(effects, [{ type: "applyText", text: "Write a launch email" }]);
+    const done = run(model, { type: "APPLIED", text: "Write a launch email" }).model;
+    assert.deepEqual(done.undo, { previous: "/launch", applied: "Write a launch email" });
+  });
+
+  test("cancels a pending auto-refine", () => {
+    const debouncing = typed(true);
+    assert.equal(debouncing.state.kind, "debouncing");
+    assert.deepEqual(run(debouncing, { type: "SLASH_INSERT", text: "Other" }).effects, [
+      { type: "clearDebounce" },
+      { type: "applyText", text: "Other" },
+    ]);
+  });
+
+  test("ignored while the panel is open", () => {
+    assert.deepEqual(run(picking(), { type: "SLASH_INSERT", text: "Other" }).effects, []);
+  });
+});

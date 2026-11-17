@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import logo from "../assets/logo.svg";
 import { AuthStatus } from "../components/AuthStatus";
+import { ContextCards } from "../components/ContextCards";
 import { ModelConfig } from "../components/ModelConfig";
 import { isRpcFailure, sendRpc } from "../shared/rpc";
 import {
@@ -303,6 +304,20 @@ export function App() {
                   : "Controls how long plenz waits after you stop typing before running analysis."}
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="gap-0 rounded-md border-border py-0 shadow-none">
+          <CardHeader className="gap-0 font-mono border-b border-border px-4 pt-4">
+            <CardTitle className="font-mono text-lg font-semibold tracking-[0.16em] uppercase">
+              Context cards
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Saved notes you can add to any draft with one click.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 py-4">
+            <ContextCards />
           </CardContent>
         </Card>
       </div>

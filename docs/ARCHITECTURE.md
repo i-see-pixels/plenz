@@ -22,6 +22,8 @@ Shared logic lives in:
 6. Ask me is two steps: the questions come back first, the user answers what they can, and a `compose` refine writes the prompt from the answers.
 7. The finished prompt is shown as a word-level diff against the draft (`diffPrompts` in `@plenz/core`), or as the plain result when the rewrite is mostly new text. Clicking a change keeps the draft's wording there; "Replace prompt" (or Tab in the chat input) writes the accepted changes only (`applyDiff`). Esc closes the panel.
 8. After a replace the badge offers Undo, which restores the previous draft. It stays available until the chat input is edited.
+9. The mode picker also lists the user's context cards (`apps/extension/src/shared/context-cards.ts`), which the options page saves to `chrome.storage.local` under `contextCards` and the content script reads directly. Clicking one writes it above the draft (`withCard`) through the same write path, with the same Undo; no provider call.
+10. Typing `/` at the start of the draft's last line opens the `/` menu (`apps/extension/src/content/slash.ts`, `ui/SlashMenu.ts`). It lists context cards plus saved and trending gallery prompts from `LIST_INSERTABLE_PROMPTS`, which the background caches for a minute (`background/insertable-prompts.ts`) and which returns titles and text only. Arrow keys choose, Enter or Tab inserts (the `/query` line is replaced, with Undo), Esc closes. While the menu is open those keys are taken at window capture so they never reach the site.
 
 ## Other Sites
 

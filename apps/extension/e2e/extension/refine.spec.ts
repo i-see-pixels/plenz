@@ -143,3 +143,110 @@ test("the badge opens the mode picker without calling the provider; a mode then 
   await page.keyboard.press("Escape");
   await expect.poll(() => shadow.visible(PANEL, ".pl-header")).toBe(false);
 });
+
+test("a context card from the picker goes above the draft without calling the provider", async ({
+  context,
+  serviceWorker,
+}) => {
+  const CARD = "I'm the PM at a small analytics startup.";
+  await serviceWorker.evaluate(async (text) => {
+    await chrome.storage.local.set({ contextCards: [{ id: "me", title: "About me", text }] });
+  }, CARD);
+  // A textarea, so the composer's value is exactly what was written.
+  const page = await openFixture(context, "perplexity");
+  const shadow = await ShadowDom.attach(page);
+  await typeDraft(page, "perplexity");
+  await expect.poll(() => shadow.visible(BADGE, ".pl-lint-score")).toBe(true);
+
+  await shadow.click(BADGE, ".pl-lint-score");
+  await expect.poll(() => shadow.text(PANEL, ".pl-card-chip")).toBe("About me");
+  await shadow.click(PANEL, ".pl-card-chip");
+
+  await expect.poll(() => composerText(page, "perplexity")).toBe(`${CARD}\n\n${DRAFT}`);
+  expect(await shadow.visible(PANEL, ".pl-header")).toBe(false);
+  expect(mock.requests).toHaveLength(0);
+
+  await expect.poll(() => shadow.visible(BADGE, ".pl-undo")).toBe(true);
+  await shadow.click(BADGE, ".pl-undo");
+  await expect.poll(() => composerText(page, "perplexity")).toBe(DRAFT);
+});
+
+test.describe("the / command", () => {
+  const SLASH = "plenz-slash-menu";
+  const CARDS = [
+    { id: "me", title: "About me", text: "I'm the PM at a small analytics startup." },
+    { id: "tone", title: "Tone", text: "Keep it short and friendly." },
+  ];
+
+  test.beforeEach(async ({ serviceWorker }) => {
+    await serviceWorker.evaluate(async (cards) => {
+      await chrome.storage.local.set({ contextCards: cards });
+    }, CARDS);
+  });
+
+  test("lists cards, filters as you type, and Enter inserts without reaching the page", async ({
+    context,
+  }) => {
+    const page = await openFixture(context, "perplexity");
+    const shadow = await ShadowDom.attach(page);
+    await page.evaluate(() => {
+      const w = window as unknown as { __enters: number };
+      w.__enters = 0;
+      document.querySelector("textarea")!.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") w.__enters++;
+      });
+    });
+    await page.locator("textarea").click();
+    await page.keyboard.type("Context first\n/");
+
+    await expect.poll(() => shadow.text(SLASH, ".pl-slash-item .pl-slash-title")).toBe("About me");
+    await page.keyboard.type("to");
+    await expect.poll(() => shadow.text(SLASH, ".pl-slash-item .pl-slash-title")).toBe("Tone");
+
+    await page.keyboard.press("Enter");
+    await expect
+      .poll(() => composerText(page, "perplexity"))
+      .toBe("Context first\nKeep it short and friendly.");
+    expect(await shadow.visible(SLASH, ".pl-slash-item")).toBe(false);
+    // The newline typed above is the only Enter the page saw.
+    expect(await page.evaluate(() => (window as unknown as { __enters: number }).__enters)).toBe(1);
+    expect(mock.requests).toHaveLength(0);
+  });
+
+  test("arrow keys choose, Esc closes until the draft changes", async ({ context }) => {
+    const page = await openFixture(context, "perplexity");
+    const shadow = await ShadowDom.attach(page);
+    await page.locator("textarea").click();
+    await page.keyboard.type("/");
+    await expect.poll(() => shadow.text(SLASH, ".selected .pl-slash-title")).toBe("About me");
+
+    await page.keyboard.press("ArrowDown");
+    await expect.poll(() => shadow.text(SLASH, ".selected .pl-slash-title")).toBe("Tone");
+    await page.keyboard.press("Escape");
+    await expect.poll(() => shadow.visible(SLASH, ".pl-slash-item")).toBe(false);
+
+    await page.keyboard.type("a");
+    await expect.poll(() => shadow.text(SLASH, ".selected .pl-slash-title")).toBe("About me");
+    await page.keyboard.press("Tab");
+    await expect.poll(() => composerText(page, "perplexity")).toBe(CARDS[0].text);
+  });
+
+  test("works in a rich editor too", async ({ context }) => {
+    const page = await openFixture(context, "claude");
+    const shadow = await ShadowDom.attach(page);
+    await page.locator(FIXTURES.claude.composer).click();
+    await page.keyboard.type("/about");
+    await expect.poll(() => shadow.text(SLASH, ".selected .pl-slash-title")).toBe("About me");
+    await page.keyboard.press("Enter");
+    await expect.poll(() => composerText(page, "claude")).toBe(CARDS[0].text);
+  });
+
+  test("a slash in the middle of prose opens nothing", async ({ context }) => {
+    const page = await openFixture(context, "perplexity");
+    const shadow = await ShadowDom.attach(page);
+    await page.locator("textarea").click();
+    await page.keyboard.type("compare a/b test results");
+    await page.waitForTimeout(300);
+    expect(await shadow.visible(SLASH, ".pl-slash-item")).toBe(false);
+  });
+});

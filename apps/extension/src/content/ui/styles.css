@@ -443,3 +443,63 @@
   border: 1px solid var(--pl-border);
   font-weight: 500;
 }
+
+/* `/` command menu */
+.pl-slash {
+  overflow-y: auto;
+  gap: 2px;
+  padding: 6px;
+  font-size: 13px;
+}
+
+.pl-slash-item {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--pl-radius-sm);
+  cursor: pointer;
+}
+
+.pl-slash-item:hover,
+.pl-slash-item.selected {
+  background: var(--pl-bg-hover);
+}
+
+.pl-slash-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pl-slash-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-slash-source {
+  flex-shrink: 0;
+  font-family: var(--pl-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pl-text-secondary);
+}
+
+.pl-slash-preview {
+  font-size: 12px;
+  color: var(--pl-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-slash-empty {
+  padding: 6px 8px;
+}
+
+.pl-slash-foot {
+  margin-top: 4px;
+  padding: 0 8px 2px;
+}

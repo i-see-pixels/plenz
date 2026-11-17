@@ -18,6 +18,14 @@ import type { SiteStatus } from "./sites";
 import type { VaultStatus } from "../background/sync-vault";
 import type { OnDeviceAvailability } from "@plenz/providers";
 
+/** A prompt the in-page `/` command can insert (see ../content/slash.ts). */
+export type InsertablePrompt = {
+  id: string;
+  title: string;
+  text: string;
+  source: "saved" | "gallery";
+};
+
 /** Any handler may reply with this instead (rejected sender, thrown error). */
 export type RpcFailure = { error: string };
 
@@ -31,6 +39,8 @@ export type RpcMap = {
   // Content scripts (also allowed from extension pages). Refines stream over
   // a port instead; see ./refine-port.ts.
   GET_PREFERENCES: { payload: void; reply: UserPreferences };
+  /** Saved and gallery prompts for the `/` command (titles and text only). */
+  LIST_INSERTABLE_PROMPTS: { payload: void; reply: { prompts: InsertablePrompt[] } };
 
   // Extension pages only
   SET_PREFERENCES: {
@@ -132,6 +142,7 @@ export type RpcMessage = {
  */
 export const CONTENT_SCRIPT_RPC: ReadonlySet<RpcType> = new Set<RpcType>([
   "GET_PREFERENCES",
+  "LIST_INSERTABLE_PROMPTS",
 ]);
 
 export type PayloadArgs<K extends RpcType> = RpcPayload<K> extends void

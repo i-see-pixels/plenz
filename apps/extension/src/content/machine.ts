@@ -1,5 +1,6 @@
 import type { ClarifyingAnswer, RefineStep } from "@plenz/core";
 import type { RefineMode } from "@plenz/types";
+import { withCard } from "../shared/context-cards.ts";
 
 // Pure state machine for the in-page flow. No DOM, timers or messaging here:
 // `transition` returns the next model plus effects for the driver to run,
@@ -68,6 +69,10 @@ export type ContentEvent =
   | { type: "DEBOUNCE_ELAPSED" }
   | { type: "BADGE_CLICKED" }
   | { type: "MODE_CHOSEN"; mode: RefineMode }
+  /** A context card picked in the panel; `text` is the card's text. */
+  | { type: "CARD_CHOSEN"; text: string }
+  /** A `/` command picked an item; `text` is the whole new draft. */
+  | { type: "SLASH_INSERT"; text: string }
   /** Ctrl/Cmd+Shift+Enter: Improve straight away. */
   | { type: "REFINE_REQUESTED" }
   | { type: "REFINE_DELTA"; requestId: number; text: string }
@@ -269,6 +274,26 @@ export function transition(
 
     case "MODE_CHOSEN":
       return isPanelOpen(state) ? beginRefine(model, event.mode, true) : unchanged(model);
+
+    case "SLASH_INSERT":
+      // Only while typing: the menu is never open over the refine panel.
+      if ((state.kind !== "idle" && state.kind !== "debouncing") || event.text === model.text) {
+        return unchanged(model);
+      }
+      return to(model, { kind: "applying", previous: model.text, undoing: false }, [
+        ...exitEffects(state),
+        { type: "applyText", text: event.text },
+      ]);
+
+    case "CARD_CHOSEN": {
+      // Free and local: add the card to the draft, close the picker, offer Undo.
+      if (state.kind !== "picking") return unchanged(model);
+      const text = withCard(model.text, event.text);
+      if (text === model.text) return to(model, { kind: "idle" });
+      return to(model, { kind: "applying", previous: model.text, undoing: false }, [
+        { type: "applyText", text },
+      ]);
+    }
 
     case "REFINE_REQUESTED":
       switch (state.kind) {

@@ -5,6 +5,7 @@ import {
   type RefineStep,
 } from "@plenz/core";
 import type { RefineMode } from "@plenz/types";
+import type { ContextCard } from "../../shared/context-cards";
 import type { PanelView } from "../machine";
 import styles from "./styles.css?inline";
 
@@ -20,6 +21,8 @@ const MOD = IS_MAC ? "⌘" : "Ctrl";
 
 export type RefinePanelHandlers = {
   onMode(mode: RefineMode): void;
+  /** Add a saved context card to the draft. */
+  onCard(id: string): void;
   onAccept(): void;
   onDismiss(): void;
   onAnswer(index: number, value: string): void;
@@ -76,6 +79,7 @@ export class RefinePanel {
   private lastResult: { view: Extract<PanelView, { kind: "result" }>; diff: PromptDiff | null } | null =
     null;
   private visible = false;
+  private cards: ContextCard[] = [];
   private readonly boundPosition = () => this.position();
 
   constructor(
@@ -112,7 +116,10 @@ export class RefinePanel {
       return;
     }
 
-    const key = structureKey(view);
+    const key =
+      view.kind === "picking"
+        ? `${structureKey(view)}:${this.cards.map((card) => `${card.id}=${card.title}`).join("|")}`
+        : structureKey(view);
     if (key !== this.renderedKey) {
       this.renderedKey = key;
       this.build(view);
@@ -140,6 +147,11 @@ export class RefinePanel {
     this.lastResult = null;
     this.container.classList.remove("visible");
     this.container.replaceChildren();
+  }
+
+  /** The saved context cards; the picker shows them on its next render. */
+  setCards(cards: ContextCard[]) {
+    this.cards = cards;
   }
 
   destroy() {
@@ -177,6 +189,26 @@ export class RefinePanel {
       footer.appendChild(hint);
     }
     return footer;
+  }
+
+  /** Saved context cards; adding one is local and free. */
+  private cardRow() {
+    if (this.cards.length === 0) {
+      return el(
+        "div",
+        "pl-muted pl-gap",
+        "Tip: save context cards (about you, a project, a tone) in plenz settings to add them here.",
+      );
+    }
+    const row = el("div", "pl-mode-row pl-card-row");
+    row.appendChild(el("span", "pl-muted", "Add context:"));
+    for (const card of this.cards) {
+      const chip = this.button(card.title, () => this.handlers.onCard(card.id));
+      chip.classList.add("pl-btn-small", "pl-card-chip");
+      chip.title = card.text.length > 200 ? `${card.text.slice(0, 200)}…` : card.text;
+      row.appendChild(chip);
+    }
+    return row;
   }
 
   /** Small row of modes for trying again another way. */
@@ -228,6 +260,7 @@ export class RefinePanel {
           grid.appendChild(card);
         }
         body.push(grid);
+        body.push(this.cardRow());
         body.push(this.footer(["Esc", "close"], [`${MOD}⇧Enter`, "Improve"]));
         body.push(el("div", "pl-muted pl-note", "Each mode is one call to your AI provider."));
         break;
