@@ -21,8 +21,8 @@ export function CTA() {
             Ship better prompts on the first draft.
           </h2>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            plenz is free, open source, and ready for immediate use with
-            your own provider key.
+            plenz is free and open source. It works with Chrome&apos;s
+            on-device model, or with your own provider key.
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -58,7 +58,7 @@ export function CTA() {
           </p>
 
           <p className="font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-            No account required - BYOK - MIT license
+            No account required - On-device or BYOK - MIT license
           </p>
         </div>
       </div>

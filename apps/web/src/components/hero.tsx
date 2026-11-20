@@ -44,9 +44,10 @@ export function Hero() {
               Rewrite weak prompts before you send them.
             </h1>
             <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              plenz scans your input inline, proposes higher-precision
-              alternatives, and keeps your keys and prompt data local to your
-              browser.
+              plenz checks your draft as you type, rewrites it on demand, and
+              shows every change before you replace it. Use Chrome&apos;s
+              on-device model with no key, or bring your own. Your keys stay in
+              your browser.
             </p>
           </div>
 
