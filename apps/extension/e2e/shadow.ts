@@ -7,7 +7,10 @@ import type { CDPSession, Page } from "@playwright/test";
  * opening the roots in production.
  */
 export class ShadowDom {
-  private constructor(private readonly page: Page, private readonly cdp: CDPSession) {}
+  private constructor(
+    private readonly page: Page,
+    private readonly cdp: CDPSession,
+  ) {}
 
   static async attach(page: Page) {
     return new ShadowDom(page, await page.context().newCDPSession(page));
@@ -15,20 +18,33 @@ export class ShadowDom {
 
   /** Node id of the first element matching `selector` inside `#hostId`'s shadow root. */
   private async find(hostId: string, selector: string): Promise<number | null> {
-    const { root } = await this.cdp.send("DOM.getDocument", { depth: -1, pierce: true });
+    const { root } = await this.cdp.send("DOM.getDocument", {
+      depth: -1,
+      pierce: true,
+    });
     const { nodeId: hostNode } = await this.cdp.send("DOM.querySelector", {
       nodeId: root.nodeId,
       selector: `#${hostId}`,
     });
     if (!hostNode) return null;
-    const { node } = await this.cdp.send("DOM.describeNode", { nodeId: hostNode, depth: 1, pierce: true });
+    const { node } = await this.cdp.send("DOM.describeNode", {
+      nodeId: hostNode,
+      depth: 1,
+      pierce: true,
+    });
     const shadowRoot = node.shadowRoots?.[0];
     if (!shadowRoot) return null;
     // describeNode returns a backend id; push it to get a usable node id.
-    const { nodeIds } = await this.cdp.send("DOM.pushNodesByBackendIdsToFrontend", {
-      backendNodeIds: [shadowRoot.backendNodeId],
+    const { nodeIds } = await this.cdp.send(
+      "DOM.pushNodesByBackendIdsToFrontend",
+      {
+        backendNodeIds: [shadowRoot.backendNodeId],
+      },
+    );
+    const { nodeId } = await this.cdp.send("DOM.querySelector", {
+      nodeId: nodeIds[0],
+      selector,
     });
-    const { nodeId } = await this.cdp.send("DOM.querySelector", { nodeId: nodeIds[0], selector });
     return nodeId || null;
   }
 
@@ -82,7 +98,10 @@ export class ShadowDom {
   }
 
   /** Role and accessible name, as a screen reader gets them. */
-  async accessible(hostId: string, selector: string): Promise<{ role?: string; name?: string } | null> {
+  async accessible(
+    hostId: string,
+    selector: string,
+  ): Promise<{ role?: string; name?: string } | null> {
     const nodeId = await this.find(hostId, selector);
     if (!nodeId) return null;
     const { nodes } = await this.cdp.send("Accessibility.getPartialAXTree", {
@@ -90,7 +109,10 @@ export class ShadowDom {
       fetchRelatives: false,
     });
     const node = nodes[0];
-    return { role: node?.role?.value as string | undefined, name: node?.name?.value as string | undefined };
+    return {
+      role: node?.role?.value as string | undefined,
+      name: node?.name?.value as string | undefined,
+    };
   }
 
   /** Click the element's centre with the real mouse. */

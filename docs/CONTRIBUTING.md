@@ -62,4 +62,3 @@ See `SECURITY.md` for disclosure instructions.
   - `pnpm dlx shadcn@latest add <component> -c apps/extension`
 - Do not create or commit files under `apps/*/src/components/ui`.
 - Run `pnpm lint:ui-primitives` before opening a PR.
-

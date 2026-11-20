@@ -2,6 +2,7 @@ export function HeroAnimation() {
   return (
     <div className="w-full h-full p-4 flex items-center justify-center bg-muted/30">
       <svg
+        aria-hidden="true"
         viewBox="0 0 800 500"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -9,7 +10,13 @@ export function HeroAnimation() {
       >
         <defs>
           <clipPath id="typewriter">
-            <rect className="typewriter-mask" x="100" y="270" width="0" height="40" />
+            <rect
+              className="typewriter-mask"
+              x="100"
+              y="270"
+              width="0"
+              height="40"
+            />
           </clipPath>
         </defs>
 
@@ -91,85 +98,235 @@ export function HeroAnimation() {
         </style>
 
         {/* Browser Window Backdrop */}
-        <rect width="800" height="500" rx="12" fill="#ffffff" stroke="#e2e8f0" strokeWidth="2" />
-        
+        <rect
+          width="800"
+          height="500"
+          rx="12"
+          fill="#ffffff"
+          stroke="#e2e8f0"
+          strokeWidth="2"
+        />
+
         {/* Browser Title Bar */}
-        <path d="M0 12C0 5.37258 5.37258 0 12 0H788C794.627 0 800 5.37258 800 12V40H0V12Z" fill="#f8fafc" />
-        <line x1="0" y1="40" x2="800" y2="40" stroke="#e2e8f0" strokeWidth="1" />
-        
+        <path
+          d="M0 12C0 5.37258 5.37258 0 12 0H788C794.627 0 800 5.37258 800 12V40H0V12Z"
+          fill="#f8fafc"
+        />
+        <line
+          x1="0"
+          y1="40"
+          x2="800"
+          y2="40"
+          stroke="#e2e8f0"
+          strokeWidth="1"
+        />
+
         {/* Window Controls */}
         <circle cx="24" cy="20" r="6" fill="#ef4444" />
         <circle cx="44" cy="20" r="6" fill="#eab308" />
         <circle cx="64" cy="20" r="6" fill="#22c55e" />
-        
+
         {/* Address Bar */}
-        <rect x="250" y="8" width="300" height="24" rx="12" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
-        <text x="400" y="24" fontSize="12" fill="#94a3b8" textAnchor="middle" fontFamily="sans-serif">app.plenz.com</text>
+        <rect
+          x="250"
+          y="8"
+          width="300"
+          height="24"
+          rx="12"
+          fill="#ffffff"
+          stroke="#e2e8f0"
+          strokeWidth="1"
+        />
+        <text
+          x="400"
+          y="24"
+          fontSize="12"
+          fill="#94a3b8"
+          textAnchor="middle"
+          fontFamily="sans-serif"
+        >
+          app.plenz.com
+        </text>
 
         {/* Content Area - Chat Interface Mockup */}
-        <rect x="40" y="80" width="720" height="380" rx="8" fill="#f8fafc" stroke="#e2e8f0" />
-        
+        <rect
+          x="40"
+          y="80"
+          width="720"
+          height="380"
+          rx="8"
+          fill="#f8fafc"
+          stroke="#e2e8f0"
+        />
+
         {/* Fake Chat Bubbles */}
         <rect x="80" y="120" width="200" height="40" rx="8" fill="#e2e8f0" />
         <rect x="520" y="180" width="200" height="40" rx="8" fill="#3b82f6" />
-        
+
         {/* Input Field below */}
-        <rect className="input-box" x="80" y="260" width="640" height="60" rx="8" fill="#ffffff" stroke="#cbd5e1" strokeWidth="2" />
-        
+        <rect
+          className="input-box"
+          x="80"
+          y="260"
+          width="640"
+          height="60"
+          rx="8"
+          fill="#ffffff"
+          stroke="#cbd5e1"
+          strokeWidth="2"
+        />
+
         {/* Group with Typewriter Mask for both texts */}
         <g clipPath="url(#typewriter)">
           {/* Draft text */}
-          <text className="draft-text" x="100" y="296" fontSize="16" fill="#334155" fontFamily="sans-serif">
+          <text
+            className="draft-text"
+            x="100"
+            y="296"
+            fontSize="16"
+            fill="#334155"
+            fontFamily="sans-serif"
+          >
             write me an email to my manager
           </text>
-          
+
           {/* Updated text (appears on click) */}
-          <text className="updated-text" x="100" y="296" fontSize="14" fill="#1e293b" fontFamily="sans-serif">
-            Write a concise professional email to my manager requesting PTO from March 10 to 14.
+          <text
+            className="updated-text"
+            x="100"
+            y="296"
+            fontSize="14"
+            fill="#1e293b"
+            fontFamily="sans-serif"
+          >
+            Write a concise professional email to my manager requesting PTO from
+            March 10 to 14.
           </text>
         </g>
 
         {/* Thinking Pill */}
         <g className="think-pill">
-          <rect x="630" y="274" width="75" height="32" rx="16" fill="#f3e8ff" stroke="#d8b4fe" strokeWidth="1" />
+          <rect
+            x="630"
+            y="274"
+            width="75"
+            height="32"
+            rx="16"
+            fill="#f3e8ff"
+            stroke="#d8b4fe"
+            strokeWidth="1"
+          />
           <circle cx="650" cy="290" r="3" fill="#a855f7">
-            <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" />
+            <animate
+              attributeName="opacity"
+              values="0.3;1;0.3"
+              dur="1s"
+              repeatCount="indefinite"
+            />
           </circle>
           <circle cx="667" cy="290" r="3" fill="#a855f7">
-            <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.2s" />
+            <animate
+              attributeName="opacity"
+              values="0.3;1;0.3"
+              dur="1s"
+              repeatCount="indefinite"
+              begin="0.2s"
+            />
           </circle>
           <circle cx="684" cy="290" r="3" fill="#a855f7">
-            <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.4s" />
+            <animate
+              attributeName="opacity"
+              values="0.3;1;0.3"
+              dur="1s"
+              repeatCount="indefinite"
+              begin="0.4s"
+            />
           </circle>
         </g>
 
         {/* Suggestion Overlay Group - Centered over input content, flush with top of input box (gap of 8px) */}
         <g className="overlay" transform="translate(100, 102)">
           {/* Dropdown container */}
-          <rect y="0" width="450" height="150" rx="8" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" filter="drop-shadow(0 10px 15px rgba(0,0,0,0.1))" />
-          
+          <rect
+            y="0"
+            width="450"
+            height="150"
+            rx="8"
+            fill="#ffffff"
+            stroke="#e2e8f0"
+            strokeWidth="1"
+            filter="drop-shadow(0 10px 15px rgba(0,0,0,0.1))"
+          />
+
           {/* Item 1 */}
           <rect x="8" y="8" width="434" height="40" rx="6" fill="transparent" />
-          <text x="24" y="34" fontSize="14" fill="#64748b" fontFamily="sans-serif">Make this more professional</text>
-          
+          <text
+            x="24"
+            y="34"
+            fontSize="14"
+            fill="#64748b"
+            fontFamily="sans-serif"
+          >
+            Make this more professional
+          </text>
+
           {/* Item 2 (The Target) */}
-          <rect className="hover-box" x="8" y="52" width="434" height="40" rx="6" />
-          <path d="M24 72 L16 72 L16 64" stroke="#9333ea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.6"/>
-          <text className="hover-text" x="32" y="78" fontSize="14" fontFamily="sans-serif" fontWeight="500">Add context about PTO dates</text>
-          
+          <rect
+            className="hover-box"
+            x="8"
+            y="52"
+            width="434"
+            height="40"
+            rx="6"
+          />
+          <path
+            d="M24 72 L16 72 L16 64"
+            stroke="#9333ea"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            opacity="0.6"
+          />
+          <text
+            className="hover-text"
+            x="32"
+            y="78"
+            fontSize="14"
+            fontFamily="sans-serif"
+            fontWeight="500"
+          >
+            Add context about PTO dates
+          </text>
+
           {/* Item 3 */}
-          <rect x="8" y="96" width="434" height="40" rx="6" fill="transparent" />
-          <text x="24" y="122" fontSize="14" fill="#64748b" fontFamily="sans-serif">Make it shorter</text>
+          <rect
+            x="8"
+            y="96"
+            width="434"
+            height="40"
+            rx="6"
+            fill="transparent"
+          />
+          <text
+            x="24"
+            y="122"
+            fontSize="14"
+            fill="#64748b"
+            fontFamily="sans-serif"
+          >
+            Make it shorter
+          </text>
         </g>
 
         {/* Mouse Pointer */}
         <g className="pointer">
-          <path 
-            d="M5 5 L16.5 28.5 L20.5 18 L31.5 14 L5 5Z" 
-            fill="#1e293b" 
-            stroke="#ffffff" 
+          <path
+            d="M5 5 L16.5 28.5 L20.5 18 L31.5 14 L5 5Z"
+            fill="#1e293b"
+            stroke="#ffffff"
             strokeWidth="2"
-            strokeLinejoin="round" 
+            strokeLinejoin="round"
             filter="drop-shadow(0 4px 6px rgba(0,0,0,0.3))"
           />
         </g>
@@ -177,4 +334,3 @@ export function HeroAnimation() {
     </div>
   );
 }
-

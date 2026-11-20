@@ -12,7 +12,10 @@ describe("siteFor", () => {
   });
 
   test("ports are dropped, since match patterns can't contain one", () => {
-    assert.equal(siteFor("http://localhost:3000/chat")?.pattern, "http://localhost/*");
+    assert.equal(
+      siteFor("http://localhost:3000/chat")?.pattern,
+      "http://localhost/*",
+    );
   });
 
   test("browser pages, files and the Web Store can't be enabled", () => {

@@ -18,7 +18,11 @@ function editableRoot(element: Element): HTMLElement | null {
   let root: HTMLElement | null = null;
   for (let node: Element | null = element; node; node = node.parentElement) {
     const editable = node.getAttribute("contenteditable");
-    if (editable === "" || editable === "true" || editable === "plaintext-only") {
+    if (
+      editable === "" ||
+      editable === "true" ||
+      editable === "plaintext-only"
+    ) {
       root = node as HTMLElement;
     } else if (editable === "false") {
       break;
@@ -45,7 +49,8 @@ export function promptFieldFor(element: Element | null): HTMLElement | null {
   if (!field || !isVisible(field)) return null;
   // happy-dom and detached layouts report 0; only reject boxes we can measure.
   const height = field.getBoundingClientRect?.().height ?? 0;
-  if (height > 0 && height < MIN_HEIGHT_PX && field.tagName !== "TEXTAREA") return null;
+  if (height > 0 && height < MIN_HEIGHT_PX && field.tagName !== "TEXTAREA")
+    return null;
   return field;
 }
 

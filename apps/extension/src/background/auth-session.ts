@@ -1,18 +1,18 @@
+import type { BroadcastMessage } from "../shared/rpc";
 import { AUTH_SESSION_ACTIVE_STORAGE_KEY, AuthManager } from "./auth";
 import {
-  authTransition,
-  initialAuthState,
-  isSettled,
-  toSnapshot,
   type AuthEffect,
   type AuthEvent,
   type AuthSnapshot,
   type AuthState,
+  authTransition,
+  initialAuthState,
+  isSettled,
+  toSnapshot,
 } from "./auth-machine";
 import { StorageManager } from "./storage";
 import { resetFirebaseHealth } from "./storage-backend";
 import { SyncVault } from "./sync-vault";
-import type { BroadcastMessage } from "../shared/rpc";
 
 /**
  * Driver for the auth state machine (see ./auth-machine.ts). It runs the
@@ -36,7 +36,10 @@ function dispatch(event: AuthEvent) {
 
   state = result.state;
   version++;
-  const broadcast: BroadcastMessage = { type: "AUTH_STATE_CHANGED", payload: snapshot() };
+  const broadcast: BroadcastMessage = {
+    type: "AUTH_STATE_CHANGED",
+    payload: snapshot(),
+  };
   void chrome.runtime.sendMessage(broadcast).catch(() => {}); // No extension page is open.
 
   if (isSettled(state)) {
@@ -63,13 +66,18 @@ async function perform(effect: AuthEffect): Promise<AuthEvent> {
       if (user) resetFirebaseHealth();
       return user
         ? { type: "SIGNED_IN", user }
-        : { type: "SIGN_IN_FAILED", message: "Sign-in was cancelled or failed." };
+        : {
+            type: "SIGN_IN_FAILED",
+            message: "Sign-in was cancelled or failed.",
+          };
     }
 
     case "syncKeys":
       try {
-        const { errors } = await StorageManager.migrateLocalToPreferredBackend();
-        if (errors.length) console.warn("plenz: key sync after sign-in:", errors);
+        const { errors } =
+          await StorageManager.migrateLocalToPreferredBackend();
+        if (errors.length)
+          console.warn("plenz: key sync after sign-in:", errors);
       } catch (error) {
         console.warn("plenz: key sync after sign-in failed:", error);
       }
@@ -78,7 +86,8 @@ async function perform(effect: AuthEffect): Promise<AuthEvent> {
     case "cacheKeys":
       try {
         const { errors } = await StorageManager.cacheSyncToLocal();
-        if (errors.length) console.warn("plenz: caching keys before sign-out:", errors);
+        if (errors.length)
+          console.warn("plenz: caching keys before sign-out:", errors);
       } catch (error) {
         console.warn("plenz: caching keys before sign-out failed:", error);
       }

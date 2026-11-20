@@ -2,7 +2,11 @@
 // Providers only see a system + user message; everything mode-specific
 // lives here so it can be tested without a network.
 
-import type { CompletionRequest, RefineContext, RefineMode } from "@plenz/types";
+import type {
+  CompletionRequest,
+  RefineContext,
+  RefineMode,
+} from "@plenz/types";
 
 /** "compose" is the second step of Ask me: rewrite using the user's answers. */
 export type RefineStep = RefineMode | "compose";
@@ -76,7 +80,9 @@ function formatContext(context?: RefineContext) {
   const conversation = context?.conversation;
   if (conversation) {
     if (conversation.rollingSummary) {
-      lines.push(`Conversation so far (summary):\n${conversation.rollingSummary}`);
+      lines.push(
+        `Conversation so far (summary):\n${conversation.rollingSummary}`,
+      );
     }
     if (conversation.recentMessages.length > 0) {
       lines.push("Relevant recent messages:");
@@ -105,13 +111,18 @@ export function buildRefineRequest(input: RefineInput): CompletionRequest {
     );
   }
   if (input.step === "improve" && input.missing?.length) {
-    parts.push(`A quick check found the draft may be missing: ${input.missing.join(", ")}.`);
+    parts.push(
+      `A quick check found the draft may be missing: ${input.missing.join(", ")}.`,
+    );
   }
   parts.push(`<draft>\n${input.draft}\n</draft>`);
 
   if (input.step === "compose" && input.answers?.length) {
     const qa = input.answers
-      .map(({ question, answer }) => `Q: ${question}\nA: ${answer.trim() || "(no answer)"}`)
+      .map(
+        ({ question, answer }) =>
+          `Q: ${question}\nA: ${answer.trim() || "(no answer)"}`,
+      )
       .join("\n\n");
     parts.push(`<answers>\n${qa}\n</answers>`);
   }

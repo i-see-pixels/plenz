@@ -1,13 +1,19 @@
+import { Button } from "@plenz/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@plenz/ui/components/card";
+import { cn } from "@plenz/ui/lib/utils";
+import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 import logo from "../assets/logo.svg";
 import { AuthStatus } from "../components/AuthStatus";
 import { ModelConfig } from "../components/ModelConfig";
 import { useSetupState } from "../components/useSetupState";
 import { SETUP_MESSAGES } from "../shared/setup";
-import { Button } from "@plenz/ui/components/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@plenz/ui/components/card";
-import { cn } from "@plenz/ui/lib/utils";
-import { Check } from "lucide-react";
 
 const CHAT_SITES = [
   { name: "ChatGPT", url: "https://chatgpt.com/" },
@@ -37,15 +43,20 @@ function Step({
         <span
           className={cn(
             "flex size-7 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-semibold",
-            done ? "border-accent-signal bg-accent-signal text-background" : "border-border",
+            done
+              ? "border-accent-signal bg-accent-signal text-background"
+              : "border-border",
           )}
+          role="img"
           aria-label={done ? `Step ${number}, done` : `Step ${number}`}
         >
           {done ? <Check className="size-4" /> : number}
         </span>
         <div className="flex flex-col gap-1">
           <CardTitle className="text-base font-semibold">{title}</CardTitle>
-          <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
+          <CardDescription className="text-xs leading-relaxed">
+            {description}
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="px-4 py-4">{children}</CardContent>
@@ -67,11 +78,13 @@ export function App() {
         <header className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <img src={logo} alt="" className="size-9" />
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Welcome to plenz</h1>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Welcome to plenz
+            </h1>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            plenz checks your prompts as you type in AI chats and rewrites them when you ask.
-            Two minutes of setup and you're done.
+            plenz checks your prompts as you type in AI chats and rewrites them
+            when you ask. Two minutes of setup and you're done.
           </p>
           <p
             role="status"
@@ -81,7 +94,9 @@ export function App() {
               ready ? "border-border bg-muted" : "border-accent-signal",
             )}
           >
-            {state === "checking" ? "Checking your setup…" : SETUP_MESSAGES[state]}
+            {state === "checking"
+              ? "Checking your setup…"
+              : SETUP_MESSAGES[state]}
           </p>
         </header>
 
@@ -110,14 +125,18 @@ export function App() {
               ))}
             </div>
             <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm leading-relaxed">
-              <li>Type a prompt. A small badge by the chat box shows its score.</li>
               <li>
-                Click the badge or press <kbd className="font-mono text-xs">{MOD}+Shift+Enter</kbd> to
-                pick a rewrite, then <kbd className="font-mono text-xs">Tab</kbd> to use it.
+                Type a prompt. A small badge by the chat box shows its score.
               </li>
               <li>
-                Type <kbd className="font-mono text-xs">/</kbd> on a new line to insert a saved prompt or
-                context card.
+                Click the badge or press{" "}
+                <kbd className="font-mono text-xs">{MOD}+Shift+Enter</kbd> to
+                pick a rewrite, then{" "}
+                <kbd className="font-mono text-xs">Tab</kbd> to use it.
+              </li>
+              <li>
+                Type <kbd className="font-mono text-xs">/</kbd> on a new line to
+                insert a saved prompt or context card.
               </li>
             </ol>
           </div>
@@ -134,8 +153,14 @@ export function App() {
         </Step>
 
         <footer className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-          <p>Everything else, like context cards and preferences, is in settings.</p>
-          <Button variant="outline" size="sm" onClick={() => chrome.runtime.openOptionsPage()}>
+          <p>
+            Everything else, like context cards and preferences, is in settings.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => chrome.runtime.openOptionsPage()}
+          >
             Open settings
           </Button>
         </footer>

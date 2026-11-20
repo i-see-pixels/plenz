@@ -53,7 +53,10 @@ describe("normalizeCards", () => {
 describe("withCard", () => {
   test("adds the card as its own paragraph above the draft", () => {
     assert.equal(
-      withCard("write a launch email\n", "I work at a small analytics startup."),
+      withCard(
+        "write a launch email\n",
+        "I work at a small analytics startup.",
+      ),
       "I work at a small analytics startup.\n\nwrite a launch email",
     );
   });

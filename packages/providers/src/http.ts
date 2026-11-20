@@ -11,6 +11,7 @@ export async function readErrorMessage(res: Response, fallback: string) {
   return body?.error?.message || body?.message || fallback;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: provider stream events are untyped JSON; each adapter reads its fields with optional chaining
 export function parseJson(text: string): any {
   try {
     return JSON.parse(text);

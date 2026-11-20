@@ -1,6 +1,6 @@
-import Link from "next/link";
-import Image from "next/image";
 import { Separator } from "@plenz/ui/components/separator";
+import Image from "next/image";
+import Link from "next/link";
 import { FaGithub } from "react-icons/fa";
 import logo from "@/assets/logo.svg";
 
@@ -126,4 +126,3 @@ export function Footer() {
     </footer>
   );
 }
-

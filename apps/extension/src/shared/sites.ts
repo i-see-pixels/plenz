@@ -26,5 +26,9 @@ export function siteFor(url: string | undefined): Site | null {
   if (!host || BLOCKED_HOSTS.includes(host)) return null;
 
   const origin = `${parsed.protocol}//${host}`;
-  return { host, pattern: `${origin}/*`, scriptId: `${SITE_SCRIPT_PREFIX}${origin}` };
+  return {
+    host,
+    pattern: `${origin}/*`,
+    scriptId: `${SITE_SCRIPT_PREFIX}${origin}`,
+  };
 }

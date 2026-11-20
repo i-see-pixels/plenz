@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Button } from "@plenz/ui/components/button";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { FaChrome } from "react-icons/fa";
 import { siteConfig } from "@/lib/site";
 
@@ -21,8 +21,8 @@ export function CTA() {
             Ship better prompts on the first draft.
           </h2>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            plenz is free and open source. It works with Chrome&apos;s
-            on-device model, or with your own provider key.
+            plenz is free and open source. It works with Chrome&apos;s on-device
+            model, or with your own provider key.
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -65,4 +65,3 @@ export function CTA() {
     </section>
   );
 }
-

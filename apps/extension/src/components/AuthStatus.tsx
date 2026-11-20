@@ -1,8 +1,8 @@
-import { useState } from "preact/hooks";
 import { Button } from "@plenz/ui/components/button";
 import { Skeleton } from "@plenz/ui/components/skeleton";
-import { useAuthSession } from "./useAuthSession";
+import { useState } from "preact/hooks";
 import { sendRpc } from "../shared/rpc";
+import { useAuthSession } from "./useAuthSession";
 
 export function AuthStatus() {
   const { auth, apply } = useAuthSession();
@@ -41,7 +41,11 @@ export function AuthStatus() {
       <div className="flex flex-col gap-2 rounded-sm border border-border bg-card px-3 py-2">
         <div className="flex items-center gap-3">
           {user.picture ? (
-            <img src={user.picture} alt={user.name} className="size-8 rounded-sm border border-border object-cover" />
+            <img
+              src={user.picture}
+              alt={user.name}
+              className="size-8 rounded-sm border border-border object-cover"
+            />
           ) : (
             <div className="flex size-8 items-center justify-center rounded-sm border border-border bg-muted text-xs font-semibold text-foreground">
               {user.name?.charAt(0) || user.email?.charAt(0)}
@@ -49,14 +53,21 @@ export function AuthStatus() {
           )}
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold leading-tight text-foreground">{user.name}</p>
+            <p className="truncate text-sm font-semibold leading-tight text-foreground">
+              {user.name}
+            </p>
             <p className="truncate font-mono text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
               {user.email}
             </p>
           </div>
 
           {!confirmingSignOut && (
-            <Button variant="outline" size="xs" onClick={() => setConfirmingSignOut(true)} title="Sign out">
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => setConfirmingSignOut(true)}
+              title="Sign out"
+            >
               Sign out
             </Button>
           )}
@@ -65,23 +76,34 @@ export function AuthStatus() {
         {confirmingSignOut && (
           <div className="flex flex-col gap-2 border-t border-border pt-2">
             <p className="text-xs text-muted-foreground">
-              Keep copies of your saved API keys on this device after signing out? They stay in your synced account either way.
+              Keep copies of your saved API keys on this device after signing
+              out? They stay in your synced account either way.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button size="xs" onClick={() => signOut(true)}>
                 Keep keys here
               </Button>
-              <Button variant="outline" size="xs" onClick={() => signOut(false)}>
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => signOut(false)}
+              >
                 Don't keep
               </Button>
-              <Button variant="ghost" size="xs" onClick={() => setConfirmingSignOut(false)}>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => setConfirmingSignOut(false)}
+              >
                 Cancel
               </Button>
             </div>
           </div>
         )}
 
-        {auth.error && <p className="text-xs text-accent-signal">{auth.error}</p>}
+        {auth.error && (
+          <p className="text-xs text-accent-signal">{auth.error}</p>
+        )}
       </div>
     );
   }
@@ -113,4 +135,3 @@ export function AuthStatus() {
     </div>
   );
 }
-

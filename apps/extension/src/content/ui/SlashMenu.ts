@@ -8,7 +8,11 @@ const SOURCE_LABELS: Record<SlashSource, string> = {
   gallery: "Gallery",
 };
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text?: string) {
+function el<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className = "",
+  text?: string,
+) {
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
@@ -62,7 +66,9 @@ export class SlashMenu {
         el(
           "div",
           "pl-muted pl-slash-empty",
-          loading ? "Loading prompts…" : "No matching prompts or context cards.",
+          loading
+            ? "Loading prompts…"
+            : "No matching prompts or context cards.",
         ),
       );
     }
@@ -74,15 +80,29 @@ export class SlashMenu {
       if (index === selected) row.classList.add("selected");
       const head = el("div", "pl-slash-head");
       head.appendChild(el("span", "pl-slash-title", item.title));
-      head.appendChild(el("span", "pl-slash-source", SOURCE_LABELS[item.source]));
+      head.appendChild(
+        el("span", "pl-slash-source", SOURCE_LABELS[item.source]),
+      );
       row.appendChild(head);
-      row.appendChild(el("div", "pl-slash-preview", item.text.replace(/\s+/g, " ").slice(0, 120)));
+      row.appendChild(
+        el(
+          "div",
+          "pl-slash-preview",
+          item.text.replace(/\s+/g, " ").slice(0, 120),
+        ),
+      );
       // Keep focus (and the caret) in the chat input.
       row.addEventListener("mousedown", (event) => event.preventDefault());
       row.addEventListener("click", () => this.onPick(index));
       children.push(row);
     });
-    children.push(el("div", "pl-footer pl-slash-foot", "↑↓ choose · Enter insert · Esc close"));
+    children.push(
+      el(
+        "div",
+        "pl-footer pl-slash-foot",
+        "↑↓ choose · Enter insert · Esc close",
+      ),
+    );
     this.container.replaceChildren(...children);
     const current = items[selected];
     const said = current
@@ -98,7 +118,9 @@ export class SlashMenu {
       this.container.classList.add("visible");
     }
     this.position();
-    this.container.querySelector(".selected")?.scrollIntoView({ block: "nearest" });
+    this.container
+      .querySelector(".selected")
+      ?.scrollIntoView({ block: "nearest" });
   }
 
   hide() {
@@ -123,7 +145,10 @@ export class SlashMenu {
     const padding = 12;
     const gap = 8;
     const width = Math.min(480, Math.max(300, rect.width));
-    const left = Math.max(padding, Math.min(rect.left, window.innerWidth - width - padding));
+    const left = Math.max(
+      padding,
+      Math.min(rect.left, window.innerWidth - width - padding),
+    );
     this.container.style.width = `${width}px`;
     this.container.style.left = `${left}px`;
 

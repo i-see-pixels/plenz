@@ -1,10 +1,10 @@
 import type { PublicPrompt } from "@plenz/types";
 import {
   isRpcFailure,
-  sendRpc,
   type PayloadArgs,
   type RpcReply,
   type RpcType,
+  sendRpc,
 } from "../shared/rpc";
 
 /** Like sendRpc, but an error reply rejects so callers can use try/catch. */

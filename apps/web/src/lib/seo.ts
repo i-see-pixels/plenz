@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { siteConfig, type FaqItem } from "@/lib/site";
+import { type FaqItem, siteConfig } from "@/lib/site";
 
 interface PageMetadataOptions {
   title: string;

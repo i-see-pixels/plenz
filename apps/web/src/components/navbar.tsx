@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@plenz/ui/components/button";
 import { Menu, X } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import logo from "@/assets/logo.svg";
 import { siteConfig } from "@/lib/site";
@@ -15,6 +15,8 @@ const navLinks = [
   { label: "Platforms", href: "/#platforms" },
 ];
 
+const githubRepoPath = siteConfig.links.gitRepoPath;
+
 const githubStarsFormatter = new Intl.NumberFormat("en", {
   notation: "compact",
   compactDisplay: "short",
@@ -23,7 +25,6 @@ const githubStarsFormatter = new Intl.NumberFormat("en", {
 
 function ExternalButtons() {
   const [stars, setStars] = useState<number | null>(null);
-  const githubRepoPath = siteConfig.links.gitRepoPath;
 
   useEffect(() => {
     if (!githubRepoPath) {

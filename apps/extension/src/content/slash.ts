@@ -18,7 +18,9 @@ export type SlashItem = {
 export const MAX_SLASH_QUERY_CHARS = 30;
 export const MAX_SLASH_RESULTS = 8;
 
-const COMMAND = new RegExp(`(^|\\n)/([^\\n/]{0,${MAX_SLASH_QUERY_CHARS}})\\n*$`);
+const COMMAND = new RegExp(
+  `(^|\\n)/([^\\n/]{0,${MAX_SLASH_QUERY_CHARS}})\\n*$`,
+);
 
 /** The query after a trailing `/`, or null when the draft doesn't end in a command. */
 export function parseSlashQuery(draft: string): string | null {
@@ -50,7 +52,10 @@ function rank(item: SlashItem, query: string): number {
  * Items matching the query, best first; ties keep the given order (cards,
  * then saved, then gallery). An empty query lists everything.
  */
-export function matchSlashItems(items: SlashItem[], query: string): SlashItem[] {
+export function matchSlashItems(
+  items: SlashItem[],
+  query: string,
+): SlashItem[] {
   const needle = query.trim().toLowerCase();
   const seen = new Set<string>();
   const ranked: Array<{ item: SlashItem; score: number; index: number }> = [];

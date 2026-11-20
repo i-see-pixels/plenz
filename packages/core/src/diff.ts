@@ -61,7 +61,12 @@ function myers(a: string[], b: string[], maxEdits: number): Op[] | null {
   return null;
 }
 
-function backtrack(trace: Int32Array[], a: string[], b: string[], dEnd: number) {
+function backtrack(
+  trace: Int32Array[],
+  a: string[],
+  b: string[],
+  dEnd: number,
+) {
   const ops: Op[] = [];
   let x = a.length;
   let y = b.length;
@@ -71,7 +76,8 @@ function backtrack(trace: Int32Array[], a: string[], b: string[], dEnd: number) 
     const band = trace[d];
     const at = (k: number) => band[k + d + 1];
     const k = x - y;
-    const prevK = k === -d || (k !== d && at(k - 1) < at(k + 1)) ? k + 1 : k - 1;
+    const prevK =
+      k === -d || (k !== d && at(k - 1) < at(k + 1)) ? k + 1 : k - 1;
     const prevX = at(prevK);
     const prevY = prevX - prevK;
     // Walk back along the diagonal (matching tokens), then take the one edit.
@@ -122,7 +128,14 @@ function toSegments(ops: Op[]): DiffSegment[] {
     const run = runs[i];
     const prev = merged[merged.length - 1];
     const next = runs[i + 1];
-    if (run.same && prev && !prev.same && next && !next.same && isBlank(run.removed)) {
+    if (
+      run.same &&
+      prev &&
+      !prev.same &&
+      next &&
+      !next.same &&
+      isBlank(run.removed)
+    ) {
       prev.removed += run.removed + next.removed;
       prev.added += run.added + next.added;
       i++;
@@ -179,7 +192,9 @@ function sharedWhitespace(a: string, b: string, edge: "start" | "end") {
   while (
     n < wa.length &&
     n < wb.length &&
-    (edge === "start" ? wa[n] === wb[n] : wa[wa.length - 1 - n] === wb[wb.length - 1 - n])
+    (edge === "start"
+      ? wa[n] === wb[n]
+      : wa[wa.length - 1 - n] === wb[wb.length - 1 - n])
   ) {
     n++;
   }
@@ -188,9 +203,10 @@ function sharedWhitespace(a: string, b: string, edge: "start" | "end") {
 
 function wholesaleDiff(before: string, after: string): PromptDiff {
   return {
-    segments: before === after
-      ? [{ kind: "same", text: after }]
-      : [{ kind: "change", index: 0, removed: before, added: after }],
+    segments:
+      before === after
+        ? [{ kind: "same", text: after }]
+        : [{ kind: "change", index: 0, removed: before, added: after }],
     changeCount: before === after ? 0 : 1,
     similarity: before === after ? 1 : 0,
     wholesale: before !== after,
@@ -210,7 +226,9 @@ export function diffPrompts(before: string, after: string): PromptDiff {
     (sum, segment) => sum + (segment.kind === "same" ? segment.text.length : 0),
     0,
   );
-  const changeCount = segments.filter((segment) => segment.kind === "change").length;
+  const changeCount = segments.filter(
+    (segment) => segment.kind === "change",
+  ).length;
   return {
     segments,
     changeCount,
@@ -220,7 +238,10 @@ export function diffPrompts(before: string, after: string): PromptDiff {
 }
 
 /** Build the final text: rejected changes keep the draft's wording. */
-export function applyDiff(diff: PromptDiff, rejected: Iterable<number> = []): string {
+export function applyDiff(
+  diff: PromptDiff,
+  rejected: Iterable<number> = [],
+): string {
   const keep = new Set(rejected);
   return diff.segments
     .map((segment) =>

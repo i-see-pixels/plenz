@@ -13,7 +13,8 @@ test("installing opens the welcome page, which turns ready once a provider is sa
   serviceWorker,
 }) => {
   await expect.poll(() => welcomeTab(context)?.url()).toContain(WELCOME);
-  const welcome = welcomeTab(context)!;
+  const welcome = welcomeTab(context);
+  if (!welcome) throw new Error("the welcome tab did not open");
   const status = welcome.locator("[data-setup-state]");
 
   // Headless Chromium has no on-device model ready, so nothing can refine yet.
@@ -25,7 +26,10 @@ test("installing opens the welcome page, which turns ready once a provider is sa
   await expect(welcome.getByLabel("Step 1, done")).toBeVisible();
 });
 
-test("the popup offers Finish setup until a provider works", async ({ context, serviceWorker }) => {
+test("the popup offers Finish setup until a provider works", async ({
+  context,
+  serviceWorker,
+}) => {
   const extensionId = new URL(serviceWorker.url()).host;
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/index.html`);

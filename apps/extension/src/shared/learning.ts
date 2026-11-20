@@ -41,7 +41,9 @@ export const MIN_IGNORES_TO_HIDE = 5;
 export const emptyLearning = (): Learning => ({ modes: {}, checks: {} });
 
 const count = (value: unknown) =>
-  typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+  typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 0;
 
 /** Whatever is in storage, as usable stats. */
 export function normalizeLearning(value: unknown): Learning {
@@ -50,16 +52,26 @@ export function normalizeLearning(value: unknown): Learning {
   const { modes, checks } = value as { modes?: unknown; checks?: unknown };
   if (modes && typeof modes === "object") {
     for (const mode of MODES) {
-      const stats = (modes as Record<string, Partial<ModeStats> | undefined>)[mode];
+      const stats = (modes as Record<string, Partial<ModeStats> | undefined>)[
+        mode
+      ];
       if (stats && typeof stats === "object") {
-        learning.modes[mode] = { accepted: count(stats.accepted), dismissed: count(stats.dismissed) };
+        learning.modes[mode] = {
+          accepted: count(stats.accepted),
+          dismissed: count(stats.dismissed),
+        };
       }
     }
   }
   if (checks && typeof checks === "object") {
-    for (const [id, stats] of Object.entries(checks as Record<string, Partial<CheckStats>>)) {
+    for (const [id, stats] of Object.entries(
+      checks as Record<string, Partial<CheckStats>>,
+    )) {
       if (!CHECK_ID.test(id) || !stats || typeof stats !== "object") continue;
-      learning.checks[id] = { fixed: count(stats.fixed), ignored: count(stats.ignored) };
+      learning.checks[id] = {
+        fixed: count(stats.fixed),
+        ignored: count(stats.ignored),
+      };
     }
   }
   return learning;
@@ -78,17 +90,26 @@ export function parseLearningEvent(value: unknown): LearningEvent | null {
   if (!value || typeof value !== "object") return null;
   const event = value as Partial<Record<string, unknown>>;
   if (event.type === "refine") {
-    return MODES.includes(event.mode as RefineMode) && typeof event.accepted === "boolean"
-      ? { type: "refine", mode: event.mode as RefineMode, accepted: event.accepted }
+    return MODES.includes(event.mode as RefineMode) &&
+      typeof event.accepted === "boolean"
+      ? {
+          type: "refine",
+          mode: event.mode as RefineMode,
+          accepted: event.accepted,
+        }
       : null;
   }
   if (event.type === "sent") {
     const ids = (list: unknown) =>
       Array.isArray(list)
-        ? [...new Set(list.filter((id): id is string => typeof id === "string" && CHECK_ID.test(id)))].slice(
-            0,
-            MAX_CHECK_IDS,
-          )
+        ? [
+            ...new Set(
+              list.filter(
+                (id): id is string =>
+                  typeof id === "string" && CHECK_ID.test(id),
+              ),
+            ),
+          ].slice(0, MAX_CHECK_IDS)
         : null;
     const fixed = ids(event.fixed);
     const ignored = ids(event.ignored);
@@ -97,13 +118,19 @@ export function parseLearningEvent(value: unknown): LearningEvent | null {
   return null;
 }
 
-export function recordLearning(learning: Learning, event: LearningEvent): Learning {
+export function recordLearning(
+  learning: Learning,
+  event: LearningEvent,
+): Learning {
   if (event.type === "refine") {
     const stats = learning.modes[event.mode] ?? { accepted: 0, dismissed: 0 };
     const next = event.accepted
       ? { ...stats, accepted: stats.accepted + 1 }
       : { ...stats, dismissed: stats.dismissed + 1 };
-    return { ...learning, modes: { ...learning.modes, [event.mode]: decay(next) } };
+    return {
+      ...learning,
+      modes: { ...learning.modes, [event.mode]: decay(next) },
+    };
   }
   const checks = { ...learning.checks };
   for (const id of event.fixed) {
@@ -137,7 +164,8 @@ export function preferredMode(learning: Learning): RefineMode | null {
 export function hiddenChecks(learning: Learning): Set<string> {
   const hidden = new Set<string>();
   for (const [id, stats] of Object.entries(learning.checks)) {
-    if (stats.ignored >= MIN_IGNORES_TO_HIDE && stats.ignored > 3 * stats.fixed) hidden.add(id);
+    if (stats.ignored >= MIN_IGNORES_TO_HIDE && stats.ignored > 3 * stats.fixed)
+      hidden.add(id);
   }
   return hidden;
 }

@@ -3,6 +3,7 @@
 // here, so senders and the router's handler table are checked against the
 // same definitions.
 
+import type { OnDeviceAvailability } from "@plenz/providers";
 import type {
   ConnectionTestResult,
   ProviderConfig,
@@ -14,10 +15,9 @@ import type {
 import type { AuthSnapshot } from "../background/auth-machine";
 import type { UserPreferences } from "../background/storage";
 import type { StorageBackendPreference } from "../background/storage-backend";
-import type { SiteStatus } from "./sites";
 import type { VaultStatus } from "../background/sync-vault";
-import type { OnDeviceAvailability } from "@plenz/providers";
 import type { LearningEvent } from "./learning";
+import type { SiteStatus } from "./sites";
 
 /** A prompt the in-page `/` command can insert (see ../content/slash.ts). */
 export type InsertablePrompt = {
@@ -39,13 +39,16 @@ type VaultResult = { success: boolean; error?: string; upgraded?: number };
 export type RpcMap = {
   // Content scripts (also allowed from extension pages). Refines stream over
   // a port instead; see ./refine-port.ts.
-  GET_PREFERENCES: { payload: void; reply: UserPreferences };
+  GET_PREFERENCES: { payload: undefined; reply: UserPreferences };
   /** Saved and gallery prompts for the `/` command (titles and text only). */
-  LIST_INSERTABLE_PROMPTS: { payload: void; reply: { prompts: InsertablePrompt[] } };
+  LIST_INSERTABLE_PROMPTS: {
+    payload: undefined;
+    reply: { prompts: InsertablePrompt[] };
+  };
   /** Local learning: a refine outcome or a sent draft (see ./learning.ts). */
   RECORD_LEARNING: { payload: LearningEvent; reply: Success };
   /** Open plenz's settings page (from a refine error that settings can fix). */
-  OPEN_SETTINGS: { payload: void; reply: Success };
+  OPEN_SETTINGS: { payload: undefined; reply: Success };
 
   // Extension pages only
   SET_PREFERENCES: {
@@ -53,7 +56,7 @@ export type RpcMap = {
     reply: Success & { preferences: UserPreferences };
   };
   GET_ACTIVE_MODEL: {
-    payload: void;
+    payload: undefined;
     reply: {
       config: ProviderConfig | null;
       activeModelId: string | null;
@@ -67,8 +70,11 @@ export type RpcMap = {
     reply: Success;
   };
   GET_STORAGE_SETTINGS: {
-    payload: void;
-    reply: { storageBackend: StorageBackendPreference; firebaseConfigured: boolean };
+    payload: undefined;
+    reply: {
+      storageBackend: StorageBackendPreference;
+      firebaseConfigured: boolean;
+    };
   };
   SET_STORAGE_BACKEND: {
     payload: { backend: StorageBackendPreference };
@@ -83,23 +89,26 @@ export type RpcMap = {
     reply: StorageResult<void>;
   };
   GET_ALL_MODEL_CONFIGS: {
-    payload: void;
+    payload: undefined;
     reply: StorageResult<Record<string, ProviderConfig>>;
   };
-  MIGRATE_SYNC_TO_FIREBASE: { payload: void; reply: MigrationResult };
+  MIGRATE_SYNC_TO_FIREBASE: { payload: undefined; reply: MigrationResult };
   TEST_CONNECTION: {
     payload: { providerId: string; config: ProviderConfig };
     reply: ConnectionTestResult;
   };
-  AUTH_SIGN_IN: { payload: void; reply: AuthSnapshot };
+  AUTH_SIGN_IN: { payload: undefined; reply: AuthSnapshot };
   AUTH_SIGN_OUT: { payload: { keepLocalCopies: boolean }; reply: AuthSnapshot };
-  GET_AUTH_STATE: { payload: void; reply: AuthSnapshot };
-  OPEN_PROMPT_GALLERY_PANEL: { payload: { windowId: number }; reply: ActionResult };
+  GET_AUTH_STATE: { payload: undefined; reply: AuthSnapshot };
+  OPEN_PROMPT_GALLERY_PANEL: {
+    payload: { windowId: number };
+    reply: ActionResult;
+  };
   LIST_PUBLIC_PROMPTS: {
     payload: { category: "trending" | "newest" };
     reply: { prompts: PublicPrompt[] };
   };
-  LIST_SAVED_PROMPTS: { payload: void; reply: { prompts: SavedPrompt[] } };
+  LIST_SAVED_PROMPTS: { payload: undefined; reply: { prompts: SavedPrompt[] } };
   CREATE_SAVED_PROMPT: {
     payload: { title: string; prompt: string };
     reply: { prompt: SavedPrompt };
@@ -108,29 +117,44 @@ export type RpcMap = {
     payload: { id: string; title: string; prompt: string };
     reply: { prompt: SavedPrompt };
   };
-  SAVE_PUBLIC_PROMPT: { payload: { prompt: PublicPrompt }; reply: { prompt: SavedPrompt } };
+  SAVE_PUBLIC_PROMPT: {
+    payload: { prompt: PublicPrompt };
+    reply: { prompt: SavedPrompt };
+  };
   DELETE_SAVED_PROMPT: { payload: { id: string }; reply: Success };
   // Cloud Sync passphrase (end-to-end encryption of synced API keys).
-  GET_SYNC_VAULT_STATUS: { payload: void; reply: { status: VaultStatus } };
+  GET_SYNC_VAULT_STATUS: { payload: undefined; reply: { status: VaultStatus } };
   SET_UP_SYNC_VAULT: { payload: { passphrase: string }; reply: VaultResult };
   UNLOCK_SYNC_VAULT: { payload: { passphrase: string }; reply: VaultResult };
-  CHANGE_SYNC_PASSPHRASE: { payload: { current: string; next: string }; reply: VaultResult };
-  LOCK_SYNC_VAULT: { payload: void; reply: VaultResult };
-  RESET_SYNC_VAULT: { payload: void; reply: VaultResult };
+  CHANGE_SYNC_PASSPHRASE: {
+    payload: { current: string; next: string };
+    reply: VaultResult;
+  };
+  LOCK_SYNC_VAULT: { payload: undefined; reply: VaultResult };
+  RESET_SYNC_VAULT: { payload: undefined; reply: VaultResult };
   /** Chrome's built-in model, as seen from the background worker. */
   GET_ON_DEVICE_STATUS: {
-    payload: void;
+    payload: undefined;
     reply: { availability: OnDeviceAvailability; message: string };
   };
   // Sites beyond the built-in chat platforms (see ./sites.ts).
-  GET_SITE_STATUS: { payload: { url: string }; reply: { status: SiteStatus; host?: string } };
+  GET_SITE_STATUS: {
+    payload: { url: string };
+    reply: { status: SiteStatus; host?: string };
+  };
   /** Call just before asking Chrome for the site's permission. */
-  SITE_PERMISSION_REQUESTED: { payload: { url: string; tabId?: number }; reply: ActionResult };
+  SITE_PERMISSION_REQUESTED: {
+    payload: { url: string; tabId?: number };
+    reply: ActionResult;
+  };
   /** Call after the popup was granted the site's host permission. */
-  ENABLE_SITE: { payload: { url: string; tabId?: number }; reply: ActionResult };
+  ENABLE_SITE: {
+    payload: { url: string; tabId?: number };
+    reply: ActionResult;
+  };
   DISABLE_SITE: { payload: { url: string }; reply: ActionResult };
   /** Forget what plenz learned locally. */
-  RESET_LEARNING: { payload: void; reply: Success };
+  RESET_LEARNING: { payload: undefined; reply: Success };
 };
 
 export type RpcType = keyof RpcMap;
@@ -138,7 +162,7 @@ export type RpcPayload<K extends RpcType> = RpcMap[K]["payload"];
 export type RpcReply<K extends RpcType> = RpcMap[K]["reply"];
 
 export type RpcMessage = {
-  [K in RpcType]: RpcPayload<K> extends void
+  [K in RpcType]: RpcPayload<K> extends undefined
     ? { type: K; payload?: undefined }
     : { type: K; payload: RpcPayload<K> };
 }[RpcType];
@@ -154,9 +178,8 @@ export const CONTENT_SCRIPT_RPC: ReadonlySet<RpcType> = new Set<RpcType>([
   "OPEN_SETTINGS",
 ]);
 
-export type PayloadArgs<K extends RpcType> = RpcPayload<K> extends void
-  ? []
-  : [payload: RpcPayload<K>];
+export type PayloadArgs<K extends RpcType> =
+  RpcPayload<K> extends undefined ? [] : [payload: RpcPayload<K>];
 
 /** Send a typed request to the background worker. */
 export function sendRpc<K extends RpcType>(
@@ -175,4 +198,7 @@ export function isRpcFailure(value: unknown): value is RpcFailure {
 }
 
 /** Background → extension pages. */
-export type BroadcastMessage = { type: "AUTH_STATE_CHANGED"; payload: AuthSnapshot };
+export type BroadcastMessage = {
+  type: "AUTH_STATE_CHANGED";
+  payload: AuthSnapshot;
+};

@@ -101,7 +101,11 @@
 .pl-badge.lint-good {
   color: var(--pl-accent-secondary);
   background: color-mix(in srgb, var(--pl-accent-secondary) 10%, var(--pl-mix));
-  border-color: color-mix(in srgb, var(--pl-accent-secondary) 40%, var(--pl-mix));
+  border-color: color-mix(
+    in srgb,
+    var(--pl-accent-secondary) 40%,
+    var(--pl-mix)
+  );
 }
 
 .pl-badge.lint-weak {
@@ -295,7 +299,9 @@
   font: inherit;
   color: inherit;
   cursor: pointer;
-  transition: background-color 0.12s ease, border-color 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .pl-mode-card:hover {
@@ -591,6 +597,7 @@
 }
 
 /* Respect "reduce motion": no fades or blinking cursor. */
+/* biome-ignore-start lint/complexity/noImportantStyles: reduced-motion overrides must beat every other rule */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -599,3 +606,4 @@
     animation: none !important;
   }
 }
+/* biome-ignore-end lint/complexity/noImportantStyles: reduced-motion overrides must beat every other rule */

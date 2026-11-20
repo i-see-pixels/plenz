@@ -26,10 +26,18 @@ async function load(): Promise<InsertablePrompt[]> {
     settle(() => PromptGalleryManager.listPublicPrompts("trending")),
   ]);
   return [
-    ...saved.map((p) => ({ id: p.id, title: p.title, text: p.prompt, source: "saved" as const })),
-    ...gallery
-      .slice(0, MAX_GALLERY_PROMPTS)
-      .map((p) => ({ id: p.id, title: p.title, text: p.prompt, source: "gallery" as const })),
+    ...saved.map((p) => ({
+      id: p.id,
+      title: p.title,
+      text: p.prompt,
+      source: "saved" as const,
+    })),
+    ...gallery.slice(0, MAX_GALLERY_PROMPTS).map((p) => ({
+      id: p.id,
+      title: p.title,
+      text: p.prompt,
+      source: "gallery" as const,
+    })),
   ];
 }
 

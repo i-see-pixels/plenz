@@ -1,11 +1,8 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
-import {
-  createSiteGraphSchema,
-  getAbsoluteUrl,
-  serializeJsonLd,
-} from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
+import { createSiteGraphSchema, getAbsoluteUrl } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
@@ -62,12 +59,7 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${jetBrainsMono.variable} font-sans antialiased`}
       >
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: serializeJsonLd(siteStructuredData),
-          }}
-        />
+        <JsonLd data={siteStructuredData} />
         {children}
         <Analytics />
       </body>

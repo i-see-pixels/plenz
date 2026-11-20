@@ -1,5 +1,5 @@
 import { findPlatformAdapter } from "../content/editors/platforms";
-import { siteFor, type SiteStatus } from "../shared/sites";
+import { type SiteStatus, siteFor } from "../shared/sites";
 
 /**
  * The content script as one self-contained file, built by
@@ -24,7 +24,8 @@ export const Sites = {
   async status(url: string): Promise<{ status: SiteStatus; host?: string }> {
     const site = siteFor(url);
     if (!site) return { status: "unsupported" };
-    if (findPlatformAdapter(site.host)) return { status: "builtin", host: site.host };
+    if (findPlatformAdapter(site.host))
+      return { status: "builtin", host: site.host };
 
     const [registered, granted] = await Promise.all([
       chrome.scripting.getRegisteredContentScripts({ ids: [site.scriptId] }),
@@ -37,13 +38,22 @@ export const Sites = {
   },
 
   /** The popup asks for the permission first (it needs the user's click). */
-  async enable(url: string, tabId?: number): Promise<{ success: boolean; error?: string }> {
+  async enable(
+    url: string,
+    tabId?: number,
+  ): Promise<{ success: boolean; error?: string }> {
     const site = siteFor(url);
     if (!site || findPlatformAdapter(site.host)) {
-      return { success: false, error: "plenz can't be turned on for this page." };
+      return {
+        success: false,
+        error: "plenz can't be turned on for this page.",
+      };
     }
     if (!(await chrome.permissions.contains({ origins: [site.pattern] }))) {
-      return { success: false, error: "Chrome didn't grant access to this site." };
+      return {
+        success: false,
+        error: "Chrome didn't grant access to this site.",
+      };
     }
 
     const script = {
@@ -53,15 +63,20 @@ export const Sites = {
       runAt: "document_idle" as const,
       persistAcrossSessions: true,
     };
-    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [site.scriptId] });
-    if (existing.length > 0) await chrome.scripting.updateContentScripts([script]);
+    const existing = await chrome.scripting.getRegisteredContentScripts({
+      ids: [site.scriptId],
+    });
+    if (existing.length > 0)
+      await chrome.scripting.updateContentScripts([script]);
     else await chrome.scripting.registerContentScripts([script]);
 
     // Start right away in the open tab instead of waiting for a reload.
     if (tabId !== undefined) {
       await chrome.scripting
         .executeScript({ target: { tabId }, files: [contentScript] })
-        .catch((error) => console.warn("plenz: couldn't start on the open tab", error));
+        .catch((error) =>
+          console.warn("plenz: couldn't start on the open tab", error),
+        );
     }
     return { success: true };
   },
@@ -73,15 +88,20 @@ export const Sites = {
   async markPending(url: string, tabId?: number) {
     const site = siteFor(url);
     if (!site) return { success: false, error: "Unknown site." };
-    const pending: PendingSite = { url, pattern: site.pattern, tabId, at: Date.now() };
+    const pending: PendingSite = {
+      url,
+      pattern: site.pattern,
+      tabId,
+      at: Date.now(),
+    };
     await chrome.storage.session.set({ [PENDING_KEY]: pending });
     return { success: true };
   },
 
   async onPermissionsAdded(origins: string[] = []) {
-    const pending = (await chrome.storage.session.get(PENDING_KEY))[PENDING_KEY] as
-      | PendingSite
-      | undefined;
+    const pending = (await chrome.storage.session.get(PENDING_KEY))[
+      PENDING_KEY
+    ] as PendingSite | undefined;
     if (!pending || Date.now() - pending.at > PENDING_TTL_MS) return;
     if (!origins.includes(pending.pattern)) return;
     await chrome.storage.session.remove(PENDING_KEY);

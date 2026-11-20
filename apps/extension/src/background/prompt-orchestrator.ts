@@ -1,4 +1,8 @@
-import { describeRefineError, type RefineFailure } from "../shared/refine-errors";
+import {
+  buildRefineRequest,
+  cleanRefineOutput,
+  parseClarifyingQuestions,
+} from "@plenz/core";
 import {
   isProviderConfigured,
   ON_DEVICE_MODEL_ID,
@@ -7,18 +11,21 @@ import {
   onDeviceStatusMessage,
   providers,
 } from "@plenz/providers";
+import type {
+  CompletionResult,
+  ProviderAdapter,
+  ProviderConfig,
+} from "@plenz/types";
 import {
-  buildRefineRequest,
-  cleanRefineOutput,
-  parseClarifyingQuestions,
-} from "@plenz/core";
-import type { CompletionResult, ProviderAdapter, ProviderConfig } from "@plenz/types";
-import { StorageManager } from "./storage";
+  describeRefineError,
+  type RefineFailure,
+} from "../shared/refine-errors";
+import type { RefineStart } from "../shared/refine-port";
 import {
   initialOrchestratorState,
   orchestratorTransition,
 } from "./orchestrator-machine";
-import type { RefineStart } from "../shared/refine-port";
+import { StorageManager } from "./storage";
 
 /** No first token by then: treat as a timeout (retryable). */
 const FIRST_TOKEN_TIMEOUT_MS = 20_000;
@@ -32,7 +39,10 @@ export type RefineOutcome =
   | { kind: "questions"; questions: string[]; providerId: string }
   | { kind: "error"; failure: RefineFailure; cancelled?: boolean };
 
-const failed = (failure: RefineFailure): RefineOutcome => ({ kind: "error", failure });
+const failed = (failure: RefineFailure): RefineOutcome => ({
+  kind: "error",
+  failure,
+});
 /** The provider's error, explained (see ../shared/refine-errors.ts). */
 const providerFailure = (error: unknown) =>
   failed(
@@ -42,7 +52,8 @@ const providerFailure = (error: unknown) =>
     ),
   );
 /** A plain message from plenz itself, shown as is. */
-const plainFailure = (message: string) => failed(describeRefineError({ message }));
+const plainFailure = (message: string) =>
+  failed(describeRefineError({ message }));
 
 function getErrorStatus(error: unknown) {
   return typeof error === "object" &&
@@ -154,18 +165,35 @@ export async function runRefine(
   const activeConfigResult = await StorageManager.getActiveModelConfig();
   const activeConfig = activeConfigResult.data;
 
-  const activeProvider = providers.find((provider) => provider.id === prefs.activeProviderId);
+  const activeProvider = providers.find(
+    (provider) => provider.id === prefs.activeProviderId,
+  );
   let primary: Attempt;
-  if (activeProvider && activeConfig && isProviderConfigured(activeProvider, activeConfig)) {
+  if (
+    activeProvider &&
+    activeConfig &&
+    isProviderConfigured(activeProvider, activeConfig)
+  ) {
     primary = { provider: activeProvider, config: activeConfig };
-  } else if (activeProvider && activeConfigResult.syncStatus === "error" && activeConfigResult.error) {
+  } else if (
+    activeProvider &&
+    activeConfigResult.syncStatus === "error" &&
+    activeConfigResult.error
+  ) {
     // The chosen provider's key exists but can't be read (e.g. Cloud Sync is
     // locked): say why rather than quietly switching to another model.
-    return failed(describeRefineError({ message: activeConfigResult.error }, { setup: true }));
+    return failed(
+      describeRefineError(
+        { message: activeConfigResult.error },
+        { setup: true },
+      ),
+    );
   } else {
     // Nothing set up: use Chrome's on-device model if it's already downloaded.
     const availability = await onDeviceAvailability();
-    const onDevice = providers.find((provider) => provider.id === ON_DEVICE_PROVIDER_ID);
+    const onDevice = providers.find(
+      (provider) => provider.id === ON_DEVICE_PROVIDER_ID,
+    );
     if (availability !== "available" || !onDevice) {
       return failed(
         describeRefineError(
@@ -179,7 +207,10 @@ export async function runRefine(
         ),
       );
     }
-    primary = { provider: onDevice, config: { apiKey: "", model: ON_DEVICE_MODEL_ID } };
+    primary = {
+      provider: onDevice,
+      config: { apiKey: "", model: ON_DEVICE_MODEL_ID },
+    };
   }
 
   const request = buildRefineRequest({
@@ -200,7 +231,9 @@ export async function runRefine(
 
   // Sending the prompt to a provider the user didn't pick must be opted into.
   // Fallbacks are only loaded once the active provider has failed.
-  let fallbackAttempts: Attempt[] | null = prefs.providerFallbackEnabled ? null : [];
+  let fallbackAttempts: Attempt[] | null = prefs.providerFallbackEnabled
+    ? null
+    : [];
   let state = initialOrchestratorState<unknown>();
 
   while (state.kind === "attempting") {
@@ -208,20 +241,24 @@ export async function runRefine(
 
     const { target } = state;
     const attempt: Attempt | undefined =
-      target.kind === "fallback"
-        ? fallbackAttempts?.[target.index]
-        : primary;
+      target.kind === "fallback" ? fallbackAttempts?.[target.index] : primary;
     if (!attempt) break;
 
     try {
       const result = await streamAttempt(attempt, request, signal, onDelta);
-      state = orchestratorTransition(state, { type: "ATTEMPT_SUCCEEDED" }, { fallbackCount: 0 });
+      state = orchestratorTransition(
+        state,
+        { type: "ATTEMPT_SUCCEEDED" },
+        { fallbackCount: 0 },
+      );
 
       if (start.step === "ask") {
         const questions = parseClarifyingQuestions(result.text);
         return questions.length > 0
           ? { kind: "questions", questions, providerId: attempt.provider.id }
-          : plainFailure("No clarifying questions came back. Try another mode.");
+          : plainFailure(
+              "No clarifying questions came back. Try another mode.",
+            );
       }
 
       const text = cleanRefineOutput(result.text);

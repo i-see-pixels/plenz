@@ -8,14 +8,23 @@ type Rgba = [number, number, number, number];
 export function parseColor(value: string): Rgba | null {
   const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(value.trim());
   if (hex) {
-    const digits = hex[1].length === 3 ? [...hex[1]].map((d) => d + d).join("") : hex[1];
-    return [0, 2, 4].map((i) => parseInt(digits.slice(i, i + 2), 16)).concat(1) as Rgba;
+    const digits =
+      hex[1].length === 3 ? [...hex[1]].map((d) => d + d).join("") : hex[1];
+    return [0, 2, 4]
+      .map((i) => parseInt(digits.slice(i, i + 2), 16))
+      .concat(1) as Rgba;
   }
-  const match = /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)/.exec(value);
+  const match =
+    /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)/.exec(
+      value,
+    );
   if (!match) return null;
-  const alpha = match[4] === undefined
-    ? 1
-    : match[4].endsWith("%") ? parseFloat(match[4]) / 100 : parseFloat(match[4]);
+  const alpha =
+    match[4] === undefined
+      ? 1
+      : match[4].endsWith("%")
+        ? parseFloat(match[4]) / 100
+        : parseFloat(match[4]);
   return [Number(match[1]), Number(match[2]), Number(match[3]), alpha];
 }
 
@@ -40,10 +49,13 @@ export function isDarkBehind(element: Element): boolean {
     const color = parseColor(view.getComputedStyle(node).backgroundColor);
     if (color && color[3] >= 0.5) return luminance(color) < 0.2;
   }
-  const scheme = view.getComputedStyle(element.ownerDocument.documentElement).colorScheme;
+  const scheme = view.getComputedStyle(
+    element.ownerDocument.documentElement,
+  ).colorScheme;
   return /\bdark\b/.test(scheme) && !/\blight\b/.test(scheme)
     ? true
-    : /\bdark\b/.test(scheme) && view.matchMedia("(prefers-color-scheme: dark)").matches;
+    : /\bdark\b/.test(scheme) &&
+        view.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
 /** Match an overlay's shadow host to the page behind `anchor`. */

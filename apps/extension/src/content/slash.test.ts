@@ -33,7 +33,10 @@ describe("parseSlashQuery", () => {
 
 describe("replaceSlashCommand", () => {
   test("replaces only the command line", () => {
-    assert.equal(replaceSlashCommand("/lau", " Launch email prompt "), "Launch email prompt");
+    assert.equal(
+      replaceSlashCommand("/lau", " Launch email prompt "),
+      "Launch email prompt",
+    );
     assert.equal(
       replaceSlashCommand("Context first\n/ab\n", "About me"),
       "Context first\nAbout me",
@@ -46,8 +49,12 @@ describe("replaceSlashCommand", () => {
 });
 
 describe("matchSlashItems", () => {
-  const item = (id: string, title: string, text = `${title} text`, source: SlashItem["source"] = "saved") =>
-    ({ id, title, text, source }) as SlashItem;
+  const item = (
+    id: string,
+    title: string,
+    text = `${title} text`,
+    source: SlashItem["source"] = "saved",
+  ) => ({ id, title, text, source }) as SlashItem;
   const items = [
     item("c1", "About me", "I'm a PM", "card"),
     item("s1", "Code review checklist"),
@@ -69,9 +76,14 @@ describe("matchSlashItems", () => {
   });
 
   test("the same prompt from two sources shows once, and results are capped", () => {
-    const dupes = [item("s", "Launch", "same"), item("g", "Launch", "same", "gallery")];
+    const dupes = [
+      item("s", "Launch", "same"),
+      item("g", "Launch", "same", "gallery"),
+    ];
     assert.deepEqual(ids(matchSlashItems(dupes, "")), ["s"]);
-    const many = Array.from({ length: 20 }, (_, i) => item(String(i), `Prompt ${i}`));
+    const many = Array.from({ length: 20 }, (_, i) =>
+      item(String(i), `Prompt ${i}`),
+    );
     assert.equal(matchSlashItems(many, "").length, MAX_SLASH_RESULTS);
   });
 });

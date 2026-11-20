@@ -5,6 +5,7 @@ Each chat site is an `EditorAdapter` (`apps/extension/src/content/editors/types.
 ## 1. Add the platform spec
 
 Add an entry to `PLATFORMS` in `apps/extension/src/content/editors/platforms.ts`:
+
 - `name`: short id, also sent as chat context
 - `hosts`: matched exactly or as a parent domain (`openai.com` matches `chat.openai.com`, never `notopenai.com`)
 - `inputSelectors`: tried in order; the first visible, editable match is the composer
@@ -15,6 +16,7 @@ Then add the site to `content_scripts.matches` in `apps/extension/public/manifes
 ## 2. Check how the editor takes text
 
 Writes go through `writeText` in `editors/dom.ts`, from most to least native. Each step selects the whole draft, waits a task so the editor syncs its own selection, and is kept only if the composer then shows the text:
+
 1. `execCommand("insertText")`, which edits the DOM selection directly and keeps the page's undo; sites never see a paste they could turn into an attachment
 2. A synthetic paste, for rich editors that don't take native insertText
 3. Setting the DOM directly and firing `input`, as a last resort

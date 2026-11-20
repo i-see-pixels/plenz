@@ -1,5 +1,7 @@
-import { render, h } from 'preact'
-import { App } from './app'
-import './index.css'
+import { render } from "preact";
+import { App } from "./app";
+import "./index.css";
 
-render(<App />, document.getElementById('app')!)
+const root = document.getElementById("app");
+if (!root) throw new Error("plenz: #app element is missing");
+render(<App />, root);

@@ -112,7 +112,9 @@ function getStringArrayField(document: FirestoreDocument, fieldName: string) {
     .filter((value) => value.length > 0);
 }
 
-function toPublicPrompt(document: FirestoreDocument): PublicPromptRecord | null {
+function toPublicPrompt(
+  document: FirestoreDocument,
+): PublicPromptRecord | null {
   const id = getDocumentId(document.name);
   const title = getStringField(document, "title");
   const prompt = getStringField(document, "prompt");
@@ -188,7 +190,9 @@ async function queryPromptBySlug(slug: string) {
     throw new Error(`Failed to query prompt catalog: ${response.status}`);
   }
 
-  const result = (await response.json()) as Array<{ document?: FirestoreDocument }>;
+  const result = (await response.json()) as Array<{
+    document?: FirestoreDocument;
+  }>;
   return result.find((item) => item.document)?.document ?? null;
 }
 
@@ -204,12 +208,14 @@ export async function getPublicPromptBySlug(slug: string) {
   const directDocument = await fetchFirestoreDocument(`prompt_catalog/${slug}`);
   const directPrompt = directDocument ? toPublicPrompt(directDocument) : null;
 
-  if (directPrompt && directPrompt.canShare) {
+  if (directPrompt?.canShare) {
     return directPrompt;
   }
 
   const queriedDocument = await queryPromptBySlug(slug);
-  const queriedPrompt = queriedDocument ? toPublicPrompt(queriedDocument) : null;
+  const queriedPrompt = queriedDocument
+    ? toPublicPrompt(queriedDocument)
+    : null;
 
   if (!queriedPrompt?.canShare) {
     return null;

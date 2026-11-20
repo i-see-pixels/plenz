@@ -1,4 +1,3 @@
-import { useEffect, useState } from "preact/hooks";
 import {
   ON_DEVICE_MODEL_ID,
   ON_DEVICE_PROVIDER_ID,
@@ -6,10 +5,10 @@ import {
 } from "@plenz/providers";
 import type {
   ConnectionTestResult,
+  ModelOption,
   ProviderConfig,
   StorageResult,
   SyncStatus,
-  ModelOption,
 } from "@plenz/types";
 import { Badge } from "@plenz/ui/components/badge";
 import { Button } from "@plenz/ui/components/button";
@@ -24,29 +23,30 @@ import {
 } from "@plenz/ui/components/select";
 import { cn } from "@plenz/ui/lib/utils";
 import { AlertTriangle, Cloud, HardDrive, LoaderCircle } from "lucide-react";
-import { useAuthSession } from "./useAuthSession";
-import { OnDeviceModel } from "./OnDeviceModel";
-import { isRpcFailure, sendRpc } from "../shared/rpc";
-import { SyncPassphrase } from "./SyncPassphrase";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import type { VaultStatus } from "../background/sync-vault";
+import { isRpcFailure, sendRpc } from "../shared/rpc";
 import {
-  backendNotice,
-  backendTransition,
-  saveBadgeStatus,
-  saveMessage,
-  saveTransition,
-  testInputsKey,
-  testTransition,
-  visibleTestResult,
   type BackendEvent,
   type BackendState,
+  backendNotice,
+  backendTransition,
   type MigrationResult,
   type SaveEvent,
   type SaveState,
   type StorageBackendPreference,
+  saveBadgeStatus,
+  saveMessage,
+  saveTransition,
   type TestEvent,
   type TestState,
+  testInputsKey,
+  testTransition,
+  visibleTestResult,
 } from "./model-config-machine";
+import { OnDeviceModel } from "./OnDeviceModel";
+import { SyncPassphrase } from "./SyncPassphrase";
+import { useAuthSession } from "./useAuthSession";
 
 type StorageSettingsResponse = {
   storageBackend: StorageBackendPreference;
@@ -203,15 +203,19 @@ export function ModelConfig() {
     kind: "idle",
   });
 
-  const updateSave = (event: SaveEvent) =>
-    setSaveState((current) => saveTransition(current, event));
-  const updateBackend = (event: BackendEvent) =>
-    setBackendState((current) => backendTransition(current, event));
+  const updateSave = useCallback(
+    (event: SaveEvent) =>
+      setSaveState((current) => saveTransition(current, event)),
+    [],
+  );
+  const updateBackend = useCallback(
+    (event: BackendEvent) =>
+      setBackendState((current) => backendTransition(current, event)),
+    [],
+  );
   const updateTest = (event: TestEvent) =>
     setTestState((current) => testTransition(current, event));
 
-  const provider =
-    providers.find((item) => item.id === selectedProvider) ?? providers[0];
   // Chrome's built-in model has no key or model to choose.
   const isOnDevice = selectedProvider === ON_DEVICE_PROVIDER_ID;
   const effectiveModel = isOnDevice ? ON_DEVICE_MODEL_ID : selectedModel;
@@ -224,7 +228,7 @@ export function ModelConfig() {
     baseUrl,
   });
 
-  const loadStorageSettings = async () => {
+  const loadStorageSettings = useCallback(async () => {
     const rawResponse = await sendRpc("GET_STORAGE_SETTINGS");
     const response = isStorageSettingsResponse(rawResponse)
       ? rawResponse
@@ -241,30 +245,32 @@ export function ModelConfig() {
 
     setStorageBackend(response.storageBackend);
     setFirebaseConfigured(response.firebaseConfigured);
-  };
+  }, [updateBackend]);
 
   // Storage settings depend on who is signed in, so reload them on every change.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: isSignedIn is the trigger; the reply depends on the background's auth state
   useEffect(() => {
     void loadStorageSettings();
-  }, [isSignedIn]);
+  }, [loadStorageSettings, isSignedIn]);
 
   // The passphrase that encrypts synced keys; only relevant when Cloud Sync is possible.
-  const loadVaultStatus = async () => {
+  const loadVaultStatus = useCallback(async () => {
     if (!isSignedIn || !firebaseConfigured) {
       setVaultStatus(null);
       return;
     }
     const reply = await sendRpc("GET_SYNC_VAULT_STATUS");
     if (!isRpcFailure(reply)) setVaultStatus(reply.status);
-  };
+  }, [isSignedIn, firebaseConfigured]);
 
   useEffect(() => {
     void loadVaultStatus();
-  }, [isSignedIn, firebaseConfigured]);
+  }, [loadVaultStatus]);
 
   // Load the saved config for the selected provider. Switching again before
   // the reply arrives makes it stale, so it is dropped. Unlocking Cloud Sync
   // makes a synced key readable, so that reloads it too.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: storageBackend and vaultStatus are triggers; changing either changes what GET_MODEL_CONFIG returns
   useEffect(() => {
     let stale = false;
 
@@ -292,7 +298,7 @@ export function ModelConfig() {
     return () => {
       stale = true;
     };
-  }, [selectedProvider, isSignedIn, storageBackend, vaultStatus]);
+  }, [selectedProvider, isSignedIn, storageBackend, vaultStatus, updateSave]);
 
   useEffect(() => {
     // Set when the provider, key or URL changes again; late replies are dropped.
@@ -433,7 +439,10 @@ export function ModelConfig() {
       setStorageBackend(nextBackend);
       updateBackend({ type: "SWITCH_SUCCEEDED", migration });
     } catch (error) {
-      updateBackend({ type: "SWITCH_FAILED", message: (error as Error).message });
+      updateBackend({
+        type: "SWITCH_FAILED",
+        message: (error as Error).message,
+      });
     }
   };
 
@@ -621,116 +630,118 @@ export function ModelConfig() {
       {isOnDevice ? (
         <OnDeviceModel />
       ) : (
-      <>
-      <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
-        <Label
-          htmlFor="model"
-          className="font-mono text-[11px] tracking-[0.14em] uppercase"
-        >
-          Model
-        </Label>
-        {usesCustomModelInput ? (
-          <div className="flex flex-col gap-2">
-            <Input
-              id="model"
-              type="text"
-              value={selectedModel}
-              onInput={(e) =>
-                setSelectedModel((e.target as HTMLInputElement).value)
-              }
-              placeholder={
-                fetchingModels
-                  ? "Fetching models..."
-                  : selectedProvider === "openrouter"
-                    ? "e.g., anthropic/claude-3-opus"
-                    : "e.g., deepseek-chat or llama3.1"
-              }
-              list={`${selectedProvider}-models`}
-            />
-            {selectedProvider === "custom" ? (
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Enter the exact model ID from your provider. Examples include{" "}
-                <code>deepseek-chat</code>, <code>deepseek-reasoner</code>, or{" "}
-                <code>llama3.1</code>.
-              </p>
-            ) : null}
-            <datalist id={`${selectedProvider}-models`}>
-              {models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.name}
-                </option>
-              ))}
-            </datalist>
+        <>
+          <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+            <Label
+              htmlFor="model"
+              className="font-mono text-[11px] tracking-[0.14em] uppercase"
+            >
+              Model
+            </Label>
+            {usesCustomModelInput ? (
+              <div className="flex flex-col gap-2">
+                <Input
+                  id="model"
+                  type="text"
+                  value={selectedModel}
+                  onInput={(e) =>
+                    setSelectedModel((e.target as HTMLInputElement).value)
+                  }
+                  placeholder={
+                    fetchingModels
+                      ? "Fetching models..."
+                      : selectedProvider === "openrouter"
+                        ? "e.g., anthropic/claude-3-opus"
+                        : "e.g., deepseek-chat or llama3.1"
+                  }
+                  list={`${selectedProvider}-models`}
+                />
+                {selectedProvider === "custom" ? (
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Enter the exact model ID from your provider. Examples
+                    include <code>deepseek-chat</code>,{" "}
+                    <code>deepseek-reasoner</code>, or <code>llama3.1</code>.
+                  </p>
+                ) : null}
+                <datalist id={`${selectedProvider}-models`}>
+                  {models.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name}
+                    </option>
+                  ))}
+                </datalist>
+              </div>
+            ) : (
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger id="model" className="w-full">
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {models.length === 0 && fetchingModels ? (
+                    <SelectItem value="..." disabled>
+                      Loading models...
+                    </SelectItem>
+                  ) : models.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      Enter API Key to load models
+                    </SelectItem>
+                  ) : (
+                    models.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-        ) : (
-          <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger id="model" className="w-full">
-              <SelectValue placeholder="Select model" />
-            </SelectTrigger>
-            <SelectContent>
-              {models.length === 0 && fetchingModels ? (
-                <SelectItem value="..." disabled>
-                  Loading models...
-                </SelectItem>
-              ) : models.length === 0 ? (
-                <SelectItem value="none" disabled>
-                  Enter API Key to load models
-                </SelectItem>
-              ) : (
-                models.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
 
-      {selectedProvider === "custom" ? (
-        <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
-          <Label
-            htmlFor="base-url"
-            className="font-mono text-[11px] tracking-[0.14em] uppercase"
-          >
-            Base URL
-          </Label>
-          <div className="flex flex-col gap-2">
+          {selectedProvider === "custom" ? (
+            <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+              <Label
+                htmlFor="base-url"
+                className="font-mono text-[11px] tracking-[0.14em] uppercase"
+              >
+                Base URL
+              </Label>
+              <div className="flex flex-col gap-2">
+                <Input
+                  id="base-url"
+                  type="text"
+                  value={baseUrl}
+                  onInput={(e) =>
+                    setBaseUrl((e.target as HTMLInputElement).value)
+                  }
+                  placeholder="https://your-provider.example/v1"
+                />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Enter the provider base URL or the full chat completions
+                  endpoint. plenz appends <code>/chat/completions</code>{" "}
+                  automatically for base URLs. DeepSeek works with{" "}
+                  <code>https://api.deepseek.com</code> or{" "}
+                  <code>https://api.deepseek.com/v1</code>.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+            <Label
+              htmlFor="api-key"
+              className="font-mono text-[11px] tracking-[0.14em] uppercase"
+            >
+              API key
+            </Label>
             <Input
-              id="base-url"
-              type="text"
-              value={baseUrl}
-              onInput={(e) => setBaseUrl((e.target as HTMLInputElement).value)}
-              placeholder="https://your-provider.example/v1"
+              id="api-key"
+              type="password"
+              value={apiKey}
+              onInput={(e) => setApiKey((e.target as HTMLInputElement).value)}
+              placeholder="sk-..."
             />
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Enter the provider base URL or the full chat completions endpoint.
-              plenz appends <code>/chat/completions</code> automatically for
-              base URLs. DeepSeek works with{" "}
-              <code>https://api.deepseek.com</code> or{" "}
-              <code>https://api.deepseek.com/v1</code>.
-            </p>
           </div>
-        </div>
-      ) : null}
-
-      <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
-        <Label
-          htmlFor="api-key"
-          className="font-mono text-[11px] tracking-[0.14em] uppercase"
-        >
-          API key
-        </Label>
-        <Input
-          id="api-key"
-          type="password"
-          value={apiKey}
-          onInput={(e) => setApiKey((e.target as HTMLInputElement).value)}
-          placeholder="sk-..."
-        />
-      </div>
-      </>
+        </>
       )}
 
       <div className="flex flex-wrap items-center gap-2 pt-1">

@@ -1,35 +1,23 @@
-import { genericAdapter } from "./editors/generic";
-import { findPlatformAdapter } from "./editors/platforms";
-import type { EditorAdapter } from "./editors/types";
-import { BadgeIndicator } from "./ui/BadgeIndicator";
-import { RefinePanel } from "./ui/RefinePanel";
-import { SlashMenu } from "./ui/SlashMenu";
-import {
-  matchSlashItems,
-  parseSlashQuery,
-  replaceSlashCommand,
-  type SlashItem,
-} from "./slash";
-import {
-  createContentModel,
-  keyToEvent,
-  transition,
-  view,
-  type ContentEffect,
-  type ContentEvent,
-  type ContentModel,
-  type BadgeView,
-  type ContentView,
-  type LintSummary,
-} from "./machine";
 import {
   applyDiff,
   buildConversationContext,
   diffPrompts,
-  lintPrompt,
   type LintResult,
+  lintPrompt,
   type PromptDiff,
 } from "@plenz/core";
+import type { ConversationContext, RefineMode } from "@plenz/types";
+import {
+  CONTEXT_CARDS_STORAGE_KEY,
+  type ContextCard,
+  normalizeCards,
+} from "../shared/context-cards";
+import {
+  hiddenChecks,
+  LEARNING_STORAGE_KEY,
+  normalizeLearning,
+  preferredMode,
+} from "../shared/learning";
 import {
   MAX_REFINE_DRAFT_CHARS,
   REFINE_PORT,
@@ -37,27 +25,38 @@ import {
   type RefineStart,
 } from "../shared/refine-port";
 import {
+  type InsertablePrompt,
   isRpcFailure,
-  sendRpc,
   type PayloadArgs,
   type RpcFailure,
   type RpcReply,
   type RpcType,
-  type InsertablePrompt,
+  sendRpc,
 } from "../shared/rpc";
-import type { ConversationContext } from "@plenz/types";
+import { genericAdapter } from "./editors/generic";
+import { findPlatformAdapter } from "./editors/platforms";
+import type { EditorAdapter } from "./editors/types";
 import {
-  hiddenChecks,
-  LEARNING_STORAGE_KEY,
-  normalizeLearning,
-  preferredMode,
-} from "../shared/learning";
-import type { RefineMode } from "@plenz/types";
+  type BadgeView,
+  type ContentEffect,
+  type ContentEvent,
+  type ContentModel,
+  type ContentView,
+  createContentModel,
+  keyToEvent,
+  type LintSummary,
+  transition,
+  view,
+} from "./machine";
 import {
-  CONTEXT_CARDS_STORAGE_KEY,
-  normalizeCards,
-  type ContextCard,
-} from "../shared/context-cards";
+  matchSlashItems,
+  parseSlashQuery,
+  replaceSlashCommand,
+  type SlashItem,
+} from "./slash";
+import { BadgeIndicator } from "./ui/BadgeIndicator";
+import { RefinePanel } from "./ui/RefinePanel";
+import { SlashMenu } from "./ui/SlashMenu";
 
 const PREFERENCES_STORAGE_KEY = "preferences";
 const DEFAULT_DEBOUNCE_MS = 500;
@@ -115,7 +114,11 @@ class ExtensionContentScript {
   private cards: ContextCard[] = [];
   private slashMenu: SlashMenu | null = null;
   /** The open `/` menu: its query, matches and highlighted row. */
-  private slash: { query: string; items: SlashItem[]; selected: number } | null = null;
+  private slash: {
+    query: string;
+    items: SlashItem[];
+    selected: number;
+  } | null = null;
   /** Esc closed the menu for this exact draft; typing reopens it. */
   private slashDismissedFor: string | null = null;
   private prompts: { at: number; list: InsertablePrompt[] } | null = null;
@@ -125,23 +128,36 @@ class ExtensionContentScript {
   private renderedView: ContentView | null = null;
   private readonly eventQueue: ContentEvent[] = [];
   private dispatching = false;
-  private lintCache: { text: string; raw: LintResult; result: LintSummary } | null = null;
+  private lintCache: {
+    text: string;
+    raw: LintResult;
+    result: LintSummary;
+  } | null = null;
   /** From local learning: the mode to suggest, and checks the user keeps ignoring. */
   private preferredMode: RefineMode | null = null;
   private hiddenChecks = new Set<string>();
   /** Checks flagged at some point on the draft being written (for learning). */
   private seenChecks = new Set<string>();
-  private diffCache: { original: string; output: string; diff: PromptDiff } | null = null;
+  private diffCache: {
+    original: string;
+    output: string;
+    diff: PromptDiff;
+  } | null = null;
 
   constructor() {
     // The manifest only injects on known chat sites; anywhere else we were
     // registered because the user enabled this site from the popup.
-    this.adapter = findPlatformAdapter(window.location.hostname) ?? genericAdapter;
+    this.adapter =
+      findPlatformAdapter(window.location.hostname) ?? genericAdapter;
     void this.init();
   }
 
   private async init() {
-    await Promise.all([this.loadPreferences(), this.loadCards(), this.loadLearning()]);
+    await Promise.all([
+      this.loadPreferences(),
+      this.loadCards(),
+      this.loadLearning(),
+    ]);
     this.observePreferenceChanges();
     this.observeDOM();
     this.detectInput();
@@ -170,8 +186,11 @@ class ExtensionContentScript {
 
     this.dispatching = true;
     try {
-      let next: ContentEvent | undefined;
-      while ((next = this.eventQueue.shift())) {
+      for (
+        let next = this.eventQueue.shift();
+        next;
+        next = this.eventQueue.shift()
+      ) {
         const { model, effects } = transition(this.model, next);
         this.model = model;
         for (const effect of effects) this.runEffect(effect);
@@ -203,7 +222,10 @@ class ExtensionContentScript {
       case "applyResult": {
         const text =
           effect.rejected.length > 0
-            ? applyDiff(this.diffFor(effect.original, effect.output), effect.rejected)
+            ? applyDiff(
+                this.diffFor(effect.original, effect.output),
+                effect.rejected,
+              )
             : effect.output;
         this.writeInput(text);
         return;
@@ -225,7 +247,8 @@ class ExtensionContentScript {
   private lintFor(text: string): LintSummary {
     if (this.lintCache?.text !== text) {
       const raw = lintPrompt(text);
-      if (raw.assessed) for (const finding of raw.findings) this.seenChecks.add(finding.id);
+      if (raw.assessed)
+        for (const finding of raw.findings) this.seenChecks.add(finding.id);
       this.lintCache = { text, raw, result: this.withoutHidden(raw) };
     }
     return this.lintCache.result;
@@ -234,7 +257,9 @@ class ExtensionContentScript {
   /** Checks the user keeps ignoring aren't shown and don't cost points. */
   private withoutHidden(raw: LintResult): LintSummary {
     if (!raw.assessed || this.hiddenChecks.size === 0) return raw;
-    const findings = raw.findings.filter((finding) => !this.hiddenChecks.has(finding.id));
+    const findings = raw.findings.filter(
+      (finding) => !this.hiddenChecks.has(finding.id),
+    );
     const penalty = findings.reduce((sum, finding) => sum + finding.weight, 0);
     return { ...raw, findings, score: Math.max(0, 100 - penalty) };
   }
@@ -253,7 +278,10 @@ class ExtensionContentScript {
     this.preferredMode = preferredMode(learning);
     this.hiddenChecks = hiddenChecks(learning);
     if (this.lintCache) {
-      this.lintCache = { ...this.lintCache, result: this.withoutHidden(this.lintCache.raw) };
+      this.lintCache = {
+        ...this.lintCache,
+        result: this.withoutHidden(this.lintCache.raw),
+      };
     }
     this.render();
   }
@@ -263,27 +291,39 @@ class ExtensionContentScript {
    * were sent past (ignored), ones flagged earlier but gone were fixed.
    */
   private recordSent() {
-    const raw = this.lintCache?.text === this.model.text ? this.lintCache.raw : lintPrompt(this.model.text);
+    const raw =
+      this.lintCache?.text === this.model.text
+        ? this.lintCache.raw
+        : lintPrompt(this.model.text);
     const seen = this.seenChecks;
     this.seenChecks = new Set();
     if (!raw.assessed) return;
     const ignored: string[] = raw.findings.map((finding) => finding.id);
     const fixed = [...seen].filter((id) => !ignored.includes(id));
     if (ignored.length === 0 && fixed.length === 0) return;
-    void this.sendRuntimeMessage("RECORD_LEARNING", { type: "sent", fixed, ignored }).catch(() => {});
+    void this.sendRuntimeMessage("RECORD_LEARNING", {
+      type: "sent",
+      fixed,
+      ignored,
+    }).catch(() => {});
   }
 
   /** Diff once per (draft, result) pair; the panel re-renders on every toggle. */
   private diffFor(original: string, output: string): PromptDiff {
-    const cache = this.diffCache;
+    let cache = this.diffCache;
     if (cache?.original !== original || cache.output !== output) {
-      this.diffCache = { original, output, diff: diffPrompts(original, output) };
+      cache = { original, output, diff: diffPrompts(original, output) };
+      this.diffCache = cache;
     }
-    return this.diffCache!.diff;
+    return cache.diff;
   }
 
   private render() {
-    const next = view(this.model, this.lintFor(this.model.text), this.preferredMode);
+    const next = view(
+      this.model,
+      this.lintFor(this.model.text),
+      this.preferredMode,
+    );
     const prev = this.renderedView;
     this.renderedView = next;
 
@@ -295,8 +335,7 @@ class ExtensionContentScript {
       else if (badge.kind === "idle") this.badge?.showIdle();
       else if (badge.kind === "lint") {
         this.badge?.showLint(badge.score, badge.findings, badge.canUndo);
-      }
-      else this.badge?.showError(badge.message || "An error occurred");
+      } else this.badge?.showError(badge.message || "An error occurred");
     }
 
     // The panel updates in place (streamed text, answers keep focus).
@@ -315,7 +354,9 @@ class ExtensionContentScript {
   private renderSlash() {
     const { state, text, enabled } = this.model;
     const query =
-      enabled && (state.kind === "idle" || state.kind === "debouncing") && text !== this.slashDismissedFor
+      enabled &&
+      (state.kind === "idle" || state.kind === "debouncing") &&
+      text !== this.slashDismissedFor
         ? parseSlashQuery(text)
         : null;
     if (query === null || !this.slashMenu) {
@@ -339,14 +380,20 @@ class ExtensionContentScript {
       return;
     }
     const selected =
-      this.slash?.query === query ? Math.min(this.slash.selected, Math.max(0, items.length - 1)) : 0;
+      this.slash?.query === query
+        ? Math.min(this.slash.selected, Math.max(0, items.length - 1))
+        : 0;
     this.slash = { query, items, selected };
     this.slashMenu.render(items, selected, this.promptsLoading);
   }
 
   /** Saved and gallery prompts, fetched when the menu opens (cached for a minute). */
   private loadPrompts() {
-    if (this.promptsLoading || (this.prompts && Date.now() - this.prompts.at < 60_000)) return;
+    if (
+      this.promptsLoading ||
+      (this.prompts && Date.now() - this.prompts.at < 60_000)
+    )
+      return;
     this.promptsLoading = true;
     void this.sendRuntimeMessage("LIST_INSERTABLE_PROMPTS")
       .then((reply) => {
@@ -365,20 +412,29 @@ class ExtensionContentScript {
   private pickSlashItem(index: number) {
     const item = this.slash?.items[index];
     if (!item) return;
-    this.dispatch({ type: "SLASH_INSERT", text: replaceSlashCommand(this.model.text, item.text) });
+    this.dispatch({
+      type: "SLASH_INSERT",
+      text: replaceSlashCommand(this.model.text, item.text),
+    });
   }
 
   /** Keys for the open `/` menu; true when the key was used. */
   private handleSlashKey(e: KeyboardEvent) {
     const slash = this.slash;
-    if (!slash || e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return false;
+    if (!slash || e.isComposing || e.altKey || e.ctrlKey || e.metaKey)
+      return false;
     const count = slash.items.length;
     switch (e.key) {
       case "ArrowDown":
       case "ArrowUp":
         if (count === 0) return false;
-        slash.selected = (slash.selected + (e.key === "ArrowDown" ? 1 : count - 1)) % count;
-        this.slashMenu?.render(slash.items, slash.selected, this.promptsLoading);
+        slash.selected =
+          (slash.selected + (e.key === "ArrowDown" ? 1 : count - 1)) % count;
+        this.slashMenu?.render(
+          slash.items,
+          slash.selected,
+          this.promptsLoading,
+        );
         return true;
       case "Enter":
       case "Tab":
@@ -515,15 +571,19 @@ class ExtensionContentScript {
       onAnswer: (index, value) =>
         this.dispatch({ type: "ANSWER_CHANGED", index, value }),
       onSubmitAnswers: () => this.dispatch({ type: "ANSWERS_SUBMITTED" }),
-      onToggleChange: (index) => this.dispatch({ type: "CHANGE_TOGGLED", index }),
+      onToggleChange: (index) =>
+        this.dispatch({ type: "CHANGE_TOGGLED", index }),
       onResetChanges: () => this.dispatch({ type: "CHANGES_RESET" }),
-      onOpenSettings: () => void this.sendRuntimeMessage("OPEN_SETTINGS").catch(() => {}),
+      onOpenSettings: () =>
+        void this.sendRuntimeMessage("OPEN_SETTINGS").catch(() => {}),
     });
     this.panel.setCards(this.cards);
     this.badge = new BadgeIndicator(container);
     this.badge.setOnClick(() => this.dispatch({ type: "BADGE_CLICKED" }));
     this.badge.setOnUndo(() => this.dispatch({ type: "UNDO_REQUESTED" }));
-    this.slashMenu = new SlashMenu(container, (index) => this.pickSlashItem(index));
+    this.slashMenu = new SlashMenu(container, (index) =>
+      this.pickSlashItem(index),
+    );
     el.addEventListener("input", this.boundHandleInput);
 
     this.dispatch({ type: "INPUT_ATTACHED" });
@@ -531,7 +591,10 @@ class ExtensionContentScript {
 
   private handleInput() {
     if (!this.inputElement || !this.adapter) return;
-    this.dispatch({ type: "TEXT_CHANGED", text: this.adapter.read(this.inputElement) });
+    this.dispatch({
+      type: "TEXT_CHANGED",
+      text: this.adapter.read(this.inputElement),
+    });
   }
 
   /** One port per refine; disconnecting it cancels the provider call. */
@@ -548,7 +611,9 @@ class ExtensionContentScript {
       return;
     }
     if (!globalThis.chrome?.runtime?.id) {
-      fail("plenz was updated or reloaded. Refresh this page to keep using it.");
+      fail(
+        "plenz was updated or reloaded. Refresh this page to keep using it.",
+      );
       return;
     }
 
@@ -564,7 +629,11 @@ class ExtensionContentScript {
     port.onMessage.addListener((message: RefineServerMessage) => {
       switch (message.type) {
         case "DELTA":
-          this.dispatch({ type: "REFINE_DELTA", requestId, text: message.text });
+          this.dispatch({
+            type: "REFINE_DELTA",
+            requestId,
+            text: message.text,
+          });
           return;
         case "DONE":
           settle();
@@ -572,7 +641,11 @@ class ExtensionContentScript {
           return;
         case "QUESTIONS":
           settle();
-          this.dispatch({ type: "QUESTIONS_READY", requestId, questions: message.questions });
+          this.dispatch({
+            type: "QUESTIONS_READY",
+            requestId,
+            questions: message.questions,
+          });
           return;
         case "ERROR":
           settle();
@@ -677,8 +750,13 @@ class ExtensionContentScript {
       inInput &&
       this.adapter !== genericAdapter &&
       e.key === "Enter" &&
-      !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.isComposing &&
-      (this.model.state.kind === "idle" || this.model.state.kind === "debouncing")
+      !e.shiftKey &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey &&
+      !e.isComposing &&
+      (this.model.state.kind === "idle" ||
+        this.model.state.kind === "debouncing")
     ) {
       this.recordSent();
     }
@@ -709,7 +787,9 @@ class ExtensionContentScript {
 
 // Enabling a site injects into the open tab and registers for future loads;
 // never run two copies in the same page.
-const loaded = globalThis as typeof globalThis & { __plenzContentScript?: boolean };
+const loaded = globalThis as typeof globalThis & {
+  __plenzContentScript?: boolean;
+};
 if (!loaded.__plenzContentScript) {
   loaded.__plenzContentScript = true;
   new ExtensionContentScript();

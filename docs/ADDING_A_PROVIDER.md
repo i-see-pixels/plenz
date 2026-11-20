@@ -1,6 +1,7 @@
 # Adding a Provider
 
 There are three adapters in `packages/providers/src/`:
+
 - `openai-compatible.ts`: any OpenAI-compatible chat completions API, configured by presets
 - `anthropic.ts`: the Anthropic Messages API
 - `google.ts`: the Gemini API
@@ -10,6 +11,7 @@ Every adapter streams plain text through `streamCompletion({ system, user }, con
 ## 1. OpenAI-compatible APIs: add a preset
 
 Most providers speak the OpenAI chat completions API. Add an entry to `OPENAI_COMPATIBLE_PRESETS` in `openai-compatible.ts`:
+
 - `id`: stored with the user's config; never change it once shipped
 - `name`: shown in settings
 - `baseUrl`: the vendor's base URL (omit it to use the user's own URL, like `custom`)
@@ -26,6 +28,7 @@ Create a file implementing the `ProviderAdapter` interface from `@plenz/types` (
 ## 3. Configure API Domain Access
 
 If your provider requires a new API host, update:
+
 - `apps/extension/public/manifest.json`
   - `host_permissions`
   - `content_security_policy.extension_pages` `connect-src`

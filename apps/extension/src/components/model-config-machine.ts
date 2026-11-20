@@ -27,7 +27,11 @@ export function saveTransition(state: SaveState, event: SaveEvent): SaveState {
       // A save in flight decides the next state, not a background reload.
       return state.kind === "saving"
         ? state
-        : { kind: "idle", syncStatus: event.syncStatus, warning: event.warning };
+        : {
+            kind: "idle",
+            syncStatus: event.syncStatus,
+            warning: event.warning,
+          };
     case "SAVE_STARTED":
       return state.kind === "saving" ? state : { kind: "saving" };
     case "SAVE_SUCCEEDED":
@@ -35,7 +39,9 @@ export function saveTransition(state: SaveState, event: SaveEvent): SaveState {
         ? { kind: "idle", syncStatus: event.syncStatus, warning: event.warning }
         : state;
     case "SAVE_FAILED":
-      return state.kind === "saving" ? { kind: "failed", error: event.error } : state;
+      return state.kind === "saving"
+        ? { kind: "failed", error: event.error }
+        : state;
   }
 }
 
@@ -104,9 +110,13 @@ export function backendTransition(
 ): BackendState {
   switch (event.type) {
     case "SWITCH_REQUESTED":
-      if (state.kind === "switching" || event.target === event.current) return state;
+      if (state.kind === "switching" || event.target === event.current)
+        return state;
       if (event.target === "firebase" && !event.isSignedIn) {
-        return { kind: "blocked", message: "Sign in with Google before enabling Cloud Sync." };
+        return {
+          kind: "blocked",
+          message: "Sign in with Google before enabling Cloud Sync.",
+        };
       }
       if (event.target === "firebase" && !event.firebaseConfigured) {
         return { kind: "blocked", message: FIREBASE_NOT_CONFIGURED_MESSAGE };
@@ -114,7 +124,8 @@ export function backendTransition(
       if (event.target === "firebase" && !event.vaultReady) {
         return {
           kind: "blocked",
-          message: "Set up or unlock your sync passphrase below before switching to Cloud Sync.",
+          message:
+            "Set up or unlock your sync passphrase below before switching to Cloud Sync.",
         };
       }
       return { kind: "switching", target: event.target };
@@ -124,15 +135,20 @@ export function backendTransition(
         ? {
             kind: "switched",
             message: switchedMessage(state.target, event.migration),
-            warning: state.target === "firebase" && !!event.migration?.errors.length,
+            warning:
+              state.target === "firebase" && !!event.migration?.errors.length,
           }
         : state;
 
     case "SWITCH_FAILED":
-      return state.kind === "switching" ? { kind: "failed", message: event.message } : state;
+      return state.kind === "switching"
+        ? { kind: "failed", message: event.message }
+        : state;
 
     case "SETTINGS_LOAD_FAILED":
-      return state.kind === "switching" ? state : { kind: "failed", message: event.message };
+      return state.kind === "switching"
+        ? state
+        : { kind: "failed", message: event.message };
   }
 }
 
@@ -152,7 +168,10 @@ export function backendNotice(
             : "Switching to Chrome Sync...",
       };
     case "switched":
-      return { tone: state.warning ? "error" : "muted", message: state.message };
+      return {
+        tone: state.warning ? "error" : "muted",
+        message: state.message,
+      };
     case "blocked":
     case "failed":
       return { tone: "error", message: state.message };
@@ -178,13 +197,20 @@ export function testInputsKey(inputs: {
   model: string;
   baseUrl: string;
 }) {
-  return JSON.stringify([inputs.providerId, inputs.apiKey, inputs.model, inputs.baseUrl]);
+  return JSON.stringify([
+    inputs.providerId,
+    inputs.apiKey,
+    inputs.model,
+    inputs.baseUrl,
+  ]);
 }
 
 export function testTransition(state: TestState, event: TestEvent): TestState {
   switch (event.type) {
     case "TEST_STARTED":
-      return state.kind === "testing" ? state : { kind: "testing", inputs: event.inputs };
+      return state.kind === "testing"
+        ? state
+        : { kind: "testing", inputs: event.inputs };
     case "TEST_FINISHED":
       return state.kind === "testing" && state.inputs === event.inputs
         ? { kind: "done", inputs: event.inputs, result: event.result }
@@ -193,5 +219,7 @@ export function testTransition(state: TestState, event: TestEvent): TestState {
 }
 
 export function visibleTestResult(state: TestState, currentInputs: string) {
-  return state.kind === "done" && state.inputs === currentInputs ? state.result : null;
+  return state.kind === "done" && state.inputs === currentInputs
+    ? state.result
+    : null;
 }

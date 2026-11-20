@@ -1,7 +1,7 @@
 import {
   applyDiff,
-  REFINE_MODE_LABELS,
   type PromptDiff,
+  REFINE_MODE_LABELS,
   type RefineStep,
 } from "@plenz/core";
 import type { RefineMode } from "@plenz/types";
@@ -108,8 +108,10 @@ export class RefinePanel {
   /** Result view: diff of changes, or the text that will be applied. Null until decided. */
   private showDiff: boolean | null = null;
   private viewToggles: { diff: boolean; button: HTMLButtonElement }[] = [];
-  private lastResult: { view: Extract<PanelView, { kind: "result" }>; diff: PromptDiff | null } | null =
-    null;
+  private lastResult: {
+    view: Extract<PanelView, { kind: "result" }>;
+    diff: PromptDiff | null;
+  } | null = null;
   private visible = false;
   private cards: ContextCard[] = [];
   private readonly boundPosition = () => this.position();
@@ -218,7 +220,11 @@ export class RefinePanel {
   }
 
   private button(label: string, onClick: () => void, primary = false) {
-    const button = el("button", primary ? "pl-btn pl-btn-primary" : "pl-btn", label);
+    const button = el(
+      "button",
+      primary ? "pl-btn pl-btn-primary" : "pl-btn",
+      label,
+    );
     button.type = "button";
     button.addEventListener("click", onClick);
     return button;
@@ -249,7 +255,8 @@ export class RefinePanel {
     for (const card of this.cards) {
       const chip = this.button(card.title, () => this.handlers.onCard(card.id));
       chip.classList.add("pl-btn-small", "pl-card-chip");
-      chip.title = card.text.length > 200 ? `${card.text.slice(0, 200)}…` : card.text;
+      chip.title =
+        card.text.length > 200 ? `${card.text.slice(0, 200)}…` : card.text;
       row.appendChild(chip);
     }
     return row;
@@ -260,8 +267,11 @@ export class RefinePanel {
     const row = el("div", "pl-mode-row");
     row.appendChild(el("span", "pl-muted", "Try:"));
     for (const { mode } of MODES) {
-      if (mode === exclude || (exclude === "compose" && mode === "ask")) continue;
-      const chip = this.button(REFINE_MODE_LABELS[mode], () => this.handlers.onMode(mode));
+      if (mode === exclude || (exclude === "compose" && mode === "ask"))
+        continue;
+      const chip = this.button(REFINE_MODE_LABELS[mode], () =>
+        this.handlers.onMode(mode),
+      );
       chip.classList.add("pl-btn-small");
       row.appendChild(chip);
     }
@@ -289,23 +299,41 @@ export class RefinePanel {
         if (!view.canRefine) {
           // Nothing to refine yet: offer what works on an empty draft.
           body.push(this.header("plenz"));
-          body.push(el("div", "pl-muted pl-gap", "Write a few more words and plenz can refine your prompt."));
+          body.push(
+            el(
+              "div",
+              "pl-muted pl-gap",
+              "Write a few more words and plenz can refine your prompt.",
+            ),
+          );
           body.push(this.cardRow());
-          body.push(el("div", "pl-muted pl-note", "Tip: type / at the start of a line to insert a saved prompt."));
+          body.push(
+            el(
+              "div",
+              "pl-muted pl-note",
+              "Tip: type / at the start of a line to insert a saved prompt.",
+            ),
+          );
           body.push(this.footer(["Esc", "close"]));
           break;
         }
         body.push(this.header("Refine prompt"));
         if (view.findings.length > 0) {
           body.push(
-            el("div", "pl-muted pl-gap", `Missing: ${view.findings.map((f) => f.label).join(" · ")}`),
+            el(
+              "div",
+              "pl-muted pl-gap",
+              `Missing: ${view.findings.map((f) => f.label).join(" · ")}`,
+            ),
           );
         }
         const grid = el("div", "pl-mode-grid");
         for (const { mode, blurb } of MODES) {
           const card = el("button", "pl-mode-card");
           card.type = "button";
-          card.appendChild(el("span", "pl-mode-name", REFINE_MODE_LABELS[mode]));
+          card.appendChild(
+            el("span", "pl-mode-name", REFINE_MODE_LABELS[mode]),
+          );
           card.appendChild(el("span", "pl-mode-blurb", blurb));
           if (mode === view.recommended) {
             card.classList.add("recommended");
@@ -316,8 +344,16 @@ export class RefinePanel {
         }
         body.push(grid);
         body.push(this.cardRow());
-        body.push(this.footer(["Esc", "close"], [`${MOD}+Shift+Enter`, "Improve"]));
-        body.push(el("div", "pl-muted pl-note", "Each mode is one call to your AI provider."));
+        body.push(
+          this.footer(["Esc", "close"], [`${MOD}+Shift+Enter`, "Improve"]),
+        );
+        body.push(
+          el(
+            "div",
+            "pl-muted pl-note",
+            "Each mode is one call to your AI provider.",
+          ),
+        );
         break;
       }
 
@@ -338,7 +374,8 @@ export class RefinePanel {
         ] as const) {
           const button = this.button(label, () => {
             this.showDiff = diff;
-            if (this.lastResult) this.updateResult(this.lastResult.view, this.lastResult.diff);
+            if (this.lastResult)
+              this.updateResult(this.lastResult.view, this.lastResult.diff);
           });
           button.classList.add("pl-btn-small");
           this.viewToggles.push({ diff, button });
@@ -358,13 +395,25 @@ export class RefinePanel {
 
       case "asking":
         body.push(this.header(REFINE_MODE_LABELS.ask));
-        body.push(el("div", "pl-muted pl-status", "Finding the questions that matter most…"));
+        body.push(
+          el(
+            "div",
+            "pl-muted pl-status",
+            "Finding the questions that matter most…",
+          ),
+        );
         body.push(this.button("Stop", () => this.handlers.onDismiss()));
         break;
 
       case "answering": {
         body.push(this.header(REFINE_MODE_LABELS.ask));
-        body.push(el("div", "pl-muted pl-gap", "Answer what you can; blanks are skipped."));
+        body.push(
+          el(
+            "div",
+            "pl-muted pl-gap",
+            "Answer what you can; blanks are skipped.",
+          ),
+        );
         const form = el("form", "pl-questions");
         const inputs: HTMLInputElement[] = [];
         view.questions.forEach((question, index) => {
@@ -373,7 +422,9 @@ export class RefinePanel {
           const input = el("input", "pl-input");
           input.type = "text";
           input.value = view.answers[index] ?? "";
-          input.addEventListener("input", () => this.handlers.onAnswer(index, input.value));
+          input.addEventListener("input", () =>
+            this.handlers.onAnswer(index, input.value),
+          );
           input.addEventListener("keydown", (event) => {
             if (event.key !== "Enter") return;
             event.preventDefault();
@@ -391,10 +442,20 @@ export class RefinePanel {
         });
         body.push(form);
         const actions = el("div", "pl-actions");
-        actions.appendChild(this.button("Write prompt", () => this.handlers.onSubmitAnswers(), true));
-        actions.appendChild(this.button("Cancel", () => this.handlers.onDismiss()));
+        actions.appendChild(
+          this.button(
+            "Write prompt",
+            () => this.handlers.onSubmitAnswers(),
+            true,
+          ),
+        );
+        actions.appendChild(
+          this.button("Cancel", () => this.handlers.onDismiss()),
+        );
         body.push(actions);
-        body.push(this.footer([`${MOD}+Enter`, "write prompt"], ["Esc", "close"]));
+        body.push(
+          this.footer([`${MOD}+Enter`, "write prompt"], ["Esc", "close"]),
+        );
         requestAnimationFrame(() => inputs[0]?.focus());
         break;
       }
@@ -404,16 +465,29 @@ export class RefinePanel {
         const error = el("div", "pl-error", view.message);
         error.setAttribute("role", "alert");
         body.push(error);
-        if (view.detail) body.push(el("div", "pl-muted pl-note pl-error-detail", view.detail));
+        if (view.detail)
+          body.push(el("div", "pl-muted pl-note pl-error-detail", view.detail));
         const retry: RefineMode = view.step === "compose" ? "ask" : view.step;
         const actions = el("div", "pl-actions");
         if (view.fixInSettings) {
-          actions.appendChild(this.button("Open settings", () => this.handlers.onOpenSettings(), true));
+          actions.appendChild(
+            this.button(
+              "Open settings",
+              () => this.handlers.onOpenSettings(),
+              true,
+            ),
+          );
         }
         actions.appendChild(
-          this.button("Try again", () => this.handlers.onMode(retry), !view.fixInSettings),
+          this.button(
+            "Try again",
+            () => this.handlers.onMode(retry),
+            !view.fixInSettings,
+          ),
         );
-        actions.appendChild(this.button("Close", () => this.handlers.onDismiss()));
+        actions.appendChild(
+          this.button("Close", () => this.handlers.onDismiss()),
+        );
         body.push(actions);
         body.push(this.modeRow(view.step));
         break;
@@ -425,7 +499,10 @@ export class RefinePanel {
   }
 
   /** Fill the result's output and actions; runs on every render so toggles update in place. */
-  private updateResult(view: Extract<PanelView, { kind: "result" }>, diff: PromptDiff | null) {
+  private updateResult(
+    view: Extract<PanelView, { kind: "result" }>,
+    diff: PromptDiff | null,
+  ) {
     const output = this.output;
     const actions = this.resultActions;
     if (!output || !actions) return;
@@ -436,10 +513,14 @@ export class RefinePanel {
 
     // Changes view, unless the diff would just be noise.
     if (this.showDiff === null) {
-      this.showDiff = !!diff && changes > 0 && !diff.wholesale && diff.similarity >= 0.3;
+      this.showDiff =
+        !!diff && changes > 0 && !diff.wholesale && diff.similarity >= 0.3;
     }
     for (const toggle of this.viewToggles) {
-      toggle.button.setAttribute("aria-pressed", String(toggle.diff === this.showDiff));
+      toggle.button.setAttribute(
+        "aria-pressed",
+        String(toggle.diff === this.showDiff),
+      );
       toggle.button.hidden = changes === 0;
     }
 
@@ -474,7 +555,9 @@ export class RefinePanel {
       primary.disabled = kept === 0;
       nodes.push(primary);
       if (kept < changes) {
-        nodes.push(this.button("Use all changes", () => this.handlers.onResetChanges()));
+        nodes.push(
+          this.button("Use all changes", () => this.handlers.onResetChanges()),
+        );
       }
     }
     nodes.push(this.button("Discard", () => this.handlers.onDismiss()));
@@ -492,7 +575,8 @@ export class RefinePanel {
       change.title = kept
         ? "Using your wording here. Click to use the suggestion."
         : "Click to keep your wording here.";
-      if (segment.removed) change.appendChild(el("del", "pl-del", segment.removed));
+      if (segment.removed)
+        change.appendChild(el("del", "pl-del", segment.removed));
       if (segment.added) change.appendChild(el("ins", "pl-ins", segment.added));
       const toggle = () => this.handlers.onToggleChange(segment.index);
       change.addEventListener("click", toggle);
@@ -506,7 +590,6 @@ export class RefinePanel {
     });
   }
 
-
   /** Same width as the input, placed above it when there's room, else below. */
   private position() {
     if (!this.visible) return;
@@ -516,13 +599,17 @@ export class RefinePanel {
     const padding = 12;
     const gap = 8;
     const width = Math.min(600, Math.max(320, rect.width));
-    const left = Math.max(padding, Math.min(rect.left, window.innerWidth - width - padding));
+    const left = Math.max(
+      padding,
+      Math.min(rect.left, window.innerWidth - width - padding),
+    );
     this.container.style.width = `${width}px`;
     this.container.style.left = `${left}px`;
 
     const spaceAbove = rect.top - padding - gap;
     const spaceBelow = window.innerHeight - rect.bottom - padding - gap;
-    const above = spaceAbove >= Math.min(360, spaceBelow) || spaceAbove > spaceBelow;
+    const above =
+      spaceAbove >= Math.min(360, spaceBelow) || spaceAbove > spaceBelow;
     const room = Math.max(160, above ? spaceAbove : spaceBelow);
     this.container.style.maxHeight = `${room}px`;
 

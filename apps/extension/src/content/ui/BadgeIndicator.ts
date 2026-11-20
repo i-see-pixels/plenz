@@ -4,7 +4,14 @@ import { followPageTheme } from "./theme";
 const ZAP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>`;
 const ALERT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-alert"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`;
 
-const TONE_CLASSES = ["error", "idle", "lint", "lint-good", "lint-ok", "lint-weak"];
+const TONE_CLASSES = [
+  "error",
+  "idle",
+  "lint",
+  "lint-good",
+  "lint-ok",
+  "lint-weak",
+];
 const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform);
 const REFINE_SHORTCUT = IS_MAC ? "Cmd+Shift+Enter" : "Ctrl+Shift+Enter";
 
@@ -118,7 +125,9 @@ export class BadgeIndicator {
       return;
     }
     this.setTone();
-    this.badge.replaceChildren(mainButton(`${count} suggestions`, String(count)));
+    this.badge.replaceChildren(
+      mainButton(`${count} suggestions`, String(count)),
+    );
     this.reveal();
   }
 
@@ -128,22 +137,29 @@ export class BadgeIndicator {
    */
   public showIdle() {
     this.setTone("idle");
-    this.badge.replaceChildren(mainButton("plenz: context cards and saved prompts"));
-    this.badge.title = "plenz: click for context cards, or type / for saved prompts";
+    this.badge.replaceChildren(
+      mainButton("plenz: context cards and saved prompts"),
+    );
+    this.badge.title =
+      "plenz: click for context cards, or type / for saved prompts";
     this.reveal();
   }
 
   /** A background refine finished; clicking shows it. */
   public showReady() {
     this.setTone("lint", "lint-good");
-    this.badge.replaceChildren(mainButton("Refined prompt ready. Show it.", "Ready"));
+    this.badge.replaceChildren(
+      mainButton("Refined prompt ready. Show it.", "Ready"),
+    );
     this.badge.title = "Refined prompt ready. Click to see it.";
     this.reveal();
   }
 
   public showSaving() {
     this.setTone();
-    this.badge.replaceChildren(mainButton("Refining in the background. Show progress.", "..."));
+    this.badge.replaceChildren(
+      mainButton("Refining in the background. Show progress.", "..."),
+    );
     this.reveal();
   }
 
@@ -151,16 +167,28 @@ export class BadgeIndicator {
    * Local check result. Clicking refines; hovering lists what's missing.
    * A null score means the draft couldn't be scored (refine still works).
    */
-  public showLint(score: number | null, findings: LintBadgeChip[], canUndo = false) {
+  public showLint(
+    score: number | null,
+    findings: LintBadgeChip[],
+    canUndo = false,
+  ) {
     const band =
-      score === null ? "lint-ok" : score >= 80 ? "lint-good" : score >= 50 ? "lint-ok" : "lint-weak";
+      score === null
+        ? "lint-ok"
+        : score >= 80
+          ? "lint-good"
+          : score >= 50
+            ? "lint-ok"
+            : "lint-weak";
     this.setTone("lint", band);
     const main = mainButton(
       score === null
         ? `Refine prompt (${REFINE_SHORTCUT})`
         : `Prompt score ${score} of 100. Refine (${REFINE_SHORTCUT}).`,
     );
-    main.appendChild(el("span", "pl-lint-score", score === null ? "Refine" : String(score)));
+    main.appendChild(
+      el("span", "pl-lint-score", score === null ? "Refine" : String(score)),
+    );
     // The hover panel doubles as the button's description for screen readers.
     main.setAttribute("aria-describedby", "pl-lint-panel");
     this.badge.replaceChildren(main);
@@ -188,7 +216,9 @@ export class BadgeIndicator {
       }
       panel.appendChild(list);
     }
-    panel.appendChild(el("div", "pl-lint-foot", `Click or ${REFINE_SHORTCUT} to refine`));
+    panel.appendChild(
+      el("div", "pl-lint-foot", `Click or ${REFINE_SHORTCUT} to refine`),
+    );
     // Reading the panel must not trigger a (paid) refine; only the pill does.
     panel.addEventListener("click", (event) => event.stopPropagation());
     this.badge.appendChild(panel);
@@ -209,7 +239,9 @@ export class BadgeIndicator {
 
   public showError(message?: string) {
     this.setTone("error");
-    const main = mainButton(`Refine failed: ${message || "an error occurred"}. Show details.`);
+    const main = mainButton(
+      `Refine failed: ${message || "an error occurred"}. Show details.`,
+    );
     main.innerHTML = ALERT_ICON;
     main.firstElementChild?.setAttribute("aria-hidden", "true");
     this.badge.replaceChildren(main);
@@ -237,4 +269,3 @@ export class BadgeIndicator {
     this.shadowHost.remove();
   }
 }
-

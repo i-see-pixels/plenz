@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  authTransition,
-  initialAuthState,
-  isSettled,
-  toSnapshot,
   type AuthEffect,
   type AuthEvent,
   type AuthState,
   type AuthUser,
+  authTransition,
+  initialAuthState,
+  isSettled,
+  toSnapshot,
 } from "./auth-machine.ts";
 
 const USER: AuthUser = {
@@ -29,14 +29,24 @@ function run(state: AuthState, ...events: AuthEvent[]) {
 }
 
 const signedOut = () =>
-  run(initialAuthState(), { type: "CHECK_REQUESTED" }, { type: "SESSION_CHECKED", user: null }).state;
+  run(
+    initialAuthState(),
+    { type: "CHECK_REQUESTED" },
+    { type: "SESSION_CHECKED", user: null },
+  ).state;
 
 const signedIn = () =>
-  run(initialAuthState(), { type: "CHECK_REQUESTED" }, { type: "SESSION_CHECKED", user: USER }).state;
+  run(
+    initialAuthState(),
+    { type: "CHECK_REQUESTED" },
+    { type: "SESSION_CHECKED", user: USER },
+  ).state;
 
 describe("auth machine: checking", () => {
   test("starts unknown and checks the session on request", () => {
-    const { state, effects } = run(initialAuthState(), { type: "CHECK_REQUESTED" });
+    const { state, effects } = run(initialAuthState(), {
+      type: "CHECK_REQUESTED",
+    });
     assert.deepEqual(state, { kind: "checking" });
     assert.deepEqual(effects, [{ type: "checkSession" }]);
   });
@@ -53,7 +63,10 @@ describe("auth machine: checking", () => {
       run(signedOut(), { type: "SIGN_IN_REQUESTED" }).state,
       { kind: "checking" } as AuthState,
     ]) {
-      assert.deepEqual(run(state, { type: "CHECK_REQUESTED" }), { state, effects: [] });
+      assert.deepEqual(run(state, { type: "CHECK_REQUESTED" }), {
+        state,
+        effects: [],
+      });
     }
   });
 });
@@ -90,7 +103,10 @@ describe("auth machine: sign-in", () => {
 
   test("sign-in is ignored when already signed in", () => {
     const state = signedIn();
-    assert.deepEqual(run(state, { type: "SIGN_IN_REQUESTED" }), { state, effects: [] });
+    assert.deepEqual(run(state, { type: "SIGN_IN_REQUESTED" }), {
+      state,
+      effects: [],
+    });
   });
 });
 
@@ -127,7 +143,11 @@ describe("auth machine: sign-out", () => {
       { type: "SIGN_OUT_REQUESTED", keepLocalCopies: false },
       { type: "SIGN_OUT_FAILED", message: "storage error" },
     );
-    assert.deepEqual(state, { kind: "signedIn", user: USER, error: "storage error" });
+    assert.deepEqual(state, {
+      kind: "signedIn",
+      user: USER,
+      error: "storage error",
+    });
   });
 });
 

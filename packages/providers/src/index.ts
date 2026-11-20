@@ -1,18 +1,18 @@
+import type { ProviderAdapter, ProviderConfig } from "@plenz/types";
 import { AnthropicAdapter } from "./anthropic";
 import { GoogleAdapter } from "./google";
 import { OnDeviceAdapter } from "./on-device";
-import type { ProviderAdapter, ProviderConfig } from "@plenz/types";
 import {
   OPENAI_COMPATIBLE_PRESETS,
   OpenAICompatibleAdapter,
 } from "./openai-compatible";
 
 export * from "./anthropic";
-export * from "./google";
-export * from "./openai-compatible";
 export * from "./endpoints";
-export * from "./sse";
+export * from "./google";
 export * from "./on-device";
+export * from "./openai-compatible";
+export * from "./sse";
 
 function openAICompatible(id: string) {
   const preset = OPENAI_COMPATIBLE_PRESETS.find((p) => p.id === id);
@@ -39,5 +39,9 @@ export function isProviderConfigured(
   provider: ProviderAdapter | undefined,
   config: ProviderConfig | null | undefined,
 ) {
-  return !!provider && !!config?.model && (provider.needsApiKey === false || !!config.apiKey);
+  return (
+    !!provider &&
+    !!config?.model &&
+    (provider.needsApiKey === false || !!config.apiKey)
+  );
 }

@@ -11,7 +11,12 @@ export const MIN_PASSPHRASE_LENGTH = 10;
 
 const VAULT_AAD = "plenz:vault:v2";
 
-export type EncryptedSecret = { version: 2; alg: "AES-GCM"; iv: string; ciphertext: string };
+export type EncryptedSecret = {
+  version: 2;
+  alg: "AES-GCM";
+  iv: string;
+  ciphertext: string;
+};
 
 /** Stored in Firestore. Holds nothing that reveals the passphrase or data key. */
 export type VaultRecord = {
@@ -67,7 +72,11 @@ async function deriveWrappingKey(
   );
 }
 
-async function wrap(dataKey: CryptoKey, passphrase: string, iterations: number): Promise<VaultRecord> {
+async function wrap(
+  dataKey: CryptoKey,
+  passphrase: string,
+  iterations: number,
+): Promise<VaultRecord> {
   const salt = randomBytes(16);
   const iv = randomBytes(12);
   const wrappingKey = await deriveWrappingKey(passphrase, salt, iterations);
@@ -80,13 +89,19 @@ async function wrap(dataKey: CryptoKey, passphrase: string, iterations: number):
   return {
     version: 2,
     kdf: { name: "PBKDF2", hash: "SHA-256", iterations, salt: toBase64(salt) },
-    wrappedKey: { iv: toBase64(iv), ciphertext: toBase64(new Uint8Array(ciphertext)) },
+    wrappedKey: {
+      iv: toBase64(iv),
+      ciphertext: toBase64(new Uint8Array(ciphertext)),
+    },
   };
 }
 
 /** Kept extractable so an unlocked device can store it locally (see sync-vault.ts). */
 export function importDataKey(raw: Uint8Array<ArrayBuffer>) {
-  return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, true, ["encrypt", "decrypt"]);
+  return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, true, [
+    "encrypt",
+    "decrypt",
+  ]);
 }
 
 export async function exportDataKey(key: CryptoKey) {
@@ -106,7 +121,10 @@ export function isVaultRecord(value: unknown): value is VaultRecord {
   );
 }
 
-export async function createVault(passphrase: string, iterations = PBKDF2_ITERATIONS) {
+export async function createVault(
+  passphrase: string,
+  iterations = PBKDF2_ITERATIONS,
+) {
   if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
     throw new Error(`Use at least ${MIN_PASSPHRASE_LENGTH} characters.`);
   }
@@ -115,7 +133,10 @@ export async function createVault(passphrase: string, iterations = PBKDF2_ITERAT
 }
 
 /** The data key, or WrongPassphraseError (AES-GCM authentication fails). */
-export async function unlockVault(vault: VaultRecord, passphrase: string): Promise<CryptoKey> {
+export async function unlockVault(
+  vault: VaultRecord,
+  passphrase: string,
+): Promise<CryptoKey> {
   const wrappingKey = await deriveWrappingKey(
     passphrase,
     fromBase64(vault.kdf.salt),
@@ -176,7 +197,11 @@ export async function decryptSecret(
   context: string,
 ): Promise<string> {
   const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: fromBase64(secret.iv), additionalData: encoder.encode(context) },
+    {
+      name: "AES-GCM",
+      iv: fromBase64(secret.iv),
+      additionalData: encoder.encode(context),
+    },
     dataKey,
     fromBase64(secret.ciphertext),
   );

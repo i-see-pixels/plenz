@@ -1,6 +1,6 @@
-import { useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import type { AuthSnapshot } from "../background/auth-machine";
-import { sendRpc, type BroadcastMessage } from "../shared/rpc";
+import { type BroadcastMessage, sendRpc } from "../shared/rpc";
 
 const INITIAL: AuthSnapshot = { status: "checking", user: null, version: 0 };
 
@@ -22,11 +22,11 @@ export function useAuthSession() {
   const [auth, setAuth] = useState<AuthSnapshot>(INITIAL);
 
   // Replies and broadcasts can arrive out of order; keep the newest.
-  const apply = (next: unknown) => {
+  const apply = useCallback((next: unknown) => {
     if (isAuthSnapshot(next)) {
       setAuth((current) => (next.version >= current.version ? next : current));
     }
-  };
+  }, []);
 
   useEffect(() => {
     const listener = (message: BroadcastMessage) => {
@@ -36,10 +36,12 @@ export function useAuthSession() {
     chrome.runtime.onMessage.addListener(listener);
     sendRpc("GET_AUTH_STATE")
       .then(apply)
-      .catch((error) => console.error("plenz: failed to read auth state", error));
+      .catch((error) =>
+        console.error("plenz: failed to read auth state", error),
+      );
 
     return () => chrome.runtime.onMessage.removeListener(listener);
-  }, []);
+  }, [apply]);
 
   return { auth, apply };
 }

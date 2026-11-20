@@ -11,6 +11,10 @@ test("signed out, the Saved tab explains itself and offers sign-in", async ({
 
   await gallery.getByRole("button", { name: /^Saved\s*\d+$/ }).click();
   const state = gallery.locator('[data-gallery-state="Your saved prompts"]');
-  await expect(state).toContainText("Sign in with Google to keep your own prompts");
-  await expect(state.getByRole("button", { name: "Sign in with Google" })).toBeVisible();
+  await expect(state).toContainText(
+    "Sign in with Google to keep your own prompts",
+  );
+  await expect(
+    state.getByRole("button", { name: "Sign in with Google" }),
+  ).toBeVisible();
 });

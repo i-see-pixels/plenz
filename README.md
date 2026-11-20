@@ -84,26 +84,26 @@
 
 ## Supported Platforms
 
-| Platform   | Status    |
-| ---------- | --------- |
-| ChatGPT    | Supported |
-| Claude     | Supported |
-| Gemini     | Supported |
-| Perplexity | Supported |
+| Platform       | Status                                                                          |
+| -------------- | ------------------------------------------------------------------------------- |
+| ChatGPT        | Supported                                                                       |
+| Claude         | Supported                                                                       |
+| Gemini         | Supported                                                                       |
+| Perplexity     | Supported                                                                       |
 | Any other site | Supported when you turn it on from the popup (uses the text box you click into) |
-| Copilot    | Planned   |
+| Copilot        | Planned                                                                         |
 
 ## Supported Providers
 
-| Provider       | Status    |
-| -------------- | --------- |
-| OpenAI         | Supported |
-| Google         | Supported |
-| Anthropic      | Supported |
-| Mistral        | Supported |
-| Groq           | Supported |
-| OpenRouter     | Supported |
-| Custom Adapter | Supported |
+| Provider                         | Status                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------ |
+| OpenAI                           | Supported                                                                                        |
+| Google                           | Supported                                                                                        |
+| Anthropic                        | Supported                                                                                        |
+| Mistral                          | Supported                                                                                        |
+| Groq                             | Supported                                                                                        |
+| OpenRouter                       | Supported                                                                                        |
+| Custom Adapter                   | Supported                                                                                        |
 | On-device (Chrome's Gemini Nano) | Supported, no API key; used automatically when no provider is set up and the model is downloaded |
 
 ## Privacy and Security

@@ -26,5 +26,6 @@ export const SETUP_MESSAGES: Record<Exclude<SetupState, "checking">, string> = {
   provider: "Ready. Refines use your AI provider.",
   "on-device":
     "Ready. Refines run on Chrome's built-in model; add a provider for stronger results.",
-  "needs-setup": "Connect an AI provider so plenz can rewrite prompts. The prompt check already works.",
+  "needs-setup":
+    "Connect an AI provider so plenz can rewrite prompts. The prompt check already works.",
 };

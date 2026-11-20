@@ -1,7 +1,7 @@
-import { useEffect, useState } from "preact/hooks";
 import { Button } from "@plenz/ui/components/button";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { isRpcFailure, sendRpc } from "../shared/rpc";
-import { siteFor, type SiteStatus } from "../shared/sites";
+import { type SiteStatus, siteFor } from "../shared/sites";
 
 type Tab = { id?: number; url?: string };
 
@@ -16,7 +16,7 @@ export function SiteAccess() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const refresh = async (url: string | undefined) => {
+  const refresh = useCallback(async (url: string | undefined) => {
     if (!url) {
       setStatus("unsupported");
       return;
@@ -28,16 +28,18 @@ export function SiteAccess() {
     }
     setStatus(reply.status);
     setHost(reply.host);
-  };
+  }, []);
 
   useEffect(() => {
     // activeTab lets the popup read this tab's URL; no "tabs" permission needed.
-    void chrome.tabs.query({ active: true, currentWindow: true }).then(([active]) => {
-      const current = { id: active?.id, url: active?.url };
-      setTab(current);
-      void refresh(current.url);
-    });
-  }, []);
+    void chrome.tabs
+      .query({ active: true, currentWindow: true })
+      .then(([active]) => {
+        const current = { id: active?.id, url: active?.url };
+        setTab(current);
+        void refresh(current.url);
+      });
+  }, [refresh]);
 
   const enable = async () => {
     const site = siteFor(tab?.url);
@@ -45,15 +47,26 @@ export function SiteAccess() {
     setBusy(true);
     setMessage(null);
     try {
-      await sendRpc("SITE_PERMISSION_REQUESTED", { url: tab.url, tabId: tab.id });
-      const granted = await chrome.permissions.request({ origins: [site.pattern] });
+      await sendRpc("SITE_PERMISSION_REQUESTED", {
+        url: tab.url,
+        tabId: tab.id,
+      });
+      const granted = await chrome.permissions.request({
+        origins: [site.pattern],
+      });
       if (!granted) {
         setMessage("Access wasn't granted, so plenz stays off here.");
         return;
       }
-      const reply = await sendRpc("ENABLE_SITE", { url: tab.url, tabId: tab.id });
+      const reply = await sendRpc("ENABLE_SITE", {
+        url: tab.url,
+        tabId: tab.id,
+      });
       if (isRpcFailure(reply) || !reply.success) {
-        setMessage(("error" in reply && reply.error) || "Couldn't turn plenz on for this site.");
+        setMessage(
+          ("error" in reply && reply.error) ||
+            "Couldn't turn plenz on for this site.",
+        );
       }
       await refresh(tab.url);
     } finally {
@@ -87,21 +100,35 @@ export function SiteAccess() {
       ) : status === "enabled" ? (
         <div className="flex items-center justify-between gap-2">
           <p className="min-w-0 truncate text-xs">On for {host}</p>
-          <Button variant="outline" size="xs" onClick={() => void disable()} disabled={busy}>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => void disable()}
+            disabled={busy}
+          >
             Turn off
           </Button>
         </div>
       ) : (
         <>
-          <Button onClick={() => void enable()} disabled={busy} className="w-full">
+          <Button
+            onClick={() => void enable()}
+            disabled={busy}
+            className="w-full"
+          >
             Use plenz on {host}
           </Button>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Works in the text box you click into. Chrome will ask for access to this site only.
+            Works in the text box you click into. Chrome will ask for access to
+            this site only.
           </p>
         </>
       )}
-      {message ? <p className="text-xs leading-relaxed text-muted-foreground">{message}</p> : null}
+      {message ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {message}
+        </p>
+      ) : null}
     </section>
   );
 }

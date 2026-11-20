@@ -13,12 +13,14 @@ export function isTextField(element: Element): element is TextField {
 
 export function readText(input: HTMLElement): string {
   if (isTextField(input)) return input.value;
+  // biome-ignore lint/performance/useDomNodeTextContent: innerText keeps the line breaks rich editors render with <p> and <br>; textContent drops them
   return input.innerText ?? input.textContent ?? "";
 }
 
 /** Compare drafts ignoring how editors lay out whitespace and line breaks. */
 export function sameText(a: string, b: string) {
-  const normalize = (s: string) => s.replace(/ /g, " ").replace(/\s+/g, " ").trim();
+  const normalize = (s: string) =>
+    s.replace(/ /g, " ").replace(/\s+/g, " ").trim();
   return normalize(a) === normalize(b);
 }
 
@@ -39,10 +41,17 @@ function selectAll(input: HTMLElement) {
 
 function execInsertText(input: HTMLElement, text: string) {
   const doc = input.ownerDocument as Document & {
-    execCommand?: (command: string, showUi?: boolean, value?: string) => boolean;
+    execCommand?: (
+      command: string,
+      showUi?: boolean,
+      value?: string,
+    ) => boolean;
   };
   try {
-    return typeof doc.execCommand === "function" && doc.execCommand("insertText", false, text);
+    return (
+      typeof doc.execCommand === "function" &&
+      doc.execCommand("insertText", false, text)
+    );
   } catch {
     return false;
   }
@@ -53,7 +62,9 @@ function execInsertText(input: HTMLElement, text: string) {
  * Returns true only if the editor claimed the event.
  */
 function dispatchPaste(input: HTMLElement, text: string) {
-  const win = input.ownerDocument.defaultView as (Window & typeof globalThis) | null;
+  const win = input.ownerDocument.defaultView as
+    | (Window & typeof globalThis)
+    | null;
   if (!win?.DataTransfer || !win.ClipboardEvent) return false;
   try {
     const data = new win.DataTransfer();
@@ -72,7 +83,9 @@ function dispatchPaste(input: HTMLElement, text: string) {
 
 /** Last resort: set the DOM directly and tell the page something changed. */
 function writeDirect(input: HTMLElement, text: string) {
-  const win = input.ownerDocument.defaultView as (Window & typeof globalThis) | null;
+  const win = input.ownerDocument.defaultView as
+    | (Window & typeof globalThis)
+    | null;
   if (isTextField(input)) {
     // React tracks the value through the prototype setter, not the instance.
     const proto = Object.getPrototypeOf(input);
@@ -85,7 +98,11 @@ function writeDirect(input: HTMLElement, text: string) {
   const InputEventCtor = win?.InputEvent ?? win?.Event;
   if (InputEventCtor) {
     input.dispatchEvent(
-      new InputEventCtor("input", { bubbles: true, inputType: "insertText", data: text } as InputEventInit),
+      new InputEventCtor("input", {
+        bubbles: true,
+        inputType: "insertText",
+        data: text,
+      } as InputEventInit),
     );
   }
 }
@@ -95,7 +112,9 @@ function writeDirect(input: HTMLElement, text: string) {
  * commits. A message task, not setTimeout, which background tabs throttle to 1s.
  */
 function nextTask(input: HTMLElement) {
-  const win = input.ownerDocument.defaultView as (Window & typeof globalThis) | null;
+  const win = input.ownerDocument.defaultView as
+    | (Window & typeof globalThis)
+    | null;
   const Channel = win?.MessageChannel ?? MessageChannel;
   return new Promise<void>((resolve) => {
     const channel = new Channel();
@@ -108,10 +127,14 @@ function nextTask(input: HTMLElement) {
 }
 
 /** Replace the whole draft, preferring paths that keep the editor's undo. */
-export async function writeText(input: HTMLElement, text: string): Promise<WriteMethod> {
+export async function writeText(
+  input: HTMLElement,
+  text: string,
+): Promise<WriteMethod> {
   if (isTextField(input)) {
     selectAll(input);
-    if (execInsertText(input, text) && input.value === text) return "insertText";
+    if (execInsertText(input, text) && input.value === text)
+      return "insertText";
     writeDirect(input, text);
     return "direct";
   }
@@ -141,6 +164,7 @@ export async function writeText(input: HTMLElement, text: string): Promise<Write
 }
 
 export function isVisible(element: Element) {
-  const check = (element as Element & { checkVisibility?: () => boolean }).checkVisibility;
+  const check = (element as Element & { checkVisibility?: () => boolean })
+    .checkVisibility;
   return typeof check === "function" ? check.call(element) : true;
 }

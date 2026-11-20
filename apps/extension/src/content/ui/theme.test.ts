@@ -22,23 +22,36 @@ describe("page theme", () => {
 
   test("dark when the nearest opaque background behind the chat box is dark", () => {
     assert.equal(
-      isDarkBehind(input(`<main style="background:#212121"><div><textarea id="composer"></textarea></div></main>`)),
+      isDarkBehind(
+        input(
+          `<main style="background:#212121"><div><textarea id="composer"></textarea></div></main>`,
+        ),
+      ),
       true,
     );
   });
 
   test("light for light or transparent pages", () => {
     assert.equal(
-      isDarkBehind(input(`<main style="background:#ffffff"><textarea id="composer"></textarea></main>`)),
+      isDarkBehind(
+        input(
+          `<main style="background:#ffffff"><textarea id="composer"></textarea></main>`,
+        ),
+      ),
       false,
     );
-    assert.equal(isDarkBehind(input(`<textarea id="composer"></textarea>`)), false);
+    assert.equal(
+      isDarkBehind(input(`<textarea id="composer"></textarea>`)),
+      false,
+    );
   });
 
   test("a translucent dark overlay doesn't count; the solid page behind it does", () => {
     assert.equal(
       isDarkBehind(
-        input(`<main style="background:#fafafa"><div style="background:rgba(0,0,0,0.1)"><textarea id="composer"></textarea></div></main>`),
+        input(
+          `<main style="background:#fafafa"><div style="background:rgba(0,0,0,0.1)"><textarea id="composer"></textarea></div></main>`,
+        ),
       ),
       false,
     );

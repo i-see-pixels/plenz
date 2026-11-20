@@ -13,7 +13,10 @@ function parseAll(chunks: string[]) {
 describe("createSSEParser", () => {
   test("parses data events and event names", () => {
     assert.deepEqual(
-      parseAll(['event: content_block_delta\ndata: {"a":1}\n\n', "data: [DONE]\n\n"]),
+      parseAll([
+        'event: content_block_delta\ndata: {"a":1}\n\n',
+        "data: [DONE]\n\n",
+      ]),
       [
         { event: "content_block_delta", data: '{"a":1}' },
         { event: undefined, data: "[DONE]" },
@@ -22,10 +25,13 @@ describe("createSSEParser", () => {
   });
 
   test("handles chunks split mid-line and CRLF line endings", () => {
-    assert.deepEqual(parseAll(["da", 'ta: {"x"', ':2}\r', "\n\r\ndata: b\r\n\r\n"]), [
-      { event: undefined, data: '{"x":2}' },
-      { event: undefined, data: "b" },
-    ]);
+    assert.deepEqual(
+      parseAll(["da", 'ta: {"x"', ":2}\r", "\n\r\ndata: b\r\n\r\n"]),
+      [
+        { event: undefined, data: '{"x":2}' },
+        { event: undefined, data: "b" },
+      ],
+    );
   });
 
   test("ignores comments and joins multi-line data", () => {
@@ -35,7 +41,9 @@ describe("createSSEParser", () => {
   });
 
   test("emits a final event without a trailing blank line", () => {
-    assert.deepEqual(parseAll(["data: last"]), [{ event: undefined, data: "last" }]);
+    assert.deepEqual(parseAll(["data: last"]), [
+      { event: undefined, data: "last" },
+    ]);
   });
 });
 

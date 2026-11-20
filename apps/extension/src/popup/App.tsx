@@ -1,13 +1,5 @@
-import { useEffect, useState } from "preact/hooks";
-import logo from "../assets/logo.svg";
 import { providers } from "@plenz/providers";
-import { AuthStatus } from "../components/AuthStatus";
-import { SiteAccess } from "../components/SiteAccess";
-import { isRpcFailure, sendRpc } from "../shared/rpc";
-import { useSetupState } from "../components/useSetupState";
-import { SETUP_MESSAGES, WELCOME_PAGE } from "../shared/setup";
 import type { ModelOption } from "@plenz/types";
-import { BarChart3, BookOpen, Settings, Users } from "lucide-react";
 import { Badge } from "@plenz/ui/components/badge";
 import { Button } from "@plenz/ui/components/button";
 import {
@@ -28,6 +20,14 @@ import {
 import { Separator } from "@plenz/ui/components/separator";
 import { Skeleton } from "@plenz/ui/components/skeleton";
 import { Switch } from "@plenz/ui/components/switch";
+import { BarChart3, BookOpen, Settings, Users } from "lucide-react";
+import { useEffect, useState } from "preact/hooks";
+import logo from "../assets/logo.svg";
+import { AuthStatus } from "../components/AuthStatus";
+import { SiteAccess } from "../components/SiteAccess";
+import { useSetupState } from "../components/useSetupState";
+import { isRpcFailure, sendRpc } from "../shared/rpc";
+import { SETUP_MESSAGES, WELCOME_PAGE } from "../shared/setup";
 
 const PROJECT_URL = "https://github.com/i-see-pixels/plenz";
 const COMMUNITY_URL = "https://github.com/i-see-pixels/plenz/discussions";
@@ -48,7 +48,9 @@ export function App() {
     configured: boolean;
     modelId: string | null;
   } | null>(null);
-  const [providerModels, setProviderModels] = useState<Record<string, ModelOption[]>>({});
+  const [providerModels, setProviderModels] = useState<
+    Record<string, ModelOption[]>
+  >({});
   const [openingPromptGallery, setOpeningPromptGallery] = useState(false);
   const setup = useSetupState();
   const [preferences, setPreferences] = useState<Preferences>({
@@ -60,6 +62,44 @@ export function App() {
   >({});
 
   useEffect(() => {
+    const fetchActiveModel = () => {
+      void sendRpc("GET_ACTIVE_MODEL").then((response) => {
+        if (response && !response.error && "isConfigured" in response) {
+          setModelStatus({
+            configured: response.isConfigured,
+            modelId: response.activeModelId,
+          });
+        } else if (response?.error) {
+          console.error("Popup: received error", response.error);
+        }
+      });
+    };
+
+    const fetchProviderModels = () => {
+      const keys = providers.map((p) => `models_${p.id}`);
+      chrome.storage.local.get(keys, (res) => {
+        const pm: Record<string, ModelOption[]> = {};
+        providers.forEach((p) => {
+          pm[p.id] = (res[`models_${p.id}`] as ModelOption[]) || [];
+        });
+        setProviderModels(pm);
+      });
+    };
+
+    const fetchPreferences = async () => {
+      try {
+        const reply = await sendRpc("GET_PREFERENCES");
+        const runtimePreferences = reply && !isRpcFailure(reply) ? reply : null;
+        const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
+        const localPreferences = stored[PREFERENCES_STORAGE_KEY] as
+          | Preferences
+          | undefined;
+        setPreferences(runtimePreferences ?? localPreferences ?? {});
+      } catch (error) {
+        console.error("Popup: failed to load preferences", error);
+      }
+    };
+
     fetchActiveModel();
     fetchProviderModels();
     void fetchPreferences();
@@ -73,7 +113,7 @@ export function App() {
       }
       // Reload models if cached models change
       const changedKeys = Object.keys(changes);
-      if (changedKeys.some(k => k.startsWith("models_"))) {
+      if (changedKeys.some((k) => k.startsWith("models_"))) {
         fetchProviderModels();
       }
     };
@@ -83,44 +123,6 @@ export function App() {
       chrome.storage.onChanged.removeListener(handleStorageChange);
     };
   }, []);
-
-  const fetchActiveModel = () => {
-    void sendRpc("GET_ACTIVE_MODEL").then((response) => {
-      if (response && !response.error && "isConfigured" in response) {
-        setModelStatus({
-          configured: response.isConfigured,
-          modelId: response.activeModelId,
-        });
-      } else if (response?.error) {
-        console.error("Popup: received error", response.error);
-      }
-    });
-  };
-
-  const fetchProviderModels = () => {
-    const keys = providers.map((p) => `models_${p.id}`);
-    chrome.storage.local.get(keys, (res) => {
-      const pm: Record<string, ModelOption[]> = {};
-      providers.forEach((p) => {
-        pm[p.id] = (res[`models_${p.id}`] as ModelOption[]) || [];
-      });
-      setProviderModels(pm);
-    });
-  };
-
-  const fetchPreferences = async () => {
-    try {
-      const reply = await sendRpc("GET_PREFERENCES");
-      const runtimePreferences = reply && !isRpcFailure(reply) ? reply : null;
-      const stored = await chrome.storage.local.get(PREFERENCES_STORAGE_KEY);
-      const localPreferences = stored[PREFERENCES_STORAGE_KEY] as
-        | Preferences
-        | undefined;
-      setPreferences(runtimePreferences ?? localPreferences ?? {});
-    } catch (error) {
-      console.error("Popup: failed to load preferences", error);
-    }
-  };
 
   // Each toggle saves on its own; flipping both quickly must not undo either.
   const updatePreference = async (key: PreferenceToggle, enabled: boolean) => {
@@ -205,7 +207,10 @@ export function App() {
     void sendRpc("SET_ACTIVE_MODEL", {
       modelId: newModelId,
       // Find the provider that has this model to pass both
-      providerId: Object.entries(providerModels).find(([_, models]) => models.some((m) => m.id === newModelId))?.[0] || ""
+      providerId:
+        Object.entries(providerModels).find(([_, models]) =>
+          models.some((m) => m.id === newModelId),
+        )?.[0] || "",
     }).then((response) => {
       if ("success" in response && response.success) {
         setModelStatus((prev) =>
@@ -325,7 +330,6 @@ export function App() {
             )}
           </section>
 
-
           <Separator />
           <section className="flex flex-col gap-3 px-4 py-3">
             <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
@@ -376,7 +380,9 @@ export function App() {
               disabled={openingPromptGallery}
             >
               <BookOpen data-icon="inline-start" />
-              {openingPromptGallery ? "Opening gallery..." : "Open prompt gallery"}
+              {openingPromptGallery
+                ? "Opening gallery..."
+                : "Open prompt gallery"}
             </Button>
             <p className="text-xs leading-relaxed text-muted-foreground">
               Browse trending prompts, review newly added ideas, and keep your
@@ -422,4 +428,3 @@ export function App() {
     </div>
   );
 }
-

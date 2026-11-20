@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   initialOrchestratorState,
-  orchestratorTransition,
   type OrchestratorEvent,
   type OrchestratorState,
+  orchestratorTransition,
 } from "./orchestrator-machine.ts";
 
 const fail = (error: string, retryable = false): OrchestratorEvent<string> => ({
@@ -34,11 +34,9 @@ describe("orchestrator machine", () => {
   });
 
   test("a retryable failure retries the active provider once", () => {
-    const { state, targets } = run(
-      0,
-      fail("timeout", true),
-      { type: "ATTEMPT_SUCCEEDED" },
-    );
+    const { state, targets } = run(0, fail("timeout", true), {
+      type: "ATTEMPT_SUCCEEDED",
+    });
     assert.deepEqual(state, { kind: "succeeded" });
     assert.deepEqual(targets, ["active", "retry"]);
   });
@@ -48,10 +46,13 @@ describe("orchestrator machine", () => {
       kind: "failed",
       error: "bad key",
     });
-    assert.deepEqual(run(0, fail("timeout", true), fail("timeout again", true)).state, {
-      kind: "failed",
-      error: "timeout again",
-    });
+    assert.deepEqual(
+      run(0, fail("timeout", true), fail("timeout again", true)).state,
+      {
+        kind: "failed",
+        error: "timeout again",
+      },
+    );
   });
 
   test("with fallback on, each fallback is tried in order", () => {
@@ -67,7 +68,9 @@ describe("orchestrator machine", () => {
   });
 
   test("a non-retryable failure skips the retry", () => {
-    const { targets } = run(1, fail("invalid json"), { type: "ATTEMPT_SUCCEEDED" });
+    const { targets } = run(1, fail("invalid json"), {
+      type: "ATTEMPT_SUCCEEDED",
+    });
     assert.deepEqual(targets, ["active", "fallback:0"]);
   });
 

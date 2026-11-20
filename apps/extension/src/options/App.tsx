@@ -1,12 +1,3 @@
-import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "preact/hooks";
-import logo from "../assets/logo.svg";
-import { AuthStatus } from "../components/AuthStatus";
-import { ContextCards } from "../components/ContextCards";
-import { LocalLearning } from "../components/LocalLearning";
-import { ModelConfig } from "../components/ModelConfig";
-import { isRpcFailure, sendRpc } from "../shared/rpc";
-import type { ThemePreference } from "../shared/theme-preference";
 import { Card } from "@plenz/ui/components/card";
 import {
   Select,
@@ -17,6 +8,15 @@ import {
 } from "@plenz/ui/components/select";
 import { Switch } from "@plenz/ui/components/switch";
 import { cn } from "@plenz/ui/lib/utils";
+import { useEffect, useRef, useState } from "preact/hooks";
+import type { ReactNode } from "react";
+import logo from "../assets/logo.svg";
+import { AuthStatus } from "../components/AuthStatus";
+import { ContextCards } from "../components/ContextCards";
+import { LocalLearning } from "../components/LocalLearning";
+import { ModelConfig } from "../components/ModelConfig";
+import { isRpcFailure, sendRpc } from "../shared/rpc";
+import type { ThemePreference } from "../shared/theme-preference";
 
 const PREFERENCES_STORAGE_KEY = "preferences";
 
@@ -58,7 +58,9 @@ const SECTIONS = [
   { id: "learning", title: "Learned from use" },
 ];
 
-type SaveStatus = { kind: "idle" | "saving" | "saved" } | { kind: "error"; message: string };
+type SaveStatus =
+  | { kind: "idle" | "saving" | "saved" }
+  | { kind: "error"; message: string };
 type SavingSection = "refining" | "appearance";
 
 function Section({
@@ -82,7 +84,9 @@ function Section({
             <h2 id={`${id}-title`} className="text-base font-semibold">
               {title}
             </h2>
-            <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {description}
+            </p>
           </div>
           {aside}
         </header>
@@ -114,7 +118,10 @@ function Toggle({
           <label htmlFor={id} className="text-sm font-medium">
             {label}
           </label>
-          <p id={`${id}-description`} className="text-xs leading-relaxed text-muted-foreground">
+          <p
+            id={`${id}-description`}
+            className="text-xs leading-relaxed text-muted-foreground"
+          >
             {description}
           </p>
         </div>
@@ -135,7 +142,9 @@ export function App() {
   const [prefs, setPrefs] = useState<Preferences>(DEFAULTS);
   const [status, setStatus] = useState<SaveStatus>({ kind: "idle" });
   // Only the section that was just changed reports the save.
-  const [statusSection, setStatusSection] = useState<SavingSection | null>(null);
+  const [statusSection, setStatusSection] = useState<SavingSection | null>(
+    null,
+  );
   // One save at a time, in order, so quick changes can't overwrite each other.
   const saving = useRef<Promise<void>>(Promise.resolve());
 
@@ -158,7 +167,10 @@ export function App() {
   }, []);
 
   /** Changes save as they're made; the local copy is what chat pages read. */
-  const save = (patch: Partial<Preferences>, section: SavingSection = "refining") => {
+  const save = (
+    patch: Partial<Preferences>,
+    section: SavingSection = "refining",
+  ) => {
     setPrefs((current) => ({ ...current, ...patch }));
     setStatusSection(section);
     setStatus({ kind: "saving" });
@@ -177,33 +189,42 @@ export function App() {
         });
         setStatus({ kind: "saved" });
       } catch (error) {
-        setStatus({ kind: "error", message: (error as Error).message || "Couldn't save." });
+        setStatus({
+          kind: "error",
+          message: (error as Error).message || "Couldn't save.",
+        });
       }
     });
   };
 
-  const waitChoices = WAIT_CHOICES.some((choice) => choice.ms === prefs.debounceTime)
+  const waitChoices = WAIT_CHOICES.some(
+    (choice) => choice.ms === prefs.debounceTime,
+  )
     ? WAIT_CHOICES
-    : [...WAIT_CHOICES, { ms: prefs.debounceTime, label: `${prefs.debounceTime} ms` }];
+    : [
+        ...WAIT_CHOICES,
+        { ms: prefs.debounceTime, label: `${prefs.debounceTime} ms` },
+      ];
 
   const saveNote = (section: SavingSection) => {
-    const shown: SaveStatus = statusSection === section ? status : { kind: "idle" };
+    const shown: SaveStatus =
+      statusSection === section ? status : { kind: "idle" };
     return (
-    <p
-      role="status"
-      className={cn(
-        "text-xs",
-        shown.kind === "error" ? "text-destructive" : "text-muted-foreground",
-      )}
-    >
-      {shown.kind === "saving"
-        ? "Saving…"
-        : shown.kind === "saved"
-          ? "Saved"
-          : shown.kind === "error"
-            ? `Couldn't save: ${shown.message}`
-            : "Changes save automatically"}
-    </p>
+      <p
+        role="status"
+        className={cn(
+          "text-xs",
+          shown.kind === "error" ? "text-destructive" : "text-muted-foreground",
+        )}
+      >
+        {shown.kind === "saving"
+          ? "Saving…"
+          : shown.kind === "saved"
+            ? "Saved"
+            : shown.kind === "error"
+              ? `Couldn't save: ${shown.message}`
+              : "Changes save automatically"}
+      </p>
     );
   };
 
@@ -213,7 +234,9 @@ export function App() {
         <Card className="grid gap-4 px-4 py-4 sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="flex items-center gap-3">
             <img src={logo} alt="" className="size-9" />
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">plenz settings</h1>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              plenz settings
+            </h1>
           </div>
           <div className="w-full sm:w-[260px]">
             <AuthStatus />
@@ -221,7 +244,10 @@ export function App() {
         </Card>
 
         <div className="grid gap-6 lg:grid-cols-[180px_1fr]">
-          <nav aria-label="Settings sections" className="lg:sticky lg:top-6 lg:self-start">
+          <nav
+            aria-label="Settings sections"
+            className="lg:sticky lg:top-6 lg:self-start"
+          >
             <ul className="flex gap-1 overflow-x-auto lg:flex-col">
               {SECTIONS.map((section) => (
                 <li key={section.id}>
@@ -268,19 +294,30 @@ export function App() {
                 >
                   {prefs.autoRefineEnabled ? (
                     <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
-                      <label id="wait-label" className="text-xs text-muted-foreground">
+                      <span
+                        id="wait-label"
+                        className="text-xs text-muted-foreground"
+                      >
                         Refine after a pause of
-                      </label>
+                      </span>
                       <Select
                         value={String(prefs.debounceTime)}
-                        onValueChange={(value) => save({ debounceTime: Number(value) })}
+                        onValueChange={(value) =>
+                          save({ debounceTime: Number(value) })
+                        }
                       >
-                        <SelectTrigger aria-labelledby="wait-label" className="w-40">
+                        <SelectTrigger
+                          aria-labelledby="wait-label"
+                          className="w-40"
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {waitChoices.map((choice) => (
-                            <SelectItem key={choice.ms} value={String(choice.ms)}>
+                            <SelectItem
+                              key={choice.ms}
+                              value={String(choice.ms)}
+                            >
                               {choice.label}
                             </SelectItem>
                           ))}
@@ -301,7 +338,9 @@ export function App() {
                   label="Fall back to other providers"
                   description="If the active provider fails, retry with your other configured providers. Your prompt goes to those providers too, and each may bill you."
                   checked={prefs.providerFallbackEnabled}
-                  onChange={(checked) => save({ providerFallbackEnabled: checked })}
+                  onChange={(checked) =>
+                    save({ providerFallbackEnabled: checked })
+                  }
                 />
               </div>
             </Section>
@@ -312,8 +351,7 @@ export function App() {
               description="For plenz's popup, settings and gallery. On chat sites, plenz matches the site."
               aside={saveNote("appearance")}
             >
-              <div
-                role="group"
+              <fieldset
                 aria-labelledby="appearance-title"
                 className="inline-flex rounded-sm border border-border p-0.5"
               >
@@ -333,7 +371,7 @@ export function App() {
                     {theme.label}
                   </button>
                 ))}
-              </div>
+              </fieldset>
             </Section>
 
             <Section

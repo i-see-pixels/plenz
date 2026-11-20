@@ -37,7 +37,10 @@ export const PLATFORMS: PlatformSpec[] = [
   {
     name: "claude",
     hosts: ["claude.ai"],
-    inputSelectors: ['[contenteditable="true"].ProseMirror', "fieldset .ProseMirror"],
+    inputSelectors: [
+      '[contenteditable="true"].ProseMirror',
+      "fieldset .ProseMirror",
+    ],
     messageSelectors: [
       { selector: '[data-testid="user-message"]', role: "user" },
       { selector: '[data-testid="assistant-message"]', role: "assistant" },
@@ -55,7 +58,10 @@ export const PLATFORMS: PlatformSpec[] = [
       { selector: ".model-response-text", role: "assistant" },
       { selector: "message-content", role: "assistant" },
     ],
-    submitButtonSelectors: ["button.send-button", '[aria-label="Send message"]'],
+    submitButtonSelectors: [
+      "button.send-button",
+      '[aria-label="Send message"]',
+    ],
     containerSelector: ".input-area",
   },
   {
@@ -85,7 +91,9 @@ export function hostMatches(host: string, pattern: string) {
 export function isEditable(element: Element): element is HTMLElement {
   if (isTextField(element)) return !element.disabled && !element.readOnly;
   const editable = element.getAttribute("contenteditable");
-  return editable === "" || editable === "true" || editable === "plaintext-only";
+  return (
+    editable === "" || editable === "true" || editable === "plaintext-only"
+  );
 }
 
 /** Visible message text, oldest first; the composer and anything inside it are skipped. */
@@ -101,18 +109,29 @@ export function collectMessages(
     for (const element of Array.from(doc.querySelectorAll(selector))) {
       if (seen.has(element)) continue;
       seen.add(element);
-      if (input && (element === input || element.contains(input) || input.contains(element))) {
+      if (
+        input &&
+        (element === input ||
+          element.contains(input) ||
+          input.contains(element))
+      ) {
         continue;
       }
       if (!isVisible(element)) continue;
       const text = (element.textContent ?? "").replace(/\s+/g, " ").trim();
-      if (text) entries.push({ element, message: { role, text, timestamp: Date.now() } });
+      if (text)
+        entries.push({
+          element,
+          message: { role, text, timestamp: Date.now() },
+        });
     }
   }
 
   return entries
     .sort((a, b) =>
-      a.element.compareDocumentPosition(b.element) & 2 /* b precedes a */ ? 1 : -1,
+      a.element.compareDocumentPosition(b.element) & 2 /* b precedes a */
+        ? 1
+        : -1,
     )
     .map((entry) => entry.message);
 }
@@ -131,12 +150,14 @@ function platformAdapter(spec: PlatformSpec): EditorAdapter {
     },
     read: readText,
     write: writeText,
-    readMessages: (doc, input) => collectMessages(doc, spec.messageSelectors, input),
+    readMessages: (doc, input) =>
+      collectMessages(doc, spec.messageSelectors, input),
     anchorFor: (input) => input.parentElement ?? input,
   };
 }
 
-export const PLATFORM_ADAPTERS: EditorAdapter[] = PLATFORMS.map(platformAdapter);
+export const PLATFORM_ADAPTERS: EditorAdapter[] =
+  PLATFORMS.map(platformAdapter);
 
 export function findPlatformAdapter(host: string): EditorAdapter | null {
   return PLATFORM_ADAPTERS.find((adapter) => adapter.matches(host)) ?? null;

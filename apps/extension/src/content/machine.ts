@@ -41,10 +41,18 @@ export type ContentState =
     }
   /** Writing into the chat input; `previous` is the draft being replaced. */
   | { kind: "applying"; previous: string; undoing: boolean }
-  | { kind: "failed"; step: RefineStep; visible: boolean } & RefineFailureView;
+  | ({
+      kind: "failed";
+      step: RefineStep;
+      visible: boolean;
+    } & RefineFailureView);
 
 /** Why a refine failed: plain message, provider detail, and whether settings can fix it. */
-export type RefineFailureView = { message: string; detail?: string; fixInSettings?: boolean };
+export type RefineFailureView = {
+  message: string;
+  detail?: string;
+  fixInSettings?: boolean;
+};
 
 export type ContentModel = {
   state: ContentState;
@@ -105,7 +113,12 @@ export type ContentEffect =
     }
   | { type: "cancelRefine" }
   /** Write the result, keeping the draft's wording for the rejected changes. */
-  | { type: "applyResult"; original: string; output: string; rejected: number[] }
+  | {
+      type: "applyResult";
+      original: string;
+      output: string;
+      rejected: number[];
+    }
   | { type: "applyText"; text: string }
   /** For local learning: a finished result was replaced (accepted) or set aside. */
   | { type: "recordRefine"; mode: RefineMode; accepted: boolean };
@@ -202,7 +215,13 @@ function beginRefine(
 /** Learning effect for leaving a visible result without replacing the draft. */
 function setAside(state: ContentState): ContentEffect[] {
   if (state.kind !== "result" || !state.visible) return [];
-  return [{ type: "recordRefine", mode: state.step === "compose" ? "ask" : state.step, accepted: false }];
+  return [
+    {
+      type: "recordRefine",
+      mode: state.step === "compose" ? "ask" : state.step,
+      accepted: false,
+    },
+  ];
 }
 
 function isCurrent(state: ContentState, requestId: number) {
@@ -220,7 +239,9 @@ export function transition(
 
   switch (event.type) {
     case "INPUT_ATTACHED":
-      return state.kind === "detached" ? to(model, { kind: "idle" }) : unchanged(model);
+      return state.kind === "detached"
+        ? to(model, { kind: "idle" })
+        : unchanged(model);
 
     case "INPUT_DETACHED":
       return state.kind === "detached"
@@ -292,22 +313,28 @@ export function transition(
 
     case "SLASH_INSERT":
       // Only while typing: the menu is never open over the refine panel.
-      if ((state.kind !== "idle" && state.kind !== "debouncing") || event.text === model.text) {
+      if (
+        (state.kind !== "idle" && state.kind !== "debouncing") ||
+        event.text === model.text
+      ) {
         return unchanged(model);
       }
-      return to(model, { kind: "applying", previous: model.text, undoing: false }, [
-        ...exitEffects(state),
-        { type: "applyText", text: event.text },
-      ]);
+      return to(
+        model,
+        { kind: "applying", previous: model.text, undoing: false },
+        [...exitEffects(state), { type: "applyText", text: event.text }],
+      );
 
     case "CARD_CHOSEN": {
       // Free and local: add the card to the draft, close the picker, offer Undo.
       if (state.kind !== "picking") return unchanged(model);
       const text = withCard(model.text, event.text);
       if (text === model.text) return to(model, { kind: "idle" });
-      return to(model, { kind: "applying", previous: model.text, undoing: false }, [
-        { type: "applyText", text },
-      ]);
+      return to(
+        model,
+        { kind: "applying", previous: model.text, undoing: false },
+        [{ type: "applyText", text }],
+      );
     }
 
     case "REFINE_REQUESTED":
@@ -322,7 +349,9 @@ export function transition(
         }
         case "streaming":
           // Show a background refine rather than starting another one.
-          return state.visible ? unchanged(model) : to(model, { ...state, visible: true });
+          return state.visible
+            ? unchanged(model)
+            : to(model, { ...state, visible: true });
         default:
           return unchanged(model);
       }
@@ -382,7 +411,10 @@ export function transition(
         model,
         "compose",
         true,
-        state.questions.map((question, i) => ({ question, answer: state.answers[i] ?? "" })),
+        state.questions.map((question, i) => ({
+          question,
+          answer: state.answers[i] ?? "",
+        })),
       );
 
     case "CHANGE_TOGGLED": {
@@ -402,32 +434,47 @@ export function transition(
 
     case "ACCEPT":
       if (state.kind !== "result" || !state.visible) return unchanged(model);
-      return to(model, { kind: "applying", previous: model.text, undoing: false }, [
-        {
-          type: "recordRefine",
-          mode: state.step === "compose" ? "ask" : state.step,
-          accepted: true,
-        },
-        {
-          type: "applyResult",
-          original: model.text,
-          output: state.output,
-          rejected: state.rejected,
-        },
-      ]);
+      return to(
+        model,
+        { kind: "applying", previous: model.text, undoing: false },
+        [
+          {
+            type: "recordRefine",
+            mode: state.step === "compose" ? "ask" : state.step,
+            accepted: true,
+          },
+          {
+            type: "applyResult",
+            original: model.text,
+            output: state.output,
+            rejected: state.rejected,
+          },
+        ],
+      );
 
     case "UNDO_REQUESTED":
-      if ((state.kind !== "idle" && state.kind !== "debouncing") || !canUndo(model)) {
+      if (
+        (state.kind !== "idle" && state.kind !== "debouncing") ||
+        !model.undo ||
+        !canUndo(model)
+      ) {
         return unchanged(model);
       }
-      return to(model, { kind: "applying", previous: model.text, undoing: true }, [
-        ...exitEffects(state),
-        { type: "applyText", text: model.undo!.previous },
-      ]);
+      return to(
+        model,
+        { kind: "applying", previous: model.text, undoing: true },
+        [
+          ...exitEffects(state),
+          { type: "applyText", text: model.undo.previous },
+        ],
+      );
 
     case "DISMISS":
       return isPanelOpen(state)
-        ? to(model, { kind: "idle" }, [...setAside(state), ...exitEffects(state)])
+        ? to(model, { kind: "idle" }, [
+            ...setAside(state),
+            ...exitEffects(state),
+          ])
         : unchanged(model);
 
     case "APPLIED":
@@ -437,7 +484,9 @@ export function transition(
         {
           ...model,
           text: event.text,
-          undo: state.undoing ? null : { previous: state.previous, applied: event.text },
+          undo: state.undoing
+            ? null
+            : { previous: state.previous, applied: event.text },
         },
         { kind: "idle" },
       );
@@ -476,7 +525,12 @@ export function keyToEvent(
     return { type: "ACCEPT" };
   }
 
-  if (input.inInput && input.key === "Enter" && input.shiftKey && input.modKey) {
+  if (
+    input.inInput &&
+    input.key === "Enter" &&
+    input.shiftKey &&
+    input.modKey
+  ) {
     return { type: "REFINE_REQUESTED" };
   }
 
@@ -500,7 +554,12 @@ export type BadgeView =
   /** Draft too short to score or refine: a small mark that opens the cards. */
   | { kind: "idle" }
   /** Local lint result; score is null when the draft can't be scored. */
-  | { kind: "lint"; score: number | null; findings: LintChip[]; canUndo: boolean }
+  | {
+      kind: "lint";
+      score: number | null;
+      findings: LintChip[];
+      canUndo: boolean;
+    }
   | { kind: "saving" }
   /** A background refine finished; click to see it. */
   | { kind: "ready" }
@@ -536,7 +595,9 @@ const HIDDEN: BadgeView = { kind: "hidden" };
 
 function topChips(lint: LintSummary | null): LintChip[] {
   if (!lint?.assessed) return [];
-  return lint.findings.slice(0, MAX_LINT_CHIPS).map(({ label, hint }) => ({ label, hint }));
+  return lint.findings
+    .slice(0, MAX_LINT_CHIPS)
+    .map(({ label, hint }) => ({ label, hint }));
 }
 
 /**
@@ -585,14 +646,25 @@ export function view(
       };
     case "streaming":
       return state.visible
-        ? { badge: HIDDEN, panel: { kind: "streaming", step: state.step, output: state.output } }
+        ? {
+            badge: HIDDEN,
+            panel: {
+              kind: "streaming",
+              step: state.step,
+              output: state.output,
+            },
+          }
         : { badge: { kind: "saving" }, panel: null };
     case "asking":
       return { badge: HIDDEN, panel: { kind: "asking" } };
     case "answering":
       return {
         badge: HIDDEN,
-        panel: { kind: "answering", questions: state.questions, answers: state.answers },
+        panel: {
+          kind: "answering",
+          questions: state.questions,
+          answers: state.answers,
+        },
       };
     case "result":
       return state.visible

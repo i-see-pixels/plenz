@@ -1,9 +1,9 @@
-import { runRefine } from "./prompt-orchestrator";
 import {
   isRefineStart,
   REFINE_PORT,
   type RefineServerMessage,
 } from "../shared/refine-port";
+import { runRefine } from "./prompt-orchestrator";
 
 /**
  * One port per refine: START in, DELTA chunks out, then one final message.
@@ -49,9 +49,17 @@ export function handleRefinePort(port: chrome.runtime.Port) {
     if (controller.signal.aborted) return;
 
     if (outcome.kind === "text") {
-      send({ type: "DONE", text: outcome.text, providerId: outcome.providerId });
+      send({
+        type: "DONE",
+        text: outcome.text,
+        providerId: outcome.providerId,
+      });
     } else if (outcome.kind === "questions") {
-      send({ type: "QUESTIONS", questions: outcome.questions, providerId: outcome.providerId });
+      send({
+        type: "QUESTIONS",
+        questions: outcome.questions,
+        providerId: outcome.providerId,
+      });
     } else {
       const { message: text, detail, fixInSettings } = outcome.failure;
       send({ type: "ERROR", message: text, detail, fixInSettings });

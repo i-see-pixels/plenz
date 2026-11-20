@@ -83,7 +83,6 @@
   --accent-secondary: oklch(0.57 0.09 196);
 }
 
-
 /* Dark set for plenz's own pages, chosen by followThemePreference. Same warm
    neutrals as the in-page overlays' dark set. After :root so it wins. */
 .dark {
@@ -157,6 +156,7 @@
 }
 
 /* Respect "reduce motion" on plenz's own pages too. */
+/* biome-ignore-start lint/complexity/noImportantStyles: reduced-motion overrides must beat every other rule */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -166,3 +166,4 @@
     animation-iteration-count: 1 !important;
   }
 }
+/* biome-ignore-end lint/complexity/noImportantStyles: reduced-motion overrides must beat every other rule */

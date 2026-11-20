@@ -3,11 +3,13 @@
 ## Overview
 
 plenz is a monorepo with three user-facing applications:
+
 - Browser extension (`apps/extension`)
 - Web app (`apps/web`)
 - VS Code extension (`apps/vscode`)
 
 Shared logic lives in:
+
 - `packages/core`: the local prompt linter, refine-mode prompts and output cleanup, and chat-context building
 - `packages/providers`: LLM provider adapters
 - `packages/types`: shared TypeScript contracts
@@ -72,4 +74,3 @@ Settings save as they change. Preferences go through `SET_PREFERENCES` and are m
 - No centralized plenz prompt-processing server.
 - Content scripts can only read preferences over messaging and open refine ports; the port validates every `START` and never returns keys or configs. Everything else (model configs, keys, auth, gallery) is limited to extension pages.
 - Extension outbound network access restricted in manifest CSP and host permissions.
-

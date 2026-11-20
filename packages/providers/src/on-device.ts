@@ -16,19 +16,34 @@ import type {
 export const ON_DEVICE_PROVIDER_ID = "on-device";
 export const ON_DEVICE_MODEL_ID = "gemini-nano";
 
-export type OnDeviceAvailability = "unavailable" | "downloadable" | "downloading" | "available";
+export type OnDeviceAvailability =
+  | "unavailable"
+  | "downloadable"
+  | "downloading"
+  | "available";
 
 // The parts of the Prompt API we use (no official TypeScript types yet).
 type LanguageModelSession = {
-  promptStreaming(input: string, options?: { signal?: AbortSignal }): ReadableStream<string>;
+  promptStreaming(
+    input: string,
+    options?: { signal?: AbortSignal },
+  ): ReadableStream<string>;
   destroy(): void;
 };
 type DownloadMonitor = {
-  addEventListener(type: "downloadprogress", listener: (event: { loaded: number }) => void): void;
+  addEventListener(
+    type: "downloadprogress",
+    listener: (event: { loaded: number }) => void,
+  ): void;
 };
 type LanguageModelApi = {
   availability(options?: object): Promise<OnDeviceAvailability>;
-  params?(): Promise<{ defaultTopK: number; maxTopK: number; defaultTemperature: number; maxTemperature: number }>;
+  params?(): Promise<{
+    defaultTopK: number;
+    maxTopK: number;
+    defaultTemperature: number;
+    maxTemperature: number;
+  }>;
   create(options?: object): Promise<LanguageModelSession>;
 };
 
@@ -43,7 +58,9 @@ const LANGUAGE_OPTIONS = {
 };
 
 function api(): LanguageModelApi | null {
-  return ((globalThis as { LanguageModel?: LanguageModelApi }).LanguageModel) ?? null;
+  return (
+    (globalThis as { LanguageModel?: LanguageModelApi }).LanguageModel ?? null
+  );
 }
 
 export async function onDeviceAvailability(): Promise<OnDeviceAvailability> {
@@ -56,7 +73,9 @@ export async function onDeviceAvailability(): Promise<OnDeviceAvailability> {
   }
 }
 
-export function onDeviceStatusMessage(availability: OnDeviceAvailability): string {
+export function onDeviceStatusMessage(
+  availability: OnDeviceAvailability,
+): string {
   switch (availability) {
     case "available":
       return "Ready. Runs on this device; no API key or network needed.";
@@ -73,13 +92,17 @@ export function onDeviceStatusMessage(availability: OnDeviceAvailability): strin
  * Downloads the model (a one-time, multi-GB download). Call from a page in
  * response to a click; Chrome requires a user gesture to start it there.
  */
-export async function downloadOnDeviceModel(onProgress: (fraction: number) => void) {
+export async function downloadOnDeviceModel(
+  onProgress: (fraction: number) => void,
+) {
   const languageModel = api();
   if (!languageModel) throw new Error(onDeviceStatusMessage("unavailable"));
   const session = await languageModel.create({
     ...LANGUAGE_OPTIONS,
     monitor(monitor: DownloadMonitor) {
-      monitor.addEventListener("downloadprogress", (event) => onProgress(event.loaded));
+      monitor.addEventListener("downloadprogress", (event) =>
+        onProgress(event.loaded),
+      );
     },
   });
   session.destroy();
@@ -93,7 +116,9 @@ function friendlyError(error: unknown): Error {
     );
   }
   if (name === "NotSupportedError") {
-    return new Error("The on-device model doesn't support this request. Try an API key provider.");
+    return new Error(
+      "The on-device model doesn't support this request. Try an API key provider.",
+    );
   }
   return error instanceof Error ? error : new Error(String(error));
 }
@@ -114,7 +139,11 @@ export class OnDeviceAdapter implements ProviderAdapter {
     const availability = await onDeviceAvailability();
     return availability === "available"
       ? { success: true, latencyMs: Math.round(performance.now() - start) }
-      : { success: false, latencyMs: 0, error: onDeviceStatusMessage(availability) };
+      : {
+          success: false,
+          latencyMs: 0,
+          error: onDeviceStatusMessage(availability),
+        };
   }
 
   async streamCompletion(
@@ -146,7 +175,9 @@ export class OnDeviceAdapter implements ProviderAdapter {
 
     let text = "";
     try {
-      const reader = session.promptStreaming(request.user, { signal: options.signal }).getReader();
+      const reader = session
+        .promptStreaming(request.user, { signal: options.signal })
+        .getReader();
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;

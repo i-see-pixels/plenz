@@ -7,7 +7,12 @@ import type {
   ProviderConfig,
   StreamOptions,
 } from "@plenz/types";
-import { createProviderHttpError, outputBudget, parseJson, readErrorMessage } from "./http";
+import {
+  createProviderHttpError,
+  outputBudget,
+  parseJson,
+  readErrorMessage,
+} from "./http";
 import { readSSE } from "./sse";
 
 const API_URL = "https://generativelanguage.googleapis.com/v1beta";
@@ -39,20 +44,24 @@ export class GoogleAdapter implements ProviderAdapter {
   }
 
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
-    if (!config.model) return { success: false, latencyMs: 0, error: "No model selected" };
+    if (!config.model)
+      return { success: false, latencyMs: 0, error: "No model selected" };
     const start = performance.now();
     try {
-      const res = await fetch(`${API_URL}/models/${config.model}:generateContent`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-goog-api-key": config.apiKey,
+      const res = await fetch(
+        `${API_URL}/models/${config.model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-goog-api-key": config.apiKey,
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: "ping" }] }],
+            generationConfig: { maxOutputTokens: 5 },
+          }),
         },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: "ping" }] }],
-          generationConfig: { maxOutputTokens: 5 },
-        }),
-      });
+      );
       const latencyMs = Math.round(performance.now() - start);
       if (!res.ok) {
         const err = await res
@@ -108,7 +117,8 @@ export class GoogleAdapter implements ProviderAdapter {
     await readSSE(res.body, ({ data }) => {
       const event = parseJson(data);
       if (!event) return;
-      if (event.error) throw new Error(event.error.message || "Gemini stream error");
+      if (event.error)
+        throw new Error(event.error.message || "Gemini stream error");
 
       const parts = event.candidates?.[0]?.content?.parts;
       if (Array.isArray(parts)) {
@@ -121,12 +131,17 @@ export class GoogleAdapter implements ProviderAdapter {
         }
       }
       if (event.usageMetadata) {
-        tokensUsed.prompt = event.usageMetadata.promptTokenCount ?? tokensUsed.prompt;
+        tokensUsed.prompt =
+          event.usageMetadata.promptTokenCount ?? tokensUsed.prompt;
         tokensUsed.completion =
           event.usageMetadata.candidatesTokenCount ?? tokensUsed.completion;
       }
     });
 
-    return { text, tokensUsed, latencyMs: Math.round(performance.now() - start) };
+    return {
+      text,
+      tokensUsed,
+      latencyMs: Math.round(performance.now() - start),
+    };
   }
 }

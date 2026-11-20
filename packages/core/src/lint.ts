@@ -52,7 +52,8 @@ const WALL_OF_TEXT_WORDS = 150;
 const QUESTION_MAX_WORDS = 40;
 
 const ALL: DraftKind[] = ["task", "question", "code"];
-const missing = (pattern: RegExp) => (draft: Draft) => !pattern.test(draft.text);
+const missing = (pattern: RegExp) => (draft: Draft) =>
+  !pattern.test(draft.text);
 
 // Any first-person detail or stated purpose counts as context.
 const GOAL =
@@ -103,7 +104,7 @@ const CHECKS: Check[] = [
   {
     id: "no_audience",
     label: "No audience or tone",
-    hint: "Who is it for, and how should it sound? (\"for non-technical managers, friendly\")",
+    hint: 'Who is it for, and how should it sound? ("for non-technical managers, friendly")',
     weight: 10,
     appliesTo: ["task"],
     test: missing(AUDIENCE),
@@ -111,7 +112,7 @@ const CHECKS: Check[] = [
   {
     id: "no_length",
     label: "No length",
-    hint: "Set a size: \"under 150 words\", \"3 bullets\", \"one paragraph\".",
+    hint: 'Set a size: "under 150 words", "3 bullets", "one paragraph".',
     weight: 10,
     appliesTo: ["task"],
     test: missing(LENGTH),
@@ -119,7 +120,7 @@ const CHECKS: Check[] = [
   {
     id: "no_constraints",
     label: "No constraints",
-    hint: "Add must-haves and must-nots (\"avoid jargon\", \"only use the data below\").",
+    hint: 'Add must-haves and must-nots ("avoid jargon", "only use the data below").',
     weight: 10,
     appliesTo: ["task"],
     test: missing(CONSTRAINTS),
@@ -127,7 +128,7 @@ const CHECKS: Check[] = [
   {
     id: "vague",
     label: "Vague wording",
-    hint: "Replace words like \"stuff\", \"things\" or \"make it better\" with specifics.",
+    hint: 'Replace words like "stuff", "things" or "make it better" with specifics.',
     weight: 10,
     appliesTo: ALL,
     test: (d) => VAGUE.test(d.text),
@@ -151,10 +152,9 @@ const CHECKS: Check[] = [
 ];
 
 /** Each check's short label, for settings and summaries. */
-export const LINT_CHECK_LABELS = Object.fromEntries(CHECKS.map((check) => [check.id, check.label])) as Record<
-  LintCheckId,
-  string
->;
+export const LINT_CHECK_LABELS = Object.fromEntries(
+  CHECKS.map((check) => [check.id, check.label]),
+) as Record<LintCheckId, string>;
 
 /** The rubric's word patterns are English; skip drafts that are mostly other scripts. */
 function isMostlyLatin(text: string) {
@@ -166,7 +166,10 @@ function isMostlyLatin(text: string) {
 
 export function classifyDraft(text: string, words: number): DraftKind {
   if (CODE.test(text)) return "code";
-  if (words <= QUESTION_MAX_WORDS && (text.endsWith("?") || QUESTION_START.test(text))) {
+  if (
+    words <= QUESTION_MAX_WORDS &&
+    (text.endsWith("?") || QUESTION_START.test(text))
+  ) {
     return "question";
   }
   return "task";
@@ -178,7 +181,13 @@ export function lintPrompt(text: string): LintResult {
   const kind = classifyDraft(trimmed, words);
 
   if (!isMostlyLatin(trimmed)) {
-    return { assessed: false, kind, score: 100, findings: [], wordCount: words };
+    return {
+      assessed: false,
+      kind,
+      score: 100,
+      findings: [],
+      wordCount: words,
+    };
   }
 
   const draft: Draft = { text: trimmed, words, kind };

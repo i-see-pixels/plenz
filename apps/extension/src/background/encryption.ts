@@ -1,11 +1,11 @@
 import type { ProviderConfig } from "@plenz/types";
 import {
   decryptSecret,
+  type EncryptedSecret,
   encryptSecret,
   fromBase64,
   isEncryptedSecret,
   secretContext,
-  type EncryptedSecret,
 } from "./vault-crypto.ts";
 
 /**
@@ -14,9 +14,15 @@ import {
  * document could decrypt it. Read-only now: such keys are re-encrypted with
  * the vault's data key as soon as this device is unlocked.
  */
-type LegacyEncryptedApiKey = { version: 1; alg: "AES-GCM"; iv: string; ciphertext: string };
+type LegacyEncryptedApiKey = {
+  version: 1;
+  alg: "AES-GCM";
+  iv: string;
+  ciphertext: string;
+};
 
-export interface FirestoreProviderConfig extends Omit<ProviderConfig, "apiKey"> {
+export interface FirestoreProviderConfig
+  extends Omit<ProviderConfig, "apiKey"> {
   /** Plaintext, from the oldest versions. Read-only; replaced on upgrade. */
   apiKey?: string;
   encryptedApiKey?: EncryptedSecret | LegacyEncryptedApiKey;
@@ -24,32 +30,52 @@ export interface FirestoreProviderConfig extends Omit<ProviderConfig, "apiKey"> 
 
 export class SyncLockedError extends Error {
   constructor() {
-    super("Cloud Sync is locked on this device. Enter your sync passphrase in plenz settings.");
+    super(
+      "Cloud Sync is locked on this device. Enter your sync passphrase in plenz settings.",
+    );
     this.name = "SyncLockedError";
   }
 }
 
 export class SyncPassphraseRequiredError extends Error {
   constructor() {
-    super("Set a sync passphrase in plenz settings before saving keys to Cloud Sync.");
+    super(
+      "Set a sync passphrase in plenz settings before saving keys to Cloud Sync.",
+    );
     this.name = "SyncPassphraseRequiredError";
   }
 }
 
 /** Vault states are not outages: callers must not fall back or back off. */
 export function isVaultError(error: unknown) {
-  return error instanceof SyncLockedError || error instanceof SyncPassphraseRequiredError;
+  return (
+    error instanceof SyncLockedError ||
+    error instanceof SyncPassphraseRequiredError
+  );
 }
 
 function isLegacyPayload(value: unknown): value is LegacyEncryptedApiKey {
   const v = value as LegacyEncryptedApiKey;
-  return !!v && v.version === 1 && v.alg === "AES-GCM" && typeof v.iv === "string";
+  return (
+    !!v && v.version === 1 && v.alg === "AES-GCM" && typeof v.iv === "string"
+  );
 }
 
-async function decryptLegacyApiKey(payload: LegacyEncryptedApiKey, userId: string) {
-  const material = new TextEncoder().encode(`plenz/firebase-api-key/v1:${userId}`);
+async function decryptLegacyApiKey(
+  payload: LegacyEncryptedApiKey,
+  userId: string,
+) {
+  const material = new TextEncoder().encode(
+    `plenz/firebase-api-key/v1:${userId}`,
+  );
   const digest = await crypto.subtle.digest("SHA-256", material);
-  const key = await crypto.subtle.importKey("raw", digest, { name: "AES-GCM" }, false, ["decrypt"]);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    digest,
+    { name: "AES-GCM" },
+    false,
+    ["decrypt"],
+  );
   const plaintext = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: fromBase64(payload.iv) },
     key,
@@ -69,7 +95,11 @@ export async function toFirestoreProviderConfig(
   const { apiKey, ...rest } = config;
   return {
     ...rest,
-    encryptedApiKey: await encryptSecret(dataKey, apiKey, secretContext(userId, providerId)),
+    encryptedApiKey: await encryptSecret(
+      dataKey,
+      apiKey,
+      secretContext(userId, providerId),
+    ),
   };
 }
 
@@ -83,8 +113,12 @@ export async function fromFirestoreProviderConfig(
   userId: string,
   providerId: string,
   dataKey: CryptoKey | null,
-): Promise<{ config: ProviderConfig | null; migratedConfig: FirestoreProviderConfig | null }> {
-  if (!value || typeof value !== "object") return { config: null, migratedConfig: null };
+): Promise<{
+  config: ProviderConfig | null;
+  migratedConfig: FirestoreProviderConfig | null;
+}> {
+  if (!value || typeof value !== "object")
+    return { config: null, migratedConfig: null };
 
   const record = value as FirestoreProviderConfig;
   const withKey = (apiKey: string): ProviderConfig => ({
@@ -128,6 +162,7 @@ export function isLegacyRecord(value: unknown) {
   return (
     !!record &&
     !isEncryptedSecret(record.encryptedApiKey) &&
-    (isLegacyPayload(record.encryptedApiKey) || typeof record.apiKey === "string")
+    (isLegacyPayload(record.encryptedApiKey) ||
+      typeof record.apiKey === "string")
   );
 }

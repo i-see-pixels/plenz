@@ -1,4 +1,11 @@
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from "firebase/firestore/lite";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+} from "firebase/firestore/lite";
 import { AuthManager } from "./auth";
 import { fromFirestoreProviderConfig, isLegacyRecord } from "./encryption";
 import { getFirestoreDb, isFirebaseConfigured } from "./firebase";
@@ -15,7 +22,12 @@ import {
   WrongPassphraseError,
 } from "./vault-crypto";
 
-export type VaultStatus = "unavailable" | "signed-out" | "not-set-up" | "locked" | "unlocked";
+export type VaultStatus =
+  | "unavailable"
+  | "signed-out"
+  | "not-set-up"
+  | "locked"
+  | "unlocked";
 
 /**
  * Once unlocked, a device keeps the data key in local extension storage,
@@ -74,7 +86,9 @@ export const SyncVault = {
   /** This device's data key for `userId`, or null when locked or not set up. */
   async dataKey(userId: string): Promise<CryptoKey | null> {
     if (cached?.userId === userId) return cached.key;
-    const stored = (await chrome.storage.local.get(DEVICE_KEY))[DEVICE_KEY] as DeviceKey | undefined;
+    const stored = (await chrome.storage.local.get(DEVICE_KEY))[DEVICE_KEY] as
+      | DeviceKey
+      | undefined;
     if (!stored || stored.userId !== userId) return null;
     const key = await importDataKey(fromBase64(stored.key));
     cached = { userId, key };
@@ -92,25 +106,36 @@ export const SyncVault = {
   async setUp(passphrase: string): Promise<Result> {
     const userId = await getFirebaseUserId();
     if (await readVault(userId)) {
-      return { success: false, error: "A sync passphrase is already set. Unlock it instead." };
+      return {
+        success: false,
+        error: "A sync passphrase is already set. Unlock it instead.",
+      };
     }
     const { vault, dataKey } = await createVault(passphrase);
     await setDoc(vaultRef(userId), vault);
     await remember(userId, dataKey);
-    return { success: true, upgraded: await upgradeLegacyRecords(userId, dataKey) };
+    return {
+      success: true,
+      upgraded: await upgradeLegacyRecords(userId, dataKey),
+    };
   },
 
   async unlock(passphrase: string): Promise<Result> {
     const userId = await getFirebaseUserId();
     const vault = await readVault(userId);
-    if (!vault) return { success: false, error: "No sync passphrase is set up yet." };
+    if (!vault)
+      return { success: false, error: "No sync passphrase is set up yet." };
     try {
       const dataKey = await unlockVault(vault, passphrase);
       await remember(userId, dataKey);
       // Another device on an older version may have written legacy records.
-      return { success: true, upgraded: await upgradeLegacyRecords(userId, dataKey) };
+      return {
+        success: true,
+        upgraded: await upgradeLegacyRecords(userId, dataKey),
+      };
     } catch (error) {
-      if (error instanceof WrongPassphraseError) return { success: false, error: error.message };
+      if (error instanceof WrongPassphraseError)
+        return { success: false, error: error.message };
       throw error;
     }
   },
@@ -118,12 +143,17 @@ export const SyncVault = {
   async changePassphrase(current: string, next: string): Promise<Result> {
     const userId = await getFirebaseUserId();
     const vault = await readVault(userId);
-    if (!vault) return { success: false, error: "No sync passphrase is set up yet." };
+    if (!vault)
+      return { success: false, error: "No sync passphrase is set up yet." };
     try {
-      await setDoc(vaultRef(userId), await changePassphrase(vault, current, next));
+      await setDoc(
+        vaultRef(userId),
+        await changePassphrase(vault, current, next),
+      );
       return { success: true };
     } catch (error) {
-      if (error instanceof WrongPassphraseError) return { success: false, error: error.message };
+      if (error instanceof WrongPassphraseError)
+        return { success: false, error: error.message };
       throw error;
     }
   },

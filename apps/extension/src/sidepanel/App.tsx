@@ -1,22 +1,22 @@
-import { Card } from "@plenz/ui/components/card"
-import { Toaster } from "sonner"
-import { PromptGalleryProvider } from "./PromptGalleryProvider"
+import { Card } from "@plenz/ui/components/card";
+import { Toaster } from "sonner";
+import { PromptGalleryProvider } from "./PromptGalleryProvider";
 import {
   PromptGalleryContent,
   PromptGalleryHeader,
   PromptGallerySaveDialog,
   PromptGalleryToasts,
   PromptGalleryToolbar,
-} from "./PromptGallerySections"
+} from "./PromptGallerySections";
 
-const PROMPT_GALLERY_TOAST_MAX_WIDTH = 356
+const PROMPT_GALLERY_TOAST_MAX_WIDTH = 356;
 
 export function App() {
   return (
     <PromptGalleryProvider>
       <PromptGalleryScreen />
     </PromptGalleryProvider>
-  )
+  );
 }
 
 function PromptGalleryScreen() {
@@ -45,11 +45,11 @@ function PromptGalleryScreen() {
             width: "fit-content",
             maxWidth: `${PROMPT_GALLERY_TOAST_MAX_WIDTH}px`,
             borderRadius: "var(--radius-2xl)",
-            boxShadow: "var(--shadow-xl)"
+            boxShadow: "var(--shadow-xl)",
           },
         }}
       />
       <PromptGallerySaveDialog />
     </div>
-  )
+  );
 }

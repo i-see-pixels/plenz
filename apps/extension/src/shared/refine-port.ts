@@ -35,7 +35,12 @@ export type RefineServerMessage =
   | { type: "DONE"; text: string; providerId: string }
   | { type: "QUESTIONS"; questions: string[]; providerId: string }
   /** `message` is plain language; `detail` is the provider's wording. */
-  | { type: "ERROR"; message: string; detail?: string; fixInSettings?: boolean };
+  | {
+      type: "ERROR";
+      message: string;
+      detail?: string;
+      fixInSettings?: boolean;
+    };
 
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -54,7 +59,8 @@ export function isRefineStart(value: unknown): value is RefineStart {
     (start.answers === undefined ||
       (Array.isArray(start.answers) &&
         start.answers.every(
-          (a) => a && typeof a.question === "string" && typeof a.answer === "string",
+          (a) =>
+            a && typeof a.question === "string" && typeof a.answer === "string",
         )))
   );
 }

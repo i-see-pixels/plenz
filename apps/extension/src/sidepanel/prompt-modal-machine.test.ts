@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   EMPTY_DRAFT,
-  promptModalTransition,
   type PromptModalEvent,
   type PromptModalState,
+  promptModalTransition,
 } from "./prompt-modal-machine.ts";
 
 function run(state: PromptModalState, ...events: PromptModalEvent[]) {
@@ -31,11 +31,18 @@ describe("prompt modal", () => {
   });
 
   test("a successful submit closes it", () => {
-    assert.deepEqual(run(open(), { type: "SUBMIT" }, { type: "SUBMIT_SUCCEEDED" }), closed);
+    assert.deepEqual(
+      run(open(), { type: "SUBMIT" }, { type: "SUBMIT_SUCCEEDED" }),
+      closed,
+    );
   });
 
   test("a failed submit goes back to editing with the draft kept", () => {
-    const edited = run(open(), { type: "EDIT", field: "title", value: "Keep me" });
+    const edited = run(open(), {
+      type: "EDIT",
+      field: "title",
+      value: "Keep me",
+    });
     const failed = run(edited, { type: "SUBMIT" }, { type: "SUBMIT_FAILED" });
     assert.deepEqual(failed, edited);
   });
@@ -54,7 +61,17 @@ describe("prompt modal", () => {
 
   test("closing discards the draft; results for a closed dialog are ignored", () => {
     assert.deepEqual(run(open(), { type: "CLOSE" }), closed);
-    assert.equal(promptModalTransition(closed, { type: "SUBMIT_SUCCEEDED" }), closed);
-    assert.equal(promptModalTransition(closed, { type: "EDIT", field: "title", value: "x" }), closed);
+    assert.equal(
+      promptModalTransition(closed, { type: "SUBMIT_SUCCEEDED" }),
+      closed,
+    );
+    assert.equal(
+      promptModalTransition(closed, {
+        type: "EDIT",
+        field: "title",
+        value: "x",
+      }),
+      closed,
+    );
   });
 });

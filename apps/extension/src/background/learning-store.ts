@@ -1,8 +1,8 @@
 import {
   LEARNING_STORAGE_KEY,
+  type LearningEvent,
   normalizeLearning,
   recordLearning,
-  type LearningEvent,
 } from "../shared/learning";
 
 // The one writer of local learning stats, so events from several tabs are
@@ -14,7 +14,10 @@ export const LearningStore = {
   record(event: LearningEvent): Promise<void> {
     const next = queue.then(async () => {
       const stored = await chrome.storage.local.get(LEARNING_STORAGE_KEY);
-      const learning = recordLearning(normalizeLearning(stored[LEARNING_STORAGE_KEY]), event);
+      const learning = recordLearning(
+        normalizeLearning(stored[LEARNING_STORAGE_KEY]),
+        event,
+      );
       await chrome.storage.local.set({ [LEARNING_STORAGE_KEY]: learning });
     });
     queue = next.catch(() => undefined);
@@ -22,7 +25,9 @@ export const LearningStore = {
   },
 
   reset(): Promise<void> {
-    const next = queue.then(() => chrome.storage.local.remove(LEARNING_STORAGE_KEY));
+    const next = queue.then(() =>
+      chrome.storage.local.remove(LEARNING_STORAGE_KEY),
+    );
     queue = next.catch(() => undefined);
     return next;
   },

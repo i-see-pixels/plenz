@@ -1,16 +1,16 @@
+import { Badge } from "@plenz/ui/components/badge";
+import { Button } from "@plenz/ui/components/button";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Footer } from "@/components/footer";
+import { JsonLd } from "@/components/json-ld";
 import { Navbar } from "@/components/navbar";
-import { Badge } from "@plenz/ui/components/badge";
-import { Button } from "@plenz/ui/components/button";
-import { getPublicPromptBySlug, isPromptCatalogConfigured } from "@/lib/prompt-catalog";
 import {
-  createBreadcrumbSchema,
-  createPageMetadata,
-  serializeJsonLd,
-} from "@/lib/seo";
+  getPublicPromptBySlug,
+  isPromptCatalogConfigured,
+} from "@/lib/prompt-catalog";
+import { createBreadcrumbSchema, createPageMetadata } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 
 interface PromptPageProps {
@@ -88,12 +88,7 @@ export default async function PromptSharePage({ params }: PromptPageProps) {
       <Navbar />
 
       <main className="relative z-10 border-b border-border px-4 py-14 sm:px-6 sm:py-18">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: serializeJsonLd(breadcrumbSchema),
-          }}
-        />
+        <JsonLd data={breadcrumbSchema} />
 
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
           <div className="flex flex-col gap-3 border border-border bg-card px-4 py-5 sm:px-6">
@@ -116,7 +111,9 @@ export default async function PromptSharePage({ params }: PromptPageProps) {
             <div className="flex flex-wrap items-center gap-3 font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
               <span>Published {formatPublishedDate(prompt.createdAt)}</span>
               <span>Prompt gallery</span>
-              {prompt.trendScore !== null ? <span>Trend score {prompt.trendScore}</span> : null}
+              {prompt.trendScore !== null ? (
+                <span>Trend score {prompt.trendScore}</span>
+              ) : null}
             </div>
           </div>
 

@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@plenz/ui/components/button";
 import { Badge } from "@plenz/ui/components/badge";
+import { Button } from "@plenz/ui/components/button";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { FaChrome, FaGithub } from "react-icons/fa";
 import { siteConfig } from "@/lib/site";
 import PromoVideo from "./promo-video";
@@ -20,6 +20,7 @@ export function Hero() {
         rel="noopener noreferrer"
         className="flex justify-center mb-10"
       >
+        {/* biome-ignore lint/performance/noImgElement: Product Hunt's embed badge must load from their URL as-is, not through next/image */}
         <img
           alt="plenz - ai prompt refiner | Product Hunt"
           width="250"

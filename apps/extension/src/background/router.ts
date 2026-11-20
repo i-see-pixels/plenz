@@ -1,17 +1,10 @@
-import { StorageManager } from "./storage";
 import {
   isProviderConfigured,
   onDeviceAvailability,
   onDeviceStatusMessage,
   providers,
 } from "@plenz/providers";
-import { AuthSession } from "./auth-session";
-import { InsertablePrompts } from "./insertable-prompts";
-import { LearningStore } from "./learning-store";
 import { parseLearningEvent } from "../shared/learning";
-import { PromptGalleryManager } from "./prompt-gallery";
-import { Sites } from "./sites";
-import { SyncVault } from "./sync-vault";
 import {
   CONTENT_SCRIPT_RPC,
   type RpcFailure,
@@ -19,6 +12,13 @@ import {
   type RpcReply,
   type RpcType,
 } from "../shared/rpc";
+import { AuthSession } from "./auth-session";
+import { InsertablePrompts } from "./insertable-prompts";
+import { LearningStore } from "./learning-store";
+import { PromptGalleryManager } from "./prompt-gallery";
+import { Sites } from "./sites";
+import { StorageManager } from "./storage";
+import { SyncVault } from "./sync-vault";
 
 function isExtensionPage(sender: chrome.runtime.MessageSender) {
   return (
@@ -69,7 +69,10 @@ const handlers: Handlers = {
 
   async SET_PREFERENCES(payload) {
     await StorageManager.setPreferences(payload?.preferences ?? {});
-    return { success: true, preferences: await StorageManager.getPreferences() };
+    return {
+      success: true,
+      preferences: await StorageManager.getPreferences(),
+    };
   },
 
   async SET_STORAGE_BACKEND(payload) {
@@ -208,16 +211,23 @@ const handlers: Handlers = {
   },
 
   async SET_UP_SYNC_VAULT(payload) {
-    return vaultAction(() => SyncVault.setUp(String(payload?.passphrase ?? "")));
+    return vaultAction(() =>
+      SyncVault.setUp(String(payload?.passphrase ?? "")),
+    );
   },
 
   async UNLOCK_SYNC_VAULT(payload) {
-    return vaultAction(() => SyncVault.unlock(String(payload?.passphrase ?? "")));
+    return vaultAction(() =>
+      SyncVault.unlock(String(payload?.passphrase ?? "")),
+    );
   },
 
   async CHANGE_SYNC_PASSPHRASE(payload) {
     return vaultAction(() =>
-      SyncVault.changePassphrase(String(payload?.current ?? ""), String(payload?.next ?? "")),
+      SyncVault.changePassphrase(
+        String(payload?.current ?? ""),
+        String(payload?.next ?? ""),
+      ),
     );
   },
 
@@ -240,12 +250,14 @@ const handlers: Handlers = {
   },
 
   async SITE_PERMISSION_REQUESTED(payload) {
-    const tabId = typeof payload?.tabId === "number" ? payload.tabId : undefined;
+    const tabId =
+      typeof payload?.tabId === "number" ? payload.tabId : undefined;
     return Sites.markPending(String(payload?.url ?? ""), tabId);
   },
 
   async ENABLE_SITE(payload) {
-    const tabId = typeof payload?.tabId === "number" ? payload.tabId : undefined;
+    const tabId =
+      typeof payload?.tabId === "number" ? payload.tabId : undefined;
     return Sites.enable(String(payload?.url ?? ""), tabId);
   },
 
@@ -256,12 +268,19 @@ const handlers: Handlers = {
 
 /** Vault failures (short passphrase, network) come back as a message, not a throw. */
 async function vaultAction(
-  action: () => Promise<{ success: boolean; error?: string; upgraded?: number }>,
+  action: () => Promise<{
+    success: boolean;
+    error?: string;
+    upgraded?: number;
+  }>,
 ) {
   try {
     return await action();
   } catch (error) {
-    return { success: false, error: (error as Error).message || "Cloud Sync passphrase action failed." };
+    return {
+      success: false,
+      error: (error as Error).message || "Cloud Sync passphrase action failed.",
+    };
   }
 }
 

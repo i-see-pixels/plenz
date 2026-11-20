@@ -14,7 +14,8 @@ export function createSSEParser(onEvent: (event: SSEEvent) => void) {
   let dataLines: string[] = [];
 
   const dispatch = () => {
-    if (dataLines.length > 0) onEvent({ event: eventName, data: dataLines.join("\n") });
+    if (dataLines.length > 0)
+      onEvent({ event: eventName, data: dataLines.join("\n") });
     eventName = undefined;
     dataLines = [];
   };

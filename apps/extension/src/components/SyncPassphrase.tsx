@@ -1,8 +1,8 @@
-import { useState } from "preact/hooks";
 import { Button } from "@plenz/ui/components/button";
 import { Input } from "@plenz/ui/components/input";
-import { isRpcFailure, sendRpc } from "../shared/rpc";
+import { useState } from "preact/hooks";
 import type { VaultStatus } from "../background/sync-vault";
+import { isRpcFailure, sendRpc } from "../shared/rpc";
 
 const MIN_LENGTH = 10;
 
@@ -25,9 +25,13 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
   const [current, setCurrent] = useState("");
   const [form, setForm] = useState<Form>("none");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: "muted" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    tone: "muted" | "error";
+    text: string;
+  } | null>(null);
 
-  if (status !== "not-set-up" && status !== "locked" && status !== "unlocked") return null;
+  if (status !== "not-set-up" && status !== "locked" && status !== "unlocked")
+    return null;
 
   const clear = () => {
     setPassphrase("");
@@ -44,7 +48,10 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
     try {
       const reply = await action();
       if (isRpcFailure(reply) || !reply.success) {
-        setMessage({ tone: "error", text: ("error" in reply && reply.error) || "That didn't work." });
+        setMessage({
+          tone: "error",
+          text: ("error" in reply && reply.error) || "That didn't work.",
+        });
         return;
       }
       clear();
@@ -57,7 +64,9 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
   };
 
   const upgradedNote = (upgraded?: number) =>
-    upgraded ? ` Re-encrypted ${upgraded} saved key${upgraded === 1 ? "" : "s"} with it.` : "";
+    upgraded
+      ? ` Re-encrypted ${upgraded} saved key${upgraded === 1 ? "" : "s"} with it.`
+      : "";
 
   const newPassphraseProblem =
     passphrase.length > 0 && passphrase.length < MIN_LENGTH
@@ -65,7 +74,8 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
       : confirm.length > 0 && confirm !== passphrase
         ? "The two passphrases don't match."
         : null;
-  const newPassphraseReady = passphrase.length >= MIN_LENGTH && confirm === passphrase;
+  const newPassphraseReady =
+    passphrase.length >= MIN_LENGTH && confirm === passphrase;
 
   const field = (
     id: string,
@@ -95,14 +105,27 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
       {status === "not-set-up" ? (
         <>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Cloud Sync encrypts your API keys with a passphrase only you know. plenz and Firebase
-            can't read them, and the passphrase can't be recovered, so keep it somewhere safe.
+            Cloud Sync encrypts your API keys with a passphrase only you know.
+            plenz and Firebase can't read them, and the passphrase can't be
+            recovered, so keep it somewhere safe.
             {cloudSyncActive
               ? " Your keys already in Cloud Sync use the older account-based encryption until you set one."
               : ""}
           </p>
-          {field("sync-pass", "Passphrase", passphrase, setPassphrase, "new-password")}
-          {field("sync-pass-confirm", "Confirm passphrase", confirm, setConfirm, "new-password")}
+          {field(
+            "sync-pass",
+            "Passphrase",
+            passphrase,
+            setPassphrase,
+            "new-password",
+          )}
+          {field(
+            "sync-pass-confirm",
+            "Confirm passphrase",
+            confirm,
+            setConfirm,
+            "new-password",
+          )}
           {newPassphraseProblem ? (
             <p className="text-xs text-accent-signal">{newPassphraseProblem}</p>
           ) : null}
@@ -112,7 +135,8 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
             onClick={() =>
               void run(
                 () => sendRpc("SET_UP_SYNC_VAULT", { passphrase }),
-                (upgraded) => `Passphrase set. This device is unlocked.${upgradedNote(upgraded)}`,
+                (upgraded) =>
+                  `Passphrase set. This device is unlocked.${upgradedNote(upgraded)}`,
               )
             }
           >
@@ -123,8 +147,9 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
         form === "reset" ? (
           <>
             <p className="text-xs leading-relaxed text-accent-signal">
-              Without the passphrase, the keys in Cloud Sync can't be decrypted by anyone. Resetting
-              deletes them; you'll set a new passphrase and enter your keys again.
+              Without the passphrase, the keys in Cloud Sync can't be decrypted
+              by anyone. Resetting deletes them; you'll set a new passphrase and
+              enter your keys again.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -134,7 +159,8 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
                 onClick={() =>
                   void run(
                     () => sendRpc("RESET_SYNC_VAULT"),
-                    () => "Cloud Sync keys deleted. Set a new passphrase to continue.",
+                    () =>
+                      "Cloud Sync keys deleted. Set a new passphrase to continue.",
                   )
                 }
               >
@@ -148,17 +174,24 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
         ) : (
           <>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Cloud Sync is locked on this device. Enter your sync passphrase to use your synced
-              keys here.
+              Cloud Sync is locked on this device. Enter your sync passphrase to
+              use your synced keys here.
             </p>
-            {field("sync-unlock", "Passphrase", passphrase, setPassphrase, "current-password")}
+            {field(
+              "sync-unlock",
+              "Passphrase",
+              passphrase,
+              setPassphrase,
+              "current-password",
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 disabled={busy || passphrase.length === 0}
                 onClick={() =>
                   void run(
                     () => sendRpc("UNLOCK_SYNC_VAULT", { passphrase }),
-                    (upgraded) => `Unlocked on this device.${upgradedNote(upgraded)}`,
+                    (upgraded) =>
+                      `Unlocked on this device.${upgradedNote(upgraded)}`,
                   )
                 }
               >
@@ -172,9 +205,27 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
         )
       ) : form === "change" ? (
         <>
-          {field("sync-current", "Current passphrase", current, setCurrent, "current-password")}
-          {field("sync-new", "New passphrase", passphrase, setPassphrase, "new-password")}
-          {field("sync-new-confirm", "Confirm new passphrase", confirm, setConfirm, "new-password")}
+          {field(
+            "sync-current",
+            "Current passphrase",
+            current,
+            setCurrent,
+            "current-password",
+          )}
+          {field(
+            "sync-new",
+            "New passphrase",
+            passphrase,
+            setPassphrase,
+            "new-password",
+          )}
+          {field(
+            "sync-new-confirm",
+            "Confirm new passphrase",
+            confirm,
+            setConfirm,
+            "new-password",
+          )}
           {newPassphraseProblem ? (
             <p className="text-xs text-accent-signal">{newPassphraseProblem}</p>
           ) : null}
@@ -184,8 +235,13 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
               disabled={busy || !newPassphraseReady || current.length === 0}
               onClick={() =>
                 void run(
-                  () => sendRpc("CHANGE_SYNC_PASSPHRASE", { current, next: passphrase }),
-                  () => "Passphrase changed. Other devices stay unlocked; new ones use the new passphrase.",
+                  () =>
+                    sendRpc("CHANGE_SYNC_PASSPHRASE", {
+                      current,
+                      next: passphrase,
+                    }),
+                  () =>
+                    "Passphrase changed. Other devices stay unlocked; new ones use the new passphrase.",
                 )
               }
             >
@@ -206,10 +262,15 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
       ) : (
         <>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Your synced API keys are encrypted with your passphrase. This device is unlocked.
+            Your synced API keys are encrypted with your passphrase. This device
+            is unlocked.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="xs" onClick={() => setForm("change")}>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => setForm("change")}
+            >
               Change passphrase
             </Button>
             <Button
@@ -219,7 +280,8 @@ export function SyncPassphrase({ status, cloudSyncActive, onChanged }: Props) {
               onClick={() =>
                 void run(
                   () => sendRpc("LOCK_SYNC_VAULT"),
-                  () => "Locked. Enter the passphrase to use synced keys here again.",
+                  () =>
+                    "Locked. Enter the passphrase to use synced keys here again.",
                 )
               }
             >

@@ -70,7 +70,10 @@ export const AuthManager = {
         }
       } catch (error) {
         hadCleanupError = true;
-        console.warn("AuthManager - removeCachedAuthToken cleanup warning:", error);
+        console.warn(
+          "AuthManager - removeCachedAuthToken cleanup warning:",
+          error,
+        );
       }
 
       if (typeof chrome.identity.clearAllCachedAuthTokens === "function") {
@@ -86,7 +89,10 @@ export const AuthManager = {
           });
         } catch (error) {
           hadCleanupError = true;
-          console.warn("AuthManager - clearAllCachedAuthTokens cleanup warning:", error);
+          console.warn(
+            "AuthManager - clearAllCachedAuthTokens cleanup warning:",
+            error,
+          );
         }
       }
 
@@ -135,14 +141,18 @@ export const AuthManager = {
 
   async getAuthToken(interactive: boolean): Promise<string> {
     return new Promise((resolve, reject) => {
-      chrome.identity.getAuthToken({ interactive }, (result: AuthTokenResult) => {
-        const tokenString = typeof result === "string" ? result : result?.token;
-        if (chrome.runtime.lastError || !tokenString) {
-          reject(chrome.runtime.lastError || new Error("No token returned"));
-        } else {
-          resolve(tokenString);
-        }
-      });
+      chrome.identity.getAuthToken(
+        { interactive },
+        (result: AuthTokenResult) => {
+          const tokenString =
+            typeof result === "string" ? result : result?.token;
+          if (chrome.runtime.lastError || !tokenString) {
+            reject(chrome.runtime.lastError || new Error("No token returned"));
+          } else {
+            resolve(tokenString);
+          }
+        },
+      );
     });
   },
 
@@ -176,7 +186,9 @@ export const AuthManager = {
   },
 
   async getSessionActive(): Promise<boolean> {
-    const data = await chrome.storage.local.get(AUTH_SESSION_ACTIVE_STORAGE_KEY);
+    const data = await chrome.storage.local.get(
+      AUTH_SESSION_ACTIVE_STORAGE_KEY,
+    );
     return data[AUTH_SESSION_ACTIVE_STORAGE_KEY] === true;
   },
 

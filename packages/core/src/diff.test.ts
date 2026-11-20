@@ -8,7 +8,15 @@ const changes = (before: string, after: string) =>
 describe("tokenize", () => {
   test("splits words, whitespace and punctuation, and joins back losslessly", () => {
     const text = "Write a 3-line poem, don't rhyme.\n\nThanks!";
-    assert.deepEqual(tokenize("don't stop, now."), ["don't", " ", "stop", ",", " ", "now", "."]);
+    assert.deepEqual(tokenize("don't stop, now."), [
+      "don't",
+      " ",
+      "stop",
+      ",",
+      " ",
+      "now",
+      ".",
+    ]);
     assert.equal(tokenize(text).join(""), text);
   });
 });
@@ -27,10 +35,13 @@ describe("diffPrompts", () => {
   });
 
   test("insertions and deletions", () => {
-    assert.deepEqual(changes("write an email", "write a launch email for customers"), [
-      { kind: "change", index: 0, removed: "an", added: "a launch" },
-      { kind: "change", index: 1, removed: "", added: " for customers" },
-    ]);
+    assert.deepEqual(
+      changes("write an email", "write a launch email for customers"),
+      [
+        { kind: "change", index: 0, removed: "an", added: "a launch" },
+        { kind: "change", index: 1, removed: "", added: " for customers" },
+      ],
+    );
     assert.deepEqual(changes("please write an email now", "write an email"), [
       { kind: "change", index: 0, removed: "please ", added: "" },
       { kind: "change", index: 1, removed: " now", added: "" },
@@ -39,13 +50,25 @@ describe("diffPrompts", () => {
 
   test("neighbouring changes separated only by spaces merge into one", () => {
     assert.deepEqual(changes("the quick brown fox", "a slow red fox"), [
-      { kind: "change", index: 0, removed: "the quick brown", added: "a slow red" },
+      {
+        kind: "change",
+        index: 0,
+        removed: "the quick brown",
+        added: "a slow red",
+      },
     ]);
   });
 
   test("similarity reflects how much of the result is unchanged", () => {
-    assert.ok(diffPrompts("write an email to my team", "write an email to my team today").similarity > 0.8);
-    assert.ok(diffPrompts("hello", "completely different words here").similarity < 0.3);
+    assert.ok(
+      diffPrompts(
+        "write an email to my team",
+        "write an email to my team today",
+      ).similarity > 0.8,
+    );
+    assert.ok(
+      diffPrompts("hello", "completely different words here").similarity < 0.3,
+    );
   });
 
   test("very large inputs fall back to one wholesale change", () => {
@@ -58,19 +81,25 @@ describe("diffPrompts", () => {
 
 describe("applyDiff", () => {
   const before = "write a short email to my team about the launch";
-  const after = "Write a friendly email to my product team about Monday's launch, under 150 words.";
+  const after =
+    "Write a friendly email to my product team about Monday's launch, under 150 words.";
   const diff = diffPrompts(before, after);
 
   test("accepting everything gives the result; rejecting everything gives the draft", () => {
     assert.equal(applyDiff(diff), after);
     assert.equal(
-      applyDiff(diff, diff.segments.flatMap((s) => (s.kind === "change" ? [s.index] : []))),
+      applyDiff(
+        diff,
+        diff.segments.flatMap((s) => (s.kind === "change" ? [s.index] : [])),
+      ),
       before,
     );
   });
 
   test("rejecting one change keeps the draft's wording only there", () => {
-    const short = diff.segments.find((s) => s.kind === "change" && s.removed === "short");
+    const short = diff.segments.find(
+      (s) => s.kind === "change" && s.removed === "short",
+    );
     assert.ok(short && short.kind === "change");
     const partial = applyDiff(diff, [short.index]);
     assert.match(partial, /a short email/);
@@ -80,15 +109,27 @@ describe("applyDiff", () => {
   test("round-trips on random edits", () => {
     const words = ["alpha", "beta", "gamma", "delta", "eps", ",", "\n", "zeta"];
     let seed = 7;
-    const rand = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
+    const rand = () => {
+      seed = (seed * 48271) % 2147483647;
+      return seed / 2147483647;
+    };
     const sentence = () =>
-      Array.from({ length: 30 }, () => words[Math.floor(rand() * words.length)]).join(" ");
+      Array.from(
+        { length: 30 },
+        () => words[Math.floor(rand() * words.length)],
+      ).join(" ");
     for (let i = 0; i < 50; i++) {
       const a = sentence();
       const b = sentence();
       const d = diffPrompts(a, b);
       assert.equal(applyDiff(d), b);
-      assert.equal(applyDiff(d, d.segments.flatMap((s) => (s.kind === "change" ? [s.index] : []))), a);
+      assert.equal(
+        applyDiff(
+          d,
+          d.segments.flatMap((s) => (s.kind === "change" ? [s.index] : [])),
+        ),
+        a,
+      );
     }
   });
 });

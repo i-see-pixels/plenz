@@ -16,7 +16,11 @@ import {
 } from "./http";
 import { isEventStream, readSSE } from "./sse";
 
-type RawModel = { id: string; name?: string; pricing?: { prompt?: number | string } };
+type RawModel = {
+  id: string;
+  name?: string;
+  pricing?: { prompt?: number | string };
+};
 
 /** One OpenAI-compatible API: a fixed vendor, or a user-supplied endpoint. */
 export interface OpenAICompatiblePreset {
@@ -32,7 +36,8 @@ export interface OpenAICompatiblePreset {
   toModels(models: RawModel[]): ModelOption[];
 }
 
-const byIdDescending = (a: ModelOption, b: ModelOption) => b.id.localeCompare(a.id);
+const byIdDescending = (a: ModelOption, b: ModelOption) =>
+  b.id.localeCompare(a.id);
 
 export const OPENAI_COMPATIBLE_PRESETS: OpenAICompatiblePreset[] = [
   {
@@ -42,15 +47,20 @@ export const OPENAI_COMPATIBLE_PRESETS: OpenAICompatiblePreset[] = [
     requiresKey: true,
     toModels: (models) =>
       models
-        .filter((m) => m.id.includes("gpt") || m.id.includes("o1") || m.id.includes("o3"))
-        .map((m): ModelOption => ({
-          id: m.id,
-          name: m.id,
-          tier:
-            m.id.includes("4") || m.id.includes("o1") || m.id.includes("o3")
-              ? "premium"
-              : "standard",
-        }))
+        .filter(
+          (m) =>
+            m.id.includes("gpt") || m.id.includes("o1") || m.id.includes("o3"),
+        )
+        .map(
+          (m): ModelOption => ({
+            id: m.id,
+            name: m.id,
+            tier:
+              m.id.includes("4") || m.id.includes("o1") || m.id.includes("o3")
+                ? "premium"
+                : "standard",
+          }),
+        )
         .sort(byIdDescending),
   },
   {
@@ -117,7 +127,10 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
 
   private endpoint(config: ProviderConfig) {
     const base =
-      this.preset.baseUrl || config.baseUrl?.trim() || this.preset.defaultBaseUrl || "";
+      this.preset.baseUrl ||
+      config.baseUrl?.trim() ||
+      this.preset.defaultBaseUrl ||
+      "";
     return resolveChatCompletionsUrl(base);
   }
 
@@ -143,7 +156,8 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
   }
 
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
-    if (!config.model) return { success: false, latencyMs: 0, error: "No model selected" };
+    if (!config.model)
+      return { success: false, latencyMs: 0, error: "No model selected" };
     const start = performance.now();
     try {
       const res = await fetch(this.endpoint(config), {
@@ -187,7 +201,8 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
         max_tokens: outputBudget(request.maxTokens, config.maxTokens),
         temperature: config.temperature ?? request.temperature,
         stream: true,
-        stream_options: this.preset.id === "openai" ? { include_usage: true } : undefined,
+        stream_options:
+          this.preset.id === "openai" ? { include_usage: true } : undefined,
       }),
       signal: options.signal,
     });
@@ -206,7 +221,9 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
       text += chunk;
       options.onDelta?.(chunk);
     };
-    const readUsage = (usage: any) => {
+    const readUsage = (
+      usage: { prompt_tokens?: number; completion_tokens?: number } | undefined,
+    ) => {
       if (!usage) return;
       tokensUsed.prompt = usage.prompt_tokens ?? tokensUsed.prompt;
       tokensUsed.completion = usage.completion_tokens ?? tokensUsed.completion;
@@ -217,7 +234,8 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
         if (data === "[DONE]") return;
         const event = parseJson(data);
         if (!event) return;
-        if (event.error) throw new Error(event.error.message || `${this.name} stream error`);
+        if (event.error)
+          throw new Error(event.error.message || `${this.name} stream error`);
         emit(event.choices?.[0]?.delta?.content);
         readUsage(event.usage);
       });
@@ -230,6 +248,10 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
       readUsage(data?.usage);
     }
 
-    return { text, tokensUsed, latencyMs: Math.round(performance.now() - start) };
+    return {
+      text,
+      tokensUsed,
+      latencyMs: Math.round(performance.now() - start),
+    };
   }
 }

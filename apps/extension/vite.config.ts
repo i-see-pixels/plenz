@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
-import { defineConfig } from "vite";
-import preact from "@preact/preset-vite";
 import { crx } from "@crxjs/vite-plugin";
+import preact from "@preact/preset-vite";
 import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vite";
 import manifest from "./public/manifest.json";
 
 export default defineConfig(() => {

@@ -18,4 +18,3 @@ This document complements the root `SECURITY.md`.
 - Run dependency updates via Dependabot.
 - Enable GitHub CodeQL and secret scanning.
 - Perform security review before each beta or public release.
-

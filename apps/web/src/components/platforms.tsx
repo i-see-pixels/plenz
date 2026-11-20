@@ -1,10 +1,11 @@
 "use client";
 
-import React, { forwardRef, useRef } from "react";
+import { AnimatedBeam } from "@plenz/ui/components/animated-beam";
+import { cn } from "@plenz/ui/lib/utils";
 import { Globe } from "lucide-react";
 import Image from "next/image";
-import { cn } from "@plenz/ui/lib/utils";
-import { AnimatedBeam } from "@plenz/ui/components/animated-beam";
+import type React from "react";
+import { forwardRef, useRef } from "react";
 
 const platforms = [
   {
@@ -74,9 +75,9 @@ export function Platforms() {
             Works in your existing AI tabs.
           </h2>
           <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            plenz runs on ChatGPT, Claude, Gemini, and Perplexity, and
-            writes through each site&apos;s own editor. Turn it on for any
-            other site from the popup.
+            plenz runs on ChatGPT, Claude, Gemini, and Perplexity, and writes
+            through each site&apos;s own editor. Turn it on for any other site
+            from the popup.
           </p>
         </div>
 
@@ -198,4 +199,3 @@ export function Platforms() {
     </section>
   );
 }
-

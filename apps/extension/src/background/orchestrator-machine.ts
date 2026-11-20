@@ -34,7 +34,11 @@ function nextFallback<E>(
   ctx: OrchestratorContext,
 ): OrchestratorState<E> {
   return index < ctx.fallbackCount
-    ? { kind: "attempting", target: { kind: "fallback", index }, lastError: error }
+    ? {
+        kind: "attempting",
+        target: { kind: "fallback", index },
+        lastError: error,
+      }
     : { kind: "failed", error };
 }
 
@@ -57,7 +61,11 @@ export function orchestratorTransition<E>(
       const { target } = state;
       if (target.kind === "active") {
         return event.retryable
-          ? { kind: "attempting", target: { kind: "retry" }, lastError: event.error }
+          ? {
+              kind: "attempting",
+              target: { kind: "retry" },
+              lastError: event.error,
+            }
           : nextFallback(0, event.error, ctx);
       }
       if (target.kind === "retry") {

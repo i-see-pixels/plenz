@@ -1,4 +1,5 @@
 ---
+
 name: Bug report
 about: Report something that is not working as expected.
 title: "[Bug] "
@@ -33,4 +34,3 @@ What happened instead?
 ## Screenshots / Logs
 
 Attach screenshots or console logs if available.
-

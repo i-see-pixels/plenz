@@ -3,22 +3,25 @@ import { describe, test } from "node:test";
 import {
   emptyLearning,
   hiddenChecks,
+  type Learning,
+  type LearningEvent,
   normalizeLearning,
   parseLearningEvent,
   preferredMode,
   recordLearning,
-  type Learning,
-  type LearningEvent,
 } from "./learning.ts";
 
 const apply = (events: LearningEvent[], start: Learning = emptyLearning()) =>
   events.reduce(recordLearning, start);
-const times = <T>(n: number, value: T) => Array.from({ length: n }, () => value);
+const times = <T>(n: number, value: T) =>
+  Array.from({ length: n }, () => value);
 
 describe("preferredMode", () => {
   test("none until a mode has been accepted a few times", () => {
     assert.equal(preferredMode(emptyLearning()), null);
-    const twice = apply(times(2, { type: "refine", mode: "tighten", accepted: true } as const));
+    const twice = apply(
+      times(2, { type: "refine", mode: "tighten", accepted: true } as const),
+    );
     assert.equal(preferredMode(twice), null);
   });
 
@@ -37,9 +40,19 @@ describe("preferredMode", () => {
   });
 
   test("old habits fade: counts are halved past the cap", () => {
-    const old = apply(times(40, { type: "refine", mode: "structure", accepted: true } as const));
-    const now = apply(times(25, { type: "refine", mode: "structure", accepted: false } as const), old);
-    const stats = now.modes.structure!;
+    const old = apply(
+      times(40, { type: "refine", mode: "structure", accepted: true } as const),
+    );
+    const now = apply(
+      times(25, {
+        type: "refine",
+        mode: "structure",
+        accepted: false,
+      } as const),
+      old,
+    );
+    const stats = now.modes.structure;
+    assert.ok(stats);
     assert.ok(stats.accepted + stats.dismissed <= 41, JSON.stringify(stats));
     assert.equal(preferredMode(now), null);
   });
@@ -55,9 +68,15 @@ describe("hiddenChecks", () => {
   });
 
   test("not while it is still being acted on sometimes", () => {
-    const learning = apply([...times(5, sent(["no_format"])), ...times(2, sent([], ["no_format"]))]);
+    const learning = apply([
+      ...times(5, sent(["no_format"])),
+      ...times(2, sent([], ["no_format"])),
+    ]);
     assert.deepEqual([...hiddenChecks(learning)], []);
-    assert.deepEqual([...hiddenChecks(apply(times(4, sent(["no_format"]))))], []);
+    assert.deepEqual(
+      [...hiddenChecks(apply(times(4, sent(["no_format"]))))],
+      [],
+    );
   });
 });
 
@@ -66,26 +85,47 @@ describe("storage and messages", () => {
     assert.deepEqual(normalizeLearning("x"), emptyLearning());
     assert.deepEqual(
       normalizeLearning({
-        modes: { improve: { accepted: 2.7, dismissed: -1 }, bogus: { accepted: 1 } },
-        checks: { no_format: { fixed: 1, ignored: "3" }, "Bad Id": { fixed: 1, ignored: 1 } },
+        modes: {
+          improve: { accepted: 2.7, dismissed: -1 },
+          bogus: { accepted: 1 },
+        },
+        checks: {
+          no_format: { fixed: 1, ignored: "3" },
+          "Bad Id": { fixed: 1, ignored: 1 },
+        },
       }),
-      { modes: { improve: { accepted: 2, dismissed: 0 } }, checks: { no_format: { fixed: 1, ignored: 0 } } },
+      {
+        modes: { improve: { accepted: 2, dismissed: 0 } },
+        checks: { no_format: { fixed: 1, ignored: 0 } },
+      },
     );
   });
 
   test("parseLearningEvent accepts only well-formed events", () => {
-    assert.deepEqual(parseLearningEvent({ type: "refine", mode: "ask", accepted: false }), {
-      type: "refine",
-      mode: "ask",
-      accepted: false,
-    });
     assert.deepEqual(
-      parseLearningEvent({ type: "sent", fixed: ["vague", "vague", 3], ignored: ["no_goal", "../x"] }),
+      parseLearningEvent({ type: "refine", mode: "ask", accepted: false }),
+      {
+        type: "refine",
+        mode: "ask",
+        accepted: false,
+      },
+    );
+    assert.deepEqual(
+      parseLearningEvent({
+        type: "sent",
+        fixed: ["vague", "vague", 3],
+        ignored: ["no_goal", "../x"],
+      }),
       { type: "sent", fixed: ["vague"], ignored: ["no_goal"] },
     );
-    for (const bad of [null, { type: "refine", mode: "compose", accepted: true }, { type: "sent", fixed: [] }, {
-      type: "other",
-    }]) {
+    for (const bad of [
+      null,
+      { type: "refine", mode: "compose", accepted: true },
+      { type: "sent", fixed: [] },
+      {
+        type: "other",
+      },
+    ]) {
       assert.equal(parseLearningEvent(bad), null, JSON.stringify(bad));
     }
   });

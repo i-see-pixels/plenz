@@ -17,7 +17,11 @@ export type PromptModalEvent =
   | { type: "SUBMIT_FAILED" }
   | { type: "CLOSE" };
 
-export const EMPTY_DRAFT: PromptDraft = { savedPromptId: null, prompt: "", title: "" };
+export const EMPTY_DRAFT: PromptDraft = {
+  savedPromptId: null,
+  prompt: "",
+  title: "",
+};
 
 export function promptModalTransition(
   state: PromptModalState,
@@ -35,14 +39,18 @@ export function promptModalTransition(
         : state;
 
     case "SUBMIT":
-      return state.kind === "editing" ? { ...state, kind: "submitting" } : state;
+      return state.kind === "editing"
+        ? { ...state, kind: "submitting" }
+        : state;
 
     case "SUBMIT_SUCCEEDED":
       return state.kind === "submitting" ? { kind: "closed" } : state;
 
     case "SUBMIT_FAILED":
       // Keep the draft so the user can retry without retyping.
-      return state.kind === "submitting" ? { ...state, kind: "editing" } : state;
+      return state.kind === "submitting"
+        ? { ...state, kind: "editing" }
+        : state;
 
     case "CLOSE":
       // A save in flight finishes first; closing mid-save would lose its result.

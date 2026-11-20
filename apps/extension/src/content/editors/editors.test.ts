@@ -5,6 +5,12 @@ import { readText, sameText, writeText } from "./dom.ts";
 import { genericAdapter, promptFieldFor } from "./generic.ts";
 import { findPlatformAdapter, hostMatches } from "./platforms.ts";
 
+/** Fails the test with a clear message where the code expects a value. */
+function must<T>(value: T | null | undefined): T {
+  assert.ok(value != null, "expected a value, got null or undefined");
+  return value;
+}
+
 /** A fresh page at `url` with `html` in the body. */
 function page(url: string, html: string) {
   const window = new Window({ url });
@@ -87,7 +93,7 @@ describe("platform matching", () => {
 
 for (const [name, fixture] of Object.entries(FIXTURES)) {
   describe(`${name} adapter`, () => {
-    const adapter = findPlatformAdapter(new URL(fixture.url).hostname)!;
+    const adapter = must(findPlatformAdapter(new URL(fixture.url).hostname));
 
     test("finds the composer and reads the draft", () => {
       const doc = page(fixture.url, fixture.html);
@@ -99,7 +105,9 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
     test("reads chat messages oldest first, without the composer", () => {
       const doc = page(fixture.url, fixture.html);
       const input = adapter.findInput(doc);
-      const messages = adapter.readMessages(doc, input).map(({ role, text }) => ({ role, text }));
+      const messages = adapter
+        .readMessages(doc, input)
+        .map(({ role, text }) => ({ role, text }));
       assert.deepEqual(messages, fixture.messages);
     });
   });
@@ -115,7 +123,12 @@ describe("finding the composer", () => {
           <div contenteditable="true" aria-multiline="true" role="textbox" class="ProseMirror" aria-label="Ask ChatGPT"><p>signed-in draft</p></div>
         </div></div></div></fieldset>`,
     );
-    assert.equal(readText(findPlatformAdapter("chatgpt.com")!.findInput(doc)!).trim(), "signed-in draft");
+    assert.equal(
+      readText(
+        must(must(findPlatformAdapter("chatgpt.com")).findInput(doc)),
+      ).trim(),
+      "signed-in draft",
+    );
   });
 
   test("ChatGPT's textarea composer (Nov 2026) is found", () => {
@@ -123,12 +136,23 @@ describe("finding the composer", () => {
       "https://chatgpt.com/",
       `<form><div><textarea id="mobile-composer-prompt" name="prompt" placeholder="Ask ChatGPT">draft</textarea></div></form>`,
     );
-    assert.equal(readText(findPlatformAdapter("chatgpt.com")!.findInput(doc)!), "draft");
+    assert.equal(
+      readText(must(must(findPlatformAdapter("chatgpt.com")).findInput(doc))),
+      "draft",
+    );
   });
 
   test("Perplexity's older textarea composer still works", () => {
-    const doc = page("https://www.perplexity.ai/", `<textarea placeholder="Ask anything...">older</textarea>`);
-    assert.equal(readText(findPlatformAdapter("www.perplexity.ai")!.findInput(doc)!), "older");
+    const doc = page(
+      "https://www.perplexity.ai/",
+      `<textarea placeholder="Ask anything...">older</textarea>`,
+    );
+    assert.equal(
+      readText(
+        must(must(findPlatformAdapter("www.perplexity.ai")).findInput(doc)),
+      ),
+      "older",
+    );
   });
 
   test("skips disabled and read-only fields", () => {
@@ -137,7 +161,12 @@ describe("finding the composer", () => {
       `<textarea placeholder="Ask" disabled>old</textarea>
        <textarea class="overflow-auto">live</textarea>`,
     );
-    assert.equal(readText(findPlatformAdapter("www.perplexity.ai")!.findInput(doc)!), "live");
+    assert.equal(
+      readText(
+        must(must(findPlatformAdapter("www.perplexity.ai")).findInput(doc)),
+      ),
+      "live",
+    );
   });
 
   test("skips editors that are not contenteditable", () => {
@@ -146,7 +175,10 @@ describe("finding the composer", () => {
       `<fieldset><div class="ProseMirror" contenteditable="false">preview</div></fieldset>
        <fieldset><div class="ProseMirror" contenteditable="true">live</div></fieldset>`,
     );
-    assert.equal(findPlatformAdapter("claude.ai")!.findInput(doc)?.textContent, "live");
+    assert.equal(
+      must(findPlatformAdapter("claude.ai")).findInput(doc)?.textContent,
+      "live",
+    );
   });
 
   test("skips hidden composers left behind by the page", () => {
@@ -155,7 +187,10 @@ describe("finding the composer", () => {
       `<div class="ProseMirror" contenteditable="true" style="display:none">stale</div>
        <fieldset><div class="ProseMirror" contenteditable="true">live</div></fieldset>`,
     );
-    assert.equal(findPlatformAdapter("claude.ai")!.findInput(doc)?.textContent, "live");
+    assert.equal(
+      must(findPlatformAdapter("claude.ai")).findInput(doc)?.textContent,
+      "live",
+    );
   });
 
   test("hidden messages are left out of the chat context", () => {
@@ -165,14 +200,16 @@ describe("finding the composer", () => {
        <div data-testid="user-message">visible question</div>`,
     );
     assert.deepEqual(
-      findPlatformAdapter("claude.ai")!.readMessages(doc, null).map((m) => m.text),
+      must(findPlatformAdapter("claude.ai"))
+        .readMessages(doc, null)
+        .map((m) => m.text),
       ["visible question"],
     );
   });
 
   test("returns null until the composer exists", () => {
     const doc = page("https://claude.ai/", "<main>loading</main>");
-    assert.equal(findPlatformAdapter("claude.ai")!.findInput(doc), null);
+    assert.equal(must(findPlatformAdapter("claude.ai")).findInput(doc), null);
   });
 });
 
@@ -183,16 +220,20 @@ describe("finding the composer", () => {
  */
 function modelEditor(doc: Document, draft: string) {
   doc.body.innerHTML = `<div id="ed" contenteditable="true"><p>${draft}</p></div>`;
-  const editor = doc.getElementById("ed")!;
-  const win = doc.defaultView!;
+  const editor = must(doc.getElementById("ed"));
+  const win = must(doc.defaultView);
   const state = { text: draft, allSelected: false, pastes: 0 };
   doc.addEventListener("selectionchange", () => {
     const selection = win.getSelection();
-    const covers = !!selection && !selection.isCollapsed && selection.toString().trim() === state.text;
+    const covers =
+      !!selection &&
+      !selection.isCollapsed &&
+      selection.toString().trim() === state.text;
     win.setTimeout(() => (state.allSelected = covers), 0);
   });
   editor.addEventListener("paste", (event) => {
-    const data = (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? "";
+    const data =
+      (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? "";
     event.preventDefault();
     state.pastes++;
     // Replace what the editor thinks is selected; otherwise insert at the caret (the end).
@@ -204,7 +245,10 @@ function modelEditor(doc: Document, draft: string) {
 
 describe("writing the draft", () => {
   test("an editor that syncs its selection later still gets the whole draft replaced", async () => {
-    const { editor, state } = modelEditor(page("https://claude.ai/", ""), "old draft");
+    const { editor, state } = modelEditor(
+      page("https://claude.ai/", ""),
+      "old draft",
+    );
 
     assert.equal(await writeText(editor, "new prompt"), "paste");
     assert.equal(state.pastes, 1);
@@ -212,23 +256,33 @@ describe("writing the draft", () => {
   });
 
   test("an editor that takes the paste but doesn't show it (e.g. as an attachment) still gets the text", async () => {
-    const doc = page("https://chatgpt.com/", `<div id="ed" contenteditable="true"><p>old draft</p></div>`);
-    const editor = doc.getElementById("ed")!;
+    const doc = page(
+      "https://chatgpt.com/",
+      `<div id="ed" contenteditable="true"><p>old draft</p></div>`,
+    );
+    const editor = must(doc.getElementById("ed"));
     editor.addEventListener("paste", (event) => {
       event.preventDefault();
       editor.innerHTML = "<p></p>";
     });
 
     await writeText(editor, "a long refined prompt");
-    assert.ok(sameText(readText(editor), "a long refined prompt"), readText(editor));
+    assert.ok(
+      sameText(readText(editor), "a long refined prompt"),
+      readText(editor),
+    );
   });
 
   test("an editor that applies the paste a moment later isn't written twice", async () => {
-    const doc = page("https://claude.ai/", `<div id="ed" contenteditable="true"><p>old draft</p></div>`);
-    const editor = doc.getElementById("ed")!;
+    const doc = page(
+      "https://claude.ai/",
+      `<div id="ed" contenteditable="true"><p>old draft</p></div>`,
+    );
+    const editor = must(doc.getElementById("ed"));
     let pastes = 0;
     editor.addEventListener("paste", (event) => {
-      const data = (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? "";
+      const data =
+        (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? "";
       event.preventDefault();
       pastes++;
       // Lexical commits its update in a microtask.
@@ -241,13 +295,17 @@ describe("writing the draft", () => {
   });
 
   test("a rich editor that handles paste gets the text as one paste", async () => {
-    const doc = page("https://claude.ai/", `<div id="ed" contenteditable="true"><p>old draft</p></div>`);
-    const editor = doc.getElementById("ed")!;
+    const doc = page(
+      "https://claude.ai/",
+      `<div id="ed" contenteditable="true"><p>old draft</p></div>`,
+    );
+    const editor = must(doc.getElementById("ed"));
     let pastes = 0;
     let inputs = 0;
     // Like ProseMirror: claim the paste and update its own document.
     editor.addEventListener("paste", (event) => {
-      const data = (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? "";
+      const data =
+        (event as ClipboardEvent).clipboardData?.getData("text/plain") ?? "";
       event.preventDefault();
       pastes++;
       editor.innerHTML = `<p>${data}</p>`;
@@ -257,12 +315,19 @@ describe("writing the draft", () => {
     assert.equal(await writeText(editor, "new prompt"), "paste");
     assert.equal(pastes, 1);
     assert.equal(readText(editor).trim(), "new prompt");
-    assert.equal(inputs, 0, "no extra synthetic input event when the editor handled it");
+    assert.equal(
+      inputs,
+      0,
+      "no extra synthetic input event when the editor handled it",
+    );
   });
 
   test("a plain contenteditable falls back and still fires input", async () => {
-    const doc = page("https://claude.ai/", `<div id="ed" contenteditable="true">old draft</div>`);
-    const editor = doc.getElementById("ed")!;
+    const doc = page(
+      "https://claude.ai/",
+      `<div id="ed" contenteditable="true">old draft</div>`,
+    );
+    const editor = must(doc.getElementById("ed"));
     let inputs = 0;
     editor.addEventListener("input", () => inputs++);
 
@@ -273,7 +338,10 @@ describe("writing the draft", () => {
   });
 
   test("a textarea gets the full text and an input event", async () => {
-    const doc = page("https://www.perplexity.ai/", `<textarea id="ta">old draft</textarea>`);
+    const doc = page(
+      "https://www.perplexity.ai/",
+      `<textarea id="ta">old draft</textarea>`,
+    );
     const textarea = doc.getElementById("ta") as HTMLTextAreaElement;
     let inputs = 0;
     textarea.addEventListener("input", () => inputs++);
@@ -293,8 +361,11 @@ describe("generic adapter (sites the user turned on)", () => {
   };
 
   test("uses the textarea the user focuses", () => {
-    const doc = focused(`<textarea id="a">first</textarea><textarea id="b">second</textarea>`, "b");
-    assert.equal(readText(genericAdapter.findInput(doc)!), "second");
+    const doc = focused(
+      `<textarea id="a">first</textarea><textarea id="b">second</textarea>`,
+      "b",
+    );
+    assert.equal(readText(must(genericAdapter.findInput(doc))), "second");
   });
 
   test("uses the root of a rich editor when focus is inside it", () => {
@@ -307,10 +378,12 @@ describe("generic adapter (sites the user turned on)", () => {
 
   test("follows focus into open shadow roots", () => {
     const doc = page("https://app.example.com/", `<div id="host"></div>`);
-    const shadow = doc.getElementById("host")!.attachShadow({ mode: "open" });
+    const shadow = must(doc.getElementById("host")).attachShadow({
+      mode: "open",
+    });
     shadow.innerHTML = `<textarea id="inside">in shadow</textarea>`;
     (shadow.getElementById("inside") as HTMLElement).focus();
-    assert.equal(readText(genericAdapter.findInput(doc)!), "in shadow");
+    assert.equal(readText(must(genericAdapter.findInput(doc))), "in shadow");
   });
 
   test("never uses one-line, password or disabled fields", () => {

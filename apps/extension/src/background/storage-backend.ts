@@ -1,8 +1,4 @@
-import type {
-  ProviderConfig,
-  StorageResult,
-  SyncStatus,
-} from "@plenz/types";
+import type { ProviderConfig, StorageResult, SyncStatus } from "@plenz/types";
 import {
   collection,
   deleteDoc,
@@ -11,25 +7,21 @@ import {
   getDocs,
   setDoc,
 } from "firebase/firestore/lite";
-import { AuthManager } from "./auth";
 import {
+  type FirestoreProviderConfig,
   fromFirestoreProviderConfig,
   isVaultError,
   toFirestoreProviderConfig,
-  type FirestoreProviderConfig,
 } from "./encryption";
-import { SyncVault } from "./sync-vault";
+import { getFirestoreDb } from "./firebase";
 import {
-  getFirestoreDb,
-  isFirebaseConfigured,
-} from "./firebase";
-import { getFirebaseUserId } from "./firebase-user";
-import {
-  firebaseHealthTransition,
-  shouldTryFirebase,
   type FirebaseHealth,
   type FirebaseHealthEvent,
+  firebaseHealthTransition,
+  shouldTryFirebase,
 } from "./firebase-health";
+import { getFirebaseUserId } from "./firebase-user";
+import { SyncVault } from "./sync-vault";
 
 export const MODEL_CONFIG_KEY_PREFIX = "model_config_";
 export type StorageBackendPreference = "chrome-sync" | "firebase";
@@ -122,7 +114,9 @@ function getFirestoreModelConfigRef(userId: string, providerId: string) {
 }
 
 export class ChromeLocalBackend implements StorageBackend {
-  async getModelConfig(providerId: string): Promise<StorageResult<ProviderConfig>> {
+  async getModelConfig(
+    providerId: string,
+  ): Promise<StorageResult<ProviderConfig>> {
     const key = getModelConfigKey(providerId);
     const data = await chrome.storage.local.get(key);
     return {
@@ -159,7 +153,9 @@ export class ChromeLocalBackend implements StorageBackend {
 export class ChromeSyncBackend implements StorageBackend {
   private readonly localBackend = new ChromeLocalBackend();
 
-  async getModelConfig(providerId: string): Promise<StorageResult<ProviderConfig>> {
+  async getModelConfig(
+    providerId: string,
+  ): Promise<StorageResult<ProviderConfig>> {
     const key = getModelConfigKey(providerId);
 
     try {
@@ -289,7 +285,11 @@ export class FirebaseBackend implements StorageBackend {
     } catch (error) {
       // A locked or unset passphrase isn't an outage: say so, don't fall back.
       if (isVaultError(error)) {
-        return { data: null, syncStatus: "error", error: getErrorMessage(error) };
+        return {
+          data: null,
+          syncStatus: "error",
+          error: getErrorMessage(error),
+        };
       }
       updateFirebaseHealth({
         type: "FAILED",
@@ -300,140 +300,159 @@ export class FirebaseBackend implements StorageBackend {
     }
   }
 
-  async getModelConfig(providerId: string): Promise<StorageResult<ProviderConfig>> {
-    return this.withFirebaseFallback(async (userId) => {
-      const docRef = getFirestoreModelConfigRef(userId, providerId);
-      const snapshot = await getDoc(docRef);
+  async getModelConfig(
+    providerId: string,
+  ): Promise<StorageResult<ProviderConfig>> {
+    return this.withFirebaseFallback(
+      async (userId) => {
+        const docRef = getFirestoreModelConfigRef(userId, providerId);
+        const snapshot = await getDoc(docRef);
 
-      if (!snapshot.exists()) {
-        const fallbackResult = await this.syncFallback.getModelConfig(providerId);
-        if (fallbackResult.data) {
-          return fallbackResult;
-        }
+        if (!snapshot.exists()) {
+          const fallbackResult =
+            await this.syncFallback.getModelConfig(providerId);
+          if (fallbackResult.data) {
+            return fallbackResult;
+          }
 
-        return {
-          data: null,
-          syncStatus: "synced",
-        };
-      }
-
-      const { config, migratedConfig } = await fromFirestoreProviderConfig(
-        snapshot.data(),
-        userId,
-        providerId,
-        await SyncVault.dataKey(userId),
-      );
-
-      if (!config) {
-        return {
-          data: null,
-          syncStatus: "error",
-          error: `Stored configuration for ${providerId} is invalid.`,
-        };
-      }
-
-      if (migratedConfig) {
-        try {
-          await setDoc(docRef, migratedConfig);
-        } catch (error) {
           return {
-            data: config,
+            data: null,
             syncStatus: "synced",
-            error: `Loaded legacy plaintext configuration for ${providerId}, but failed to rewrite it in encrypted form: ${getErrorMessage(error)}`,
           };
         }
-      }
 
-      return {
-        data: config,
-        syncStatus: "synced",
-      };
-    }, () => this.syncFallback.getModelConfig(providerId));
+        const { config, migratedConfig } = await fromFirestoreProviderConfig(
+          snapshot.data(),
+          userId,
+          providerId,
+          await SyncVault.dataKey(userId),
+        );
+
+        if (!config) {
+          return {
+            data: null,
+            syncStatus: "error",
+            error: `Stored configuration for ${providerId} is invalid.`,
+          };
+        }
+
+        if (migratedConfig) {
+          try {
+            await setDoc(docRef, migratedConfig);
+          } catch (error) {
+            return {
+              data: config,
+              syncStatus: "synced",
+              error: `Loaded legacy plaintext configuration for ${providerId}, but failed to rewrite it in encrypted form: ${getErrorMessage(error)}`,
+            };
+          }
+        }
+
+        return {
+          data: config,
+          syncStatus: "synced",
+        };
+      },
+      () => this.syncFallback.getModelConfig(providerId),
+    );
   }
 
   async setModelConfig(
     providerId: string,
     config: ProviderConfig,
   ): Promise<StorageResult<void>> {
-    return this.withFirebaseFallback(async (userId) => {
-      await setDoc(
-        getFirestoreModelConfigRef(userId, providerId),
-        await toFirestoreProviderConfig(
-          config,
-          userId,
-          providerId,
-          await SyncVault.dataKey(userId),
-        ),
-      );
-      return { data: null, syncStatus: "synced" };
-    }, () => this.syncFallback.setModelConfig(providerId, config));
+    return this.withFirebaseFallback(
+      async (userId) => {
+        await setDoc(
+          getFirestoreModelConfigRef(userId, providerId),
+          await toFirestoreProviderConfig(
+            config,
+            userId,
+            providerId,
+            await SyncVault.dataKey(userId),
+          ),
+        );
+        return { data: null, syncStatus: "synced" };
+      },
+      () => this.syncFallback.setModelConfig(providerId, config),
+    );
   }
 
   async deleteModelConfig(providerId: string): Promise<StorageResult<void>> {
-    return this.withFirebaseFallback(async (userId) => {
-      await deleteDoc(getFirestoreModelConfigRef(userId, providerId));
-      return { data: null, syncStatus: "synced" };
-    }, () => this.syncFallback.deleteModelConfig(providerId));
+    return this.withFirebaseFallback(
+      async (userId) => {
+        await deleteDoc(getFirestoreModelConfigRef(userId, providerId));
+        return { data: null, syncStatus: "synced" };
+      },
+      () => this.syncFallback.deleteModelConfig(providerId),
+    );
   }
 
   async getAllModelConfigs(): Promise<
     StorageResult<Record<string, ProviderConfig>>
   > {
-    return this.withFirebaseFallback(async (userId) => {
-      const [snapshot, fallbackResult] = await Promise.all([
-        getDocs(collection(getFirestoreDb(), "users", userId, "model_configs")),
-        this.syncFallback.getAllModelConfigs(),
-      ]);
-      const configs = {
-        ...(fallbackResult.data ?? {}),
-      };
-      const errors: string[] = fallbackResult.error ? [fallbackResult.error] : [];
-      const migrationWrites: Array<Promise<void>> = [];
-      const dataKey = await SyncVault.dataKey(userId);
-      let vaultError: string | null = null;
+    return this.withFirebaseFallback(
+      async (userId) => {
+        const [snapshot, fallbackResult] = await Promise.all([
+          getDocs(
+            collection(getFirestoreDb(), "users", userId, "model_configs"),
+          ),
+          this.syncFallback.getAllModelConfigs(),
+        ]);
+        const configs = {
+          ...(fallbackResult.data ?? {}),
+        };
+        const errors: string[] = fallbackResult.error
+          ? [fallbackResult.error]
+          : [];
+        const migrationWrites: Array<Promise<void>> = [];
+        const dataKey = await SyncVault.dataKey(userId);
+        let vaultError: string | null = null;
 
-      snapshot.forEach((modelConfig) => {
-        const record = modelConfig.data() as FirestoreProviderConfig;
-        migrationWrites.push(
-          fromFirestoreProviderConfig(record, userId, modelConfig.id, dataKey)
-            .then(({ config, migratedConfig }) => {
-              if (!config) {
+        snapshot.forEach((modelConfig) => {
+          const record = modelConfig.data() as FirestoreProviderConfig;
+          migrationWrites.push(
+            fromFirestoreProviderConfig(record, userId, modelConfig.id, dataKey)
+              .then(({ config, migratedConfig }) => {
+                if (!config) {
+                  errors.push(
+                    `Stored configuration for ${modelConfig.id} is invalid and was skipped.`,
+                  );
+                  return;
+                }
+
+                configs[modelConfig.id] = config;
+
+                if (migratedConfig) {
+                  return setDoc(
+                    getFirestoreModelConfigRef(userId, modelConfig.id),
+                    migratedConfig,
+                  );
+                }
+              })
+              .catch((error) => {
+                if (isVaultError(error)) {
+                  vaultError = getErrorMessage(error); // Same for every key: report once.
+                  return;
+                }
                 errors.push(
-                  `Stored configuration for ${modelConfig.id} is invalid and was skipped.`,
+                  `Failed to load ${modelConfig.id} from Cloud Sync: ${getErrorMessage(error)}`,
                 );
-                return;
-              }
+              }),
+          );
+        });
 
-              configs[modelConfig.id] = config;
+        await Promise.all(migrationWrites);
+        if (vaultError) errors.unshift(vaultError);
 
-              if (migratedConfig) {
-                return setDoc(
-                  getFirestoreModelConfigRef(userId, modelConfig.id),
-                  migratedConfig,
-                );
-              }
-            })
-            .catch((error) => {
-              if (isVaultError(error)) {
-                vaultError = getErrorMessage(error); // Same for every key: report once.
-                return;
-              }
-              errors.push(
-                `Failed to load ${modelConfig.id} from Cloud Sync: ${getErrorMessage(error)}`,
-              );
-            }),
-        );
-      });
-
-      await Promise.all(migrationWrites);
-      if (vaultError) errors.unshift(vaultError);
-
-      return {
-        data: configs,
-        syncStatus: "synced",
-        error: errors.length > 0 ? errors.join(" ") : undefined,
-      };
-    }, () => this.syncFallback.getAllModelConfigs());
+        return {
+          data: configs,
+          syncStatus: "synced",
+          error: errors.length > 0 ? errors.join(" ") : undefined,
+        };
+      },
+      () => this.syncFallback.getAllModelConfigs(),
+    );
   }
 }
 
@@ -455,4 +474,3 @@ export function createStorageBackend(
 export function getDefaultSyncStatus(isSignedIn: boolean): SyncStatus {
   return isSignedIn ? "synced" : "local-only";
 }
-

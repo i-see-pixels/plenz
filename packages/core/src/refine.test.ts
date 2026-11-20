@@ -10,7 +10,13 @@ const DRAFT = "write a launch email for our analytics feature";
 
 describe("buildRefineRequest", () => {
   test("every mode keeps the shared rules and wraps the draft", () => {
-    for (const step of ["improve", "tighten", "structure", "ask", "compose"] as const) {
+    for (const step of [
+      "improve",
+      "tighten",
+      "structure",
+      "ask",
+      "compose",
+    ] as const) {
       const request = buildRefineRequest({ step, draft: DRAFT });
       assert.match(request.system, /Never answer, perform or comment/);
       assert.match(request.user, /<draft>\nwrite a launch email/);
@@ -19,9 +25,18 @@ describe("buildRefineRequest", () => {
   });
 
   test("each mode has its own goal", () => {
-    assert.match(buildRefineRequest({ step: "tighten", draft: DRAFT }).system, /shorter/);
-    assert.match(buildRefineRequest({ step: "structure", draft: DRAFT }).system, /sections/);
-    assert.match(buildRefineRequest({ step: "ask", draft: DRAFT }).system, /one question per line/);
+    assert.match(
+      buildRefineRequest({ step: "tighten", draft: DRAFT }).system,
+      /shorter/,
+    );
+    assert.match(
+      buildRefineRequest({ step: "structure", draft: DRAFT }).system,
+      /sections/,
+    );
+    assert.match(
+      buildRefineRequest({ step: "ask", draft: DRAFT }).system,
+      /one question per line/,
+    );
   });
 
   test("improve passes the linter's findings; other modes don't", () => {
@@ -64,15 +79,27 @@ describe("buildRefineRequest", () => {
         },
       },
     });
-    assert.match(user, /<chat_context>[\s\S]*Website: chatgpt\.com[\s\S]*\[user\] we ship on Monday/);
+    assert.match(
+      user,
+      /<chat_context>[\s\S]*Website: chatgpt\.com[\s\S]*\[user\] we ship on Monday/,
+    );
   });
 });
 
 describe("cleanRefineOutput", () => {
   test("strips a lead-in, a whole-reply fence and wrapping quotes", () => {
-    assert.equal(cleanRefineOutput("Here's the improved prompt:\n\nWrite a launch email."), "Write a launch email.");
-    assert.equal(cleanRefineOutput("```markdown\n## Task\nWrite it.\n```"), "## Task\nWrite it.");
-    assert.equal(cleanRefineOutput('"Write a launch email."'), "Write a launch email.");
+    assert.equal(
+      cleanRefineOutput("Here's the improved prompt:\n\nWrite a launch email."),
+      "Write a launch email.",
+    );
+    assert.equal(
+      cleanRefineOutput("```markdown\n## Task\nWrite it.\n```"),
+      "## Task\nWrite it.",
+    );
+    assert.equal(
+      cleanRefineOutput('"Write a launch email."'),
+      "Write a launch email.",
+    );
   });
 
   test("leaves real content alone", () => {
@@ -86,7 +113,9 @@ describe("cleanRefineOutput", () => {
 describe("parseClarifyingQuestions", () => {
   test("one question per line, without numbering, at most three", () => {
     assert.deepEqual(
-      parseClarifyingQuestions("1. Who is it for?\n\n- How long?\n* What tone?\n4) Any deadline?"),
+      parseClarifyingQuestions(
+        "1. Who is it for?\n\n- How long?\n* What tone?\n4) Any deadline?",
+      ),
       ["Who is it for?", "How long?", "What tone?"],
     );
   });

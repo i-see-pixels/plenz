@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  createContentModel,
-  isPanelOpen,
-  keyToEvent,
-  recommendedMode,
-  transition,
-  view,
   type ContentEffect,
   type ContentEvent,
   type ContentModel,
+  createContentModel,
+  isPanelOpen,
+  keyToEvent,
   type LintSummary,
+  recommendedMode,
+  transition,
+  view,
 } from "./machine.ts";
 
 const PROMPT = "write me an email to my landlord";
@@ -36,7 +36,8 @@ const picking = () => run(typed(), { type: "BADGE_CLICKED" }).model;
 const streaming = (mode: "improve" | "tighten" = "improve") =>
   run(picking(), { type: "MODE_CHOSEN", mode }).model;
 const result = () =>
-  run(streaming(), { type: "REFINE_DONE", requestId: 1, text: "Better prompt" }).model;
+  run(streaming(), { type: "REFINE_DONE", requestId: 1, text: "Better prompt" })
+    .model;
 
 const LINT: LintSummary = {
   assessed: true,
@@ -51,7 +52,10 @@ const LINT: LintSummary = {
 
 describe("typing and the lint badge", () => {
   test("ignores typing until an input is attached", () => {
-    const { model, effects } = run(createContentModel(), { type: "TEXT_CHANGED", text: PROMPT });
+    const { model, effects } = run(createContentModel(), {
+      type: "TEXT_CHANGED",
+      text: PROMPT,
+    });
     assert.equal(model.state.kind, "detached");
     assert.deepEqual(effects, []);
   });
@@ -77,12 +81,15 @@ describe("typing and the lint badge", () => {
   });
 
   test("an unscored draft still gets a refine badge; short drafts get a quiet one", () => {
-    assert.deepEqual(view(typed(), { assessed: false, score: 100, findings: [] }).badge, {
-      kind: "lint",
-      score: null,
-      findings: [],
-      canUndo: false,
-    });
+    assert.deepEqual(
+      view(typed(), { assessed: false, score: 100, findings: [] }).badge,
+      {
+        kind: "lint",
+        score: null,
+        findings: [],
+        canUndo: false,
+      },
+    );
     assert.deepEqual(view(typed(false, "hi"), LINT).badge, { kind: "idle" });
     assert.deepEqual(view(typed(false, ""), LINT).badge, { kind: "idle" });
   });
@@ -112,7 +119,10 @@ describe("mode picker and streaming", () => {
   test("the picker recommends Tighten for long or wall-of-text drafts", () => {
     assert.equal(recommendedMode(LINT), "improve");
     assert.equal(
-      recommendedMode({ ...LINT, findings: [{ id: "wall_of_text", label: "", hint: "" }] }),
+      recommendedMode({
+        ...LINT,
+        findings: [{ id: "wall_of_text", label: "", hint: "" }],
+      }),
       "tighten",
     );
   });
@@ -120,7 +130,10 @@ describe("mode picker and streaming", () => {
   test("otherwise the mode the user keeps accepting is suggested", () => {
     assert.equal(recommendedMode(LINT, "structure"), "structure");
     assert.equal(
-      recommendedMode({ ...LINT, findings: [{ id: "too_long", label: "", hint: "" }] }, "structure"),
+      recommendedMode(
+        { ...LINT, findings: [{ id: "too_long", label: "", hint: "" }] },
+        "structure",
+      ),
       "tighten",
     );
     const panel = view(picking(), LINT, "ask").panel;
@@ -128,9 +141,18 @@ describe("mode picker and streaming", () => {
   });
 
   test("choosing a mode streams it into the panel", () => {
-    const { model, effects } = run(picking(), { type: "MODE_CHOSEN", mode: "tighten" });
+    const { model, effects } = run(picking(), {
+      type: "MODE_CHOSEN",
+      mode: "tighten",
+    });
     assert.deepEqual(effects, [
-      { type: "startRefine", requestId: 1, step: "tighten", text: PROMPT, answers: undefined },
+      {
+        type: "startRefine",
+        requestId: 1,
+        step: "tighten",
+        text: PROMPT,
+        answers: undefined,
+      },
     ]);
     const streamed = run(
       model,
@@ -147,7 +169,11 @@ describe("mode picker and streaming", () => {
   test("done replaces the streamed text with the cleaned final text", () => {
     const model = run(
       streaming(),
-      { type: "REFINE_DELTA", requestId: 1, text: "Here's the prompt:\nBetter" },
+      {
+        type: "REFINE_DELTA",
+        requestId: 1,
+        text: "Here's the prompt:\nBetter",
+      },
       { type: "REFINE_DONE", requestId: 1, text: "Better" },
     ).model;
     assert.deepEqual(view(model, null).panel, {
@@ -167,9 +193,19 @@ describe("mode picker and streaming", () => {
   });
 
   test("switching mode mid-stream cancels the old request; its replies are dropped", () => {
-    const { model, effects } = run(streaming(), { type: "MODE_CHOSEN", mode: "structure" });
-    assert.deepEqual(effects.map((e) => e.type), ["cancelRefine", "startRefine"]);
-    const late = run(model, { type: "REFINE_DONE", requestId: 1, text: "old" }).model;
+    const { model, effects } = run(streaming(), {
+      type: "MODE_CHOSEN",
+      mode: "structure",
+    });
+    assert.deepEqual(
+      effects.map((e) => e.type),
+      ["cancelRefine", "startRefine"],
+    );
+    const late = run(model, {
+      type: "REFINE_DONE",
+      requestId: 1,
+      text: "old",
+    }).model;
     assert.equal(late.state.kind, "streaming");
   });
 
@@ -184,11 +220,17 @@ describe("mode picker and streaming", () => {
       step: "improve",
       message: "rate limited",
     });
-    assert.equal(run(failed, { type: "MODE_CHOSEN", mode: "improve" }).model.state.kind, "streaming");
+    assert.equal(
+      run(failed, { type: "MODE_CHOSEN", mode: "improve" }).model.state.kind,
+      "streaming",
+    );
   });
 
   test("short drafts can't be refined, but the badge still offers context cards", () => {
-    assert.deepEqual(run(typed(false, "hi"), { type: "REFINE_REQUESTED" }).effects, []);
+    assert.deepEqual(
+      run(typed(false, "hi"), { type: "REFINE_REQUESTED" }).effects,
+      [],
+    );
     const picker = run(typed(false, "hi"), { type: "BADGE_CLICKED" }).model;
     assert.equal(picker.state.kind, "picking");
     assert.deepEqual(view(picker, LINT).panel, {
@@ -197,15 +239,20 @@ describe("mode picker and streaming", () => {
       findings: [],
       canRefine: false,
     });
-    assert.deepEqual(run(picker, { type: "MODE_CHOSEN", mode: "improve" }).effects, []);
-    assert.deepEqual(run(picker, { type: "CARD_CHOSEN", text: "I'm a designer." }).effects, [
-      { type: "applyText", text: "I'm a designer.\n\nhi" },
-    ]);
+    assert.deepEqual(
+      run(picker, { type: "MODE_CHOSEN", mode: "improve" }).effects,
+      [],
+    );
+    assert.deepEqual(
+      run(picker, { type: "CARD_CHOSEN", text: "I'm a designer." }).effects,
+      [{ type: "applyText", text: "I'm a designer.\n\nhi" }],
+    );
   });
 });
 
 describe("Ask me", () => {
-  const asking = () => run(picking(), { type: "MODE_CHOSEN", mode: "ask" }).model;
+  const asking = () =>
+    run(picking(), { type: "MODE_CHOSEN", mode: "ask" }).model;
   const answering = () =>
     run(asking(), {
       type: "QUESTIONS_READY",
@@ -245,12 +292,23 @@ describe("Ask me", () => {
 
   test("answers for questions that don't exist are ignored", () => {
     const model = answering();
-    assert.equal(run(model, { type: "ANSWER_CHANGED", index: 5, value: "x" }).model, model);
+    assert.equal(
+      run(model, { type: "ANSWER_CHANGED", index: 5, value: "x" }).model,
+      model,
+    );
   });
 
   test("a failed question request shows in the panel", () => {
-    const failed = run(asking(), { type: "REFINE_FAILED", requestId: 1, message: "no" }).model;
-    assert.deepEqual(view(failed, null).panel, { kind: "failed", step: "ask", message: "no" });
+    const failed = run(asking(), {
+      type: "REFINE_FAILED",
+      requestId: 1,
+      message: "no",
+    }).model;
+    assert.deepEqual(view(failed, null).panel, {
+      kind: "failed",
+      step: "ask",
+      message: "no",
+    });
   });
 });
 
@@ -259,7 +317,12 @@ describe("accepting and dismissing", () => {
     const accepted = run(result(), { type: "ACCEPT" });
     assert.deepEqual(accepted.effects, [
       { type: "recordRefine", mode: "improve", accepted: true },
-      { type: "applyResult", original: PROMPT, output: "Better prompt", rejected: [] },
+      {
+        type: "applyResult",
+        original: PROMPT,
+        output: "Better prompt",
+        rejected: [],
+      },
     ]);
     const { model, effects } = run(
       accepted.model,
@@ -278,7 +341,10 @@ describe("accepting and dismissing", () => {
   });
 
   test("editing the draft closes the panel and cancels the refine", () => {
-    const { model, effects } = run(streaming(), { type: "TEXT_CHANGED", text: `${PROMPT}!` });
+    const { model, effects } = run(streaming(), {
+      type: "TEXT_CHANGED",
+      text: `${PROMPT}!`,
+    });
     assert.equal(model.state.kind, "idle");
     assert.deepEqual(effects, [{ type: "cancelRefine" }]);
   });
@@ -292,17 +358,30 @@ describe("accepting and dismissing", () => {
 
 describe("auto-refine (opt-in)", () => {
   test("typing starts a debounce; the pause runs Improve behind the badge", () => {
-    const first = run(createContentModel(true, 500, true), { type: "INPUT_ATTACHED" }, {
-      type: "TEXT_CHANGED",
-      text: PROMPT,
-    });
+    const first = run(
+      createContentModel(true, 500, true),
+      { type: "INPUT_ATTACHED" },
+      {
+        type: "TEXT_CHANGED",
+        text: PROMPT,
+      },
+    );
     assert.deepEqual(first.effects, [{ type: "startDebounce", ms: 500 }]);
 
     const { model, effects } = run(first.model, { type: "DEBOUNCE_ELAPSED" });
     assert.deepEqual(effects, [
-      { type: "startRefine", requestId: 1, step: "improve", text: PROMPT, answers: undefined },
+      {
+        type: "startRefine",
+        requestId: 1,
+        step: "improve",
+        text: PROMPT,
+        answers: undefined,
+      },
     ]);
-    assert.deepEqual(view(model, LINT), { badge: { kind: "saving" }, panel: null });
+    assert.deepEqual(view(model, LINT), {
+      badge: { kind: "saving" },
+      panel: null,
+    });
   });
 
   test("a finished background refine waits behind a ready badge; clicking shows it", () => {
@@ -323,30 +402,48 @@ describe("auto-refine (opt-in)", () => {
   });
 
   test("typing again restarts the debounce", () => {
-    const { effects } = run(typed(true), { type: "TEXT_CHANGED", text: `${PROMPT} today` });
-    assert.deepEqual(effects, [{ type: "clearDebounce" }, { type: "startDebounce", ms: 500 }]);
+    const { effects } = run(typed(true), {
+      type: "TEXT_CHANGED",
+      text: `${PROMPT} today`,
+    });
+    assert.deepEqual(effects, [
+      { type: "clearDebounce" },
+      { type: "startDebounce", ms: 500 },
+    ]);
   });
 
   test("a new debounce time applies to the next cycle", () => {
-    const tuned = run(createContentModel(true, 500, true), { type: "INPUT_ATTACHED" }, {
-      type: "PREFERENCES_CHANGED",
-      enabled: true,
-      debounceMs: 900,
-      autoRefine: true,
-    }).model;
-    assert.deepEqual(run(tuned, { type: "TEXT_CHANGED", text: PROMPT }).effects, [
-      { type: "startDebounce", ms: 900 },
-    ]);
+    const tuned = run(
+      createContentModel(true, 500, true),
+      { type: "INPUT_ATTACHED" },
+      {
+        type: "PREFERENCES_CHANGED",
+        enabled: true,
+        debounceMs: 900,
+        autoRefine: true,
+      },
+    ).model;
+    assert.deepEqual(
+      run(tuned, { type: "TEXT_CHANGED", text: PROMPT }).effects,
+      [{ type: "startDebounce", ms: 900 }],
+    );
   });
 });
 
 describe("diff choices and undo", () => {
   const applied = () =>
-    run(result(), { type: "ACCEPT" }, { type: "APPLIED", text: "Better prompt" }).model;
+    run(
+      result(),
+      { type: "ACCEPT" },
+      { type: "APPLIED", text: "Better prompt" },
+    ).model;
 
   test("toggling a change rejects it, toggling again takes it back", () => {
-    const once = run(result(), { type: "CHANGE_TOGGLED", index: 2 }, { type: "CHANGE_TOGGLED", index: 0 })
-      .model;
+    const once = run(
+      result(),
+      { type: "CHANGE_TOGGLED", index: 2 },
+      { type: "CHANGE_TOGGLED", index: 0 },
+    ).model;
     assert.deepEqual(view(once, null).panel, {
       kind: "result",
       step: "improve",
@@ -355,16 +452,31 @@ describe("diff choices and undo", () => {
       rejected: [0, 2],
     });
     const back = run(once, { type: "CHANGE_TOGGLED", index: 2 }).model;
-    assert.equal(back.state.kind === "result" && back.state.rejected.join(), "0");
+    assert.equal(
+      back.state.kind === "result" && back.state.rejected.join(),
+      "0",
+    );
     const reset = run(once, { type: "CHANGES_RESET" }).model;
-    assert.equal(reset.state.kind === "result" && reset.state.rejected.length, 0);
+    assert.equal(
+      reset.state.kind === "result" && reset.state.rejected.length,
+      0,
+    );
   });
 
   test("accept passes the rejected changes to the driver", () => {
-    const { effects } = run(result(), { type: "CHANGE_TOGGLED", index: 1 }, { type: "ACCEPT" });
+    const { effects } = run(
+      result(),
+      { type: "CHANGE_TOGGLED", index: 1 },
+      { type: "ACCEPT" },
+    );
     assert.deepEqual(effects, [
       { type: "recordRefine", mode: "improve", accepted: true },
-      { type: "applyResult", original: PROMPT, output: "Better prompt", rejected: [1] },
+      {
+        type: "applyResult",
+        original: PROMPT,
+        output: "Better prompt",
+        rejected: [1],
+      },
     ]);
   });
 
@@ -385,7 +497,10 @@ describe("diff choices and undo", () => {
   });
 
   test("editing after a replace drops the undo", () => {
-    const edited = run(applied(), { type: "TEXT_CHANGED", text: "Better prompt!" }).model;
+    const edited = run(applied(), {
+      type: "TEXT_CHANGED",
+      text: "Better prompt!",
+    }).model;
     assert.equal(edited.undo, null);
     assert.deepEqual(run(edited, { type: "UNDO_REQUESTED" }).effects, []);
   });
@@ -399,7 +514,11 @@ describe("diff choices and undo", () => {
 describe("keyToEvent", () => {
   const key = (
     k: string,
-    extra: Partial<{ shiftKey: boolean; modKey: boolean; inInput: boolean }> = {},
+    extra: Partial<{
+      shiftKey: boolean;
+      modKey: boolean;
+      inInput: boolean;
+    }> = {},
   ) => ({ key: k, shiftKey: false, modKey: false, inInput: true, ...extra });
   const refineKey = key("Enter", { shiftKey: true, modKey: true });
 
@@ -410,22 +529,41 @@ describe("keyToEvent", () => {
   });
 
   test("Esc closes the panel from anywhere, including the panel's own inputs", () => {
-    assert.deepEqual(keyToEvent(picking().state, key("Escape", { inInput: false })), {
-      type: "DISMISS",
-    });
+    assert.deepEqual(
+      keyToEvent(picking().state, key("Escape", { inInput: false })),
+      {
+        type: "DISMISS",
+      },
+    );
   });
 
   test("Tab in the chat input accepts a finished result", () => {
-    assert.deepEqual(keyToEvent(result().state, key("Tab")), { type: "ACCEPT" });
-    assert.equal(keyToEvent(result().state, key("Tab", { inInput: false })), null);
-    assert.equal(keyToEvent(result().state, key("Tab", { shiftKey: true })), null);
+    assert.deepEqual(keyToEvent(result().state, key("Tab")), {
+      type: "ACCEPT",
+    });
+    assert.equal(
+      keyToEvent(result().state, key("Tab", { inInput: false })),
+      null,
+    );
+    assert.equal(
+      keyToEvent(result().state, key("Tab", { shiftKey: true })),
+      null,
+    );
     assert.equal(keyToEvent(streaming().state, key("Tab")), null);
   });
 
   test("Ctrl/Cmd+Shift+Enter in the chat input refines; plain Enter and Shift+Enter are the page's", () => {
-    assert.deepEqual(keyToEvent(typed().state, refineKey), { type: "REFINE_REQUESTED" });
-    assert.equal(keyToEvent(typed().state, { ...refineKey, inInput: false }), null);
-    assert.equal(keyToEvent(typed().state, key("Enter", { shiftKey: true })), null);
+    assert.deepEqual(keyToEvent(typed().state, refineKey), {
+      type: "REFINE_REQUESTED",
+    });
+    assert.equal(
+      keyToEvent(typed().state, { ...refineKey, inInput: false }),
+      null,
+    );
+    assert.equal(
+      keyToEvent(typed().state, key("Enter", { shiftKey: true })),
+      null,
+    );
   });
 });
 
@@ -433,7 +571,10 @@ describe("context cards", () => {
   const CARD = "I run a two-person bakery.";
 
   test("choosing a card in the picker writes it above the draft, with undo", () => {
-    const { model: applying, effects } = run(picking(), { type: "CARD_CHOSEN", text: CARD });
+    const { model: applying, effects } = run(picking(), {
+      type: "CARD_CHOSEN",
+      text: CARD,
+    });
     const withCardText = `${CARD}\n\n${PROMPT}`;
     assert.deepEqual(effects, [{ type: "applyText", text: withCardText }]);
     assert.equal(isPanelOpen(applying.state), false);
@@ -451,7 +592,10 @@ describe("context cards", () => {
 
   test("ignored outside the picker", () => {
     for (const model of [typed(), streaming(), result()]) {
-      assert.deepEqual(run(model, { type: "CARD_CHOSEN", text: CARD }).effects, []);
+      assert.deepEqual(
+        run(model, { type: "CARD_CHOSEN", text: CARD }).effects,
+        [],
+      );
     }
   });
 });
@@ -460,66 +604,103 @@ describe("slash command inserts", () => {
   test("replaces the draft while typing, with undo", () => {
     const start = typed(true, "/launch");
     assert.equal(start.state.kind, "idle"); // too short to refine
-    const { model, effects } = run(start, { type: "SLASH_INSERT", text: "Write a launch email" });
-    assert.deepEqual(effects, [{ type: "applyText", text: "Write a launch email" }]);
-    const done = run(model, { type: "APPLIED", text: "Write a launch email" }).model;
-    assert.deepEqual(done.undo, { previous: "/launch", applied: "Write a launch email" });
+    const { model, effects } = run(start, {
+      type: "SLASH_INSERT",
+      text: "Write a launch email",
+    });
+    assert.deepEqual(effects, [
+      { type: "applyText", text: "Write a launch email" },
+    ]);
+    const done = run(model, {
+      type: "APPLIED",
+      text: "Write a launch email",
+    }).model;
+    assert.deepEqual(done.undo, {
+      previous: "/launch",
+      applied: "Write a launch email",
+    });
   });
 
   test("cancels a pending auto-refine", () => {
     const debouncing = typed(true);
     assert.equal(debouncing.state.kind, "debouncing");
-    assert.deepEqual(run(debouncing, { type: "SLASH_INSERT", text: "Other" }).effects, [
-      { type: "clearDebounce" },
-      { type: "applyText", text: "Other" },
-    ]);
+    assert.deepEqual(
+      run(debouncing, { type: "SLASH_INSERT", text: "Other" }).effects,
+      [{ type: "clearDebounce" }, { type: "applyText", text: "Other" }],
+    );
   });
 
   test("ignored while the panel is open", () => {
-    assert.deepEqual(run(picking(), { type: "SLASH_INSERT", text: "Other" }).effects, []);
+    assert.deepEqual(
+      run(picking(), { type: "SLASH_INSERT", text: "Other" }).effects,
+      [],
+    );
   });
 });
 
 describe("learning outcomes", () => {
-  const records = (effects: ContentEffect[]) => effects.filter((e) => e.type === "recordRefine");
+  const records = (effects: ContentEffect[]) =>
+    effects.filter((e) => e.type === "recordRefine");
 
   test("closing or replacing a result with another mode counts as set aside", () => {
     assert.deepEqual(records(run(result(), { type: "DISMISS" }).effects), [
       { type: "recordRefine", mode: "improve", accepted: false },
     ]);
-    assert.deepEqual(records(run(result(), { type: "MODE_CHOSEN", mode: "tighten" }).effects), [
-      { type: "recordRefine", mode: "improve", accepted: false },
-    ]);
-    assert.deepEqual(records(run(result(), { type: "REFINE_REQUESTED" }).effects), [
-      { type: "recordRefine", mode: "improve", accepted: false },
-    ]);
+    assert.deepEqual(
+      records(run(result(), { type: "MODE_CHOSEN", mode: "tighten" }).effects),
+      [{ type: "recordRefine", mode: "improve", accepted: false }],
+    );
+    assert.deepEqual(
+      records(run(result(), { type: "REFINE_REQUESTED" }).effects),
+      [{ type: "recordRefine", mode: "improve", accepted: false }],
+    );
   });
 
   test("Ask me results are recorded as the ask mode", () => {
-    const answering = run(picking(), { type: "MODE_CHOSEN", mode: "ask" }, {
-      type: "QUESTIONS_READY",
-      requestId: 1,
-      questions: ["Who is it for?"],
-    }).model;
-    const composed = run(answering, { type: "ANSWERS_SUBMITTED" }, {
-      type: "REFINE_DONE",
-      requestId: 2,
-      text: "Composed",
-    }).model;
+    const answering = run(
+      picking(),
+      { type: "MODE_CHOSEN", mode: "ask" },
+      {
+        type: "QUESTIONS_READY",
+        requestId: 1,
+        questions: ["Who is it for?"],
+      },
+    ).model;
+    const composed = run(
+      answering,
+      { type: "ANSWERS_SUBMITTED" },
+      {
+        type: "REFINE_DONE",
+        requestId: 2,
+        text: "Composed",
+      },
+    ).model;
     assert.deepEqual(records(run(composed, { type: "ACCEPT" }).effects), [
       { type: "recordRefine", mode: "ask", accepted: true },
     ]);
   });
 
   test("nothing is recorded for a stopped stream, the picker, or a background result", () => {
-    assert.deepEqual(records(run(streaming(), { type: "DISMISS" }).effects), []);
+    assert.deepEqual(
+      records(run(streaming(), { type: "DISMISS" }).effects),
+      [],
+    );
     assert.deepEqual(records(run(picking(), { type: "DISMISS" }).effects), []);
-    const hidden = run(typed(true), { type: "DEBOUNCE_ELAPSED" }, {
-      type: "REFINE_DONE",
-      requestId: 1,
-      text: "Better",
-    }).model;
-    assert.deepEqual(records(run(hidden, { type: "TEXT_CHANGED", text: PROMPT + "!" }).effects), []);
+    const hidden = run(
+      typed(true),
+      { type: "DEBOUNCE_ELAPSED" },
+      {
+        type: "REFINE_DONE",
+        requestId: 1,
+        text: "Better",
+      },
+    ).model;
+    assert.deepEqual(
+      records(
+        run(hidden, { type: "TEXT_CHANGED", text: `${PROMPT}!` }).effects,
+      ),
+      [],
+    );
   });
 });
 

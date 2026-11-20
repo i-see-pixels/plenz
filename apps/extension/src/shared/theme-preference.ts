@@ -39,10 +39,15 @@ export function followThemePreference() {
   media.addEventListener("change", apply);
   void chrome.storage.sync
     .get("preferences")
-    .then((stored) => set((stored.preferences as { theme?: unknown } | undefined)?.theme));
+    .then((stored) =>
+      set((stored.preferences as { theme?: unknown } | undefined)?.theme),
+    );
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "sync" && changes.preferences) {
-      set((changes.preferences.newValue as { theme?: unknown } | undefined)?.theme);
+      set(
+        (changes.preferences.newValue as { theme?: unknown } | undefined)
+          ?.theme,
+      );
     }
   });
 }

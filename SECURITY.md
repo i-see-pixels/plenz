@@ -27,4 +27,3 @@ We will acknowledge reports within 72 hours and provide follow-up status updates
 - Fix developed and validated.
 - Coordinated disclosure with reporter.
 - Public advisory published after fix release.
-

@@ -15,7 +15,9 @@ export const FIXTURES = {
   chatgpt: {
     url: "https://chatgpt.com/",
     composer: "#prompt-textarea",
-    html: SHELL(`<form><div id="prompt-textarea" contenteditable="true"></div></form>`),
+    html: SHELL(
+      `<form><div id="prompt-textarea" contenteditable="true"></div></form>`,
+    ),
   },
   /**
    * A rich editor that, like ProseMirror and Lexical, keeps its own copy of the
@@ -48,7 +50,9 @@ export const FIXTURES = {
   perplexity: {
     url: "https://www.perplexity.ai/",
     composer: "textarea",
-    html: SHELL(`<form><textarea placeholder="Ask anything..."></textarea></form>`),
+    html: SHELL(
+      `<form><textarea placeholder="Ask anything..."></textarea></form>`,
+    ),
   },
 } as const;
 
@@ -58,7 +62,11 @@ export type FixtureName = keyof typeof FIXTURES;
 export async function useMockProvider(serviceWorker: Worker, baseUrl: string) {
   await serviceWorker.evaluate(async (url) => {
     await chrome.storage.local.set({
-      model_config_custom: { apiKey: "test-key", model: "mock-model", baseUrl: url },
+      model_config_custom: {
+        apiKey: "test-key",
+        model: "mock-model",
+        baseUrl: url,
+      },
     });
     await chrome.storage.sync.set({
       preferences: { activeProviderId: "custom", activeModelId: "mock-model" },
@@ -66,7 +74,10 @@ export async function useMockProvider(serviceWorker: Worker, baseUrl: string) {
   }, baseUrl);
 }
 
-export async function openFixture(context: BrowserContext, name: FixtureName): Promise<Page> {
+export async function openFixture(
+  context: BrowserContext,
+  name: FixtureName,
+): Promise<Page> {
   const fixture = FIXTURES[name];
   const origin = new URL(fixture.url).origin;
   await context.route(`${origin}/**`, (route) =>
@@ -80,6 +91,9 @@ export async function openFixture(context: BrowserContext, name: FixtureName): P
 /** The composer's current text, however the editor stores it. */
 export function composerText(page: Page, name: FixtureName) {
   return page.locator(FIXTURES[name].composer).evaluate((el) =>
-    el instanceof HTMLTextAreaElement ? el.value : (el as HTMLElement).innerText.trim(),
+    el instanceof HTMLTextAreaElement
+      ? el.value
+      : // biome-ignore lint/performance/useDomNodeTextContent: match what the user sees, as the extension's readText does
+        (el as HTMLElement).innerText.trim(),
   );
 }

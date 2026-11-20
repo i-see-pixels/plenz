@@ -28,14 +28,18 @@ export class AnthropicAdapter implements ProviderAdapter {
   async fetchModels(config: ProviderConfig): Promise<ModelOption[]> {
     if (!config.apiKey) return [];
     try {
-      const res = await fetch(`${API_URL}/models`, { headers: headers(config.apiKey) });
+      const res = await fetch(`${API_URL}/models`, {
+        headers: headers(config.apiKey),
+      });
       if (!res.ok) return [];
       const data = await res.json();
       return data.data.map((m: { id: string; display_name?: string }) => ({
         id: m.id,
         name: m.display_name || m.id,
         tier:
-          m.id.includes("opus") || m.id.includes("sonnet-2024") ? "premium" : "standard",
+          m.id.includes("opus") || m.id.includes("sonnet-2024")
+            ? "premium"
+            : "standard",
       }));
     } catch {
       return [];
@@ -43,7 +47,8 @@ export class AnthropicAdapter implements ProviderAdapter {
   }
 
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
-    if (!config.model) return { success: false, latencyMs: 0, error: "No model selected" };
+    if (!config.model)
+      return { success: false, latencyMs: 0, error: "No model selected" };
     const start = performance.now();
     try {
       const res = await fetch(`${API_URL}/messages`, {
@@ -110,13 +115,18 @@ export class AnthropicAdapter implements ProviderAdapter {
           }
           break;
         case "message_delta":
-          tokensUsed.completion = event.usage?.output_tokens ?? tokensUsed.completion;
+          tokensUsed.completion =
+            event.usage?.output_tokens ?? tokensUsed.completion;
           break;
         case "error":
           throw new Error(event.error?.message || "Anthropic stream error");
       }
     });
 
-    return { text, tokensUsed, latencyMs: Math.round(performance.now() - start) };
+    return {
+      text,
+      tokensUsed,
+      latencyMs: Math.round(performance.now() - start),
+    };
   }
 }

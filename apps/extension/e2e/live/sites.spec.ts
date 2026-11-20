@@ -22,7 +22,13 @@ async function blockedReason(page: Page): Promise<string | null> {
     return `redirected to sign-in (${new URL(url).host})`;
   }
   const title = await page.title().catch(() => "");
-  const text = (await page.locator("body").innerText().catch(() => "")).slice(0, 4000);
+  const text = (
+    await page
+      .locator("body")
+      // biome-ignore lint/performance/useDomNodeTextContent: Playwright's innerText gives only visible text, which is what a bot-check page shows
+      .innerText()
+      .catch(() => "")
+  ).slice(0, 4000);
   // Cloudflare and similar interstitials; the test never tries to get past them.
   const botCheck =
     /just a moment|verify you are human|security verification|not a bot|unusual traffic|captcha/i;
@@ -31,16 +37,26 @@ async function blockedReason(page: Page): Promise<string | null> {
   }
   // Only a real sign-in form counts; a "Sign in" link in the nav does not, or
   // a stale selector would hide behind it.
-  if (await page.locator('input[type="password"]').first().isVisible().catch(() => false)) {
+  if (
+    await page
+      .locator('input[type="password"]')
+      .first()
+      .isVisible()
+      .catch(() => false)
+  ) {
     return "sign-in form";
   }
   return null;
 }
 
 for (const platform of PLATFORMS) {
-  test(`${platform.name}: composer found and extension responds`, async ({ context }) => {
+  test(`${platform.name}: composer found and extension responds`, async ({
+    context,
+  }) => {
     const page = await context.newPage();
-    await page.goto(START_URLS[platform.name], { waitUntil: "domcontentloaded" });
+    await page.goto(START_URLS[platform.name], {
+      waitUntil: "domcontentloaded",
+    });
 
     const composer = page.locator(platform.inputSelectors.join(", ")).first();
     const found = await composer
@@ -51,14 +67,21 @@ for (const platform of PLATFORMS) {
     if (!found) {
       const reason = await blockedReason(page);
       test.skip(reason !== null, `Skipped: ${reason}`);
-      expect(found, `No composer matched ${platform.inputSelectors.join(" | ")}; selectors may be stale`).toBe(true);
+      expect(
+        found,
+        `No composer matched ${platform.inputSelectors.join(" | ")}; selectors may be stale`,
+      ).toBe(true);
     }
 
     await composer.click();
-    await page.keyboard.type("write a short update for my team about the launch");
+    await page.keyboard.type(
+      "write a short update for my team about the launch",
+    );
     const shadow = await ShadowDom.attach(page);
     await expect
-      .poll(() => shadow.visible("plenz-badge-host", ".pl-lint-score"), { timeout: 10_000 })
+      .poll(() => shadow.visible("plenz-badge-host", ".pl-lint-score"), {
+        timeout: 10_000,
+      })
       .toBe(true);
   });
 }

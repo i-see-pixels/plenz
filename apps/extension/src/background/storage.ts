@@ -1,7 +1,16 @@
+import { providers } from "@plenz/providers";
 import type { ProviderConfig, StorageResult } from "@plenz/types";
 import { doc, setDoc } from "firebase/firestore/lite";
-import { providers } from "@plenz/providers";
 import { AuthManager } from "./auth";
+import {
+  SyncPassphraseRequiredError,
+  toFirestoreProviderConfig,
+} from "./encryption";
+import {
+  getFirestoreDb,
+  isFirebaseConfigured,
+  signInToFirebase,
+} from "./firebase";
 import {
   ChromeLocalBackend,
   ChromeSyncBackend,
@@ -10,12 +19,6 @@ import {
   getModelConfigKey,
   type StorageBackendPreference,
 } from "./storage-backend";
-import {
-  getFirestoreDb,
-  isFirebaseConfigured,
-  signInToFirebase,
-} from "./firebase";
-import { SyncPassphraseRequiredError, toFirestoreProviderConfig } from "./encryption";
 import { SyncVault } from "./sync-vault";
 
 export interface UserPreferences {
@@ -57,7 +60,9 @@ function normalizePreferences(value: unknown): UserPreferences {
       ? (value as Partial<UserPreferences> & { debounceMs?: unknown })
       : {};
   const theme =
-    prefs.theme === "light" || prefs.theme === "dark" || prefs.theme === "system"
+    prefs.theme === "light" ||
+    prefs.theme === "dark" ||
+    prefs.theme === "system"
       ? prefs.theme
       : DEFAULT_PREFERENCES.theme;
   const activeModelId =
@@ -65,9 +70,11 @@ function normalizePreferences(value: unknown): UserPreferences {
   const activeProviderId =
     typeof prefs.activeProviderId === "string" ? prefs.activeProviderId : null;
   const debounceTime =
-    typeof prefs.debounceTime === "number" && Number.isFinite(prefs.debounceTime)
+    typeof prefs.debounceTime === "number" &&
+    Number.isFinite(prefs.debounceTime)
       ? prefs.debounceTime
-      : typeof prefs.debounceMs === "number" && Number.isFinite(prefs.debounceMs)
+      : typeof prefs.debounceMs === "number" &&
+          Number.isFinite(prefs.debounceMs)
         ? prefs.debounceMs
         : DEFAULT_PREFERENCES.debounceTime;
   const storageBackend =
@@ -143,7 +150,9 @@ async function writeConfigsToFirebase(configs: Record<string, ProviderConfig>) {
         );
         migratedProviderIds.push(providerId);
       } catch (error) {
-        errors.push(`Failed to migrate ${providerId}: ${getErrorMessage(error)}`);
+        errors.push(
+          `Failed to migrate ${providerId}: ${getErrorMessage(error)}`,
+        );
       }
     }
   } catch (error) {
@@ -206,7 +215,9 @@ export const StorageManager = {
     };
   },
 
-  async setStorageBackend(storageBackend: StorageBackendPreference): Promise<void> {
+  async setStorageBackend(
+    storageBackend: StorageBackendPreference,
+  ): Promise<void> {
     await this.setPreferences({ storageBackend });
   },
 
@@ -270,14 +281,19 @@ export const StorageManager = {
         await chrome.storage.local.remove(getModelConfigKey(providerId));
         migrated++;
       } catch (error) {
-        errors.push(`Failed to migrate ${providerId}: ${getErrorMessage(error)}`);
+        errors.push(
+          `Failed to migrate ${providerId}: ${getErrorMessage(error)}`,
+        );
       }
     }
 
     return { migrated, errors };
   },
 
-  async migrateLocalToFirebase(): Promise<{ migrated: number; errors: string[] }> {
+  async migrateLocalToFirebase(): Promise<{
+    migrated: number;
+    errors: string[];
+  }> {
     if (!(await this.isUserSignedIn())) {
       return {
         migrated: 0,
@@ -317,7 +333,10 @@ export const StorageManager = {
       : this.migrateLocalToSync();
   },
 
-  async migrateSyncToFirebase(): Promise<{ migrated: number; errors: string[] }> {
+  async migrateSyncToFirebase(): Promise<{
+    migrated: number;
+    errors: string[];
+  }> {
     if (!(await this.isUserSignedIn())) {
       return {
         migrated: 0,
@@ -386,4 +405,3 @@ export const StorageManager = {
     };
   },
 };
-

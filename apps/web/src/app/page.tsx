@@ -1,16 +1,16 @@
-import { FAQ } from "@/components/faq";
-import { Navbar } from "@/components/navbar";
-import { Hero } from "@/components/hero";
-import { Features } from "@/components/features";
-import { HowItWorks } from "@/components/how-it-works";
-import { Platforms } from "@/components/platforms";
 import { CTA } from "@/components/cta";
+import { FAQ } from "@/components/faq";
+import { Features } from "@/components/features";
 import { Footer } from "@/components/footer";
+import { Hero } from "@/components/hero";
+import { HowItWorks } from "@/components/how-it-works";
+import { JsonLd } from "@/components/json-ld";
+import { Navbar } from "@/components/navbar";
+import { Platforms } from "@/components/platforms";
 import {
   createFaqSchema,
   createPageMetadata,
   createSoftwareApplicationSchema,
-  serializeJsonLd,
 } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 
@@ -37,16 +37,8 @@ export default function Home() {
       />
       <Navbar />
       <main className="relative z-10">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: serializeJsonLd(softwareApplicationSchema),
-          }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqSchema) }}
-        />
+        <JsonLd data={softwareApplicationSchema} />
+        <JsonLd data={faqSchema} />
         <Hero />
         <Features />
         <HowItWorks />
