@@ -6,13 +6,6 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "dist/**"]
     },
-    "type-check": {
-      "dependsOn": ["^build"],
-      "cache": true
-    },
-    "lint": {
-      "dependsOn": ["^build"]
-    },
     "dev": {
       "cache": false,
       "persistent": true
