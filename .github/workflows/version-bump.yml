@@ -21,9 +21,14 @@ jobs:
 
       - name: Extract Release Type
         id: extract_type
+        # The PR text comes in through env vars, never pasted into the script,
+        # so backticks or $(...) in a description are not run as commands.
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # Check PR body first, then title
-          PR_CONTENT="${{ github.event.pull_request.body }} ${{ github.event.pull_request.title }}"
+          PR_CONTENT="$PR_BODY $PR_TITLE"
           if echo "$PR_CONTENT" | grep -qi "RELEASE_TYPE: major"; then
             echo "type=major" >> $GITHUB_OUTPUT
           elif echo "$PR_CONTENT" | grep -qi "RELEASE_TYPE: minor"; then
