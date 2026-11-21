@@ -1,0 +1,11 @@
+{
+  "name": "plenz",
+  "owner": { "name": "i-see-pixels", "url": "https://github.com/i-see-pixels" },
+  "plugins": [
+    {
+      "name": "plenz",
+      "source": "./apps/claude-plugin",
+      "description": "The plenz prompt coach for Claude Code: a live prompt score and tips while you type, plus Improve, Tighten, Structure and Ask me refines."
+    }
+  ]
+}

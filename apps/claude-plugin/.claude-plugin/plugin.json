@@ -1,0 +1,13 @@
+{
+  "name": "plenz",
+  "version": "0.2.0",
+  "description": "The plenz prompt coach: a live prompt score and tips while you type, plus Improve, Tighten, Structure and Ask me refines.",
+  "author": {
+    "name": "i-see-pixels",
+    "url": "https://github.com/i-see-pixels"
+  },
+  "homepage": "https://plenz.siddsingh.dev",
+  "repository": "https://github.com/i-see-pixels/plenz",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

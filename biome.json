@@ -23,7 +23,8 @@
       "!**/dist",
       "!**/.turbo",
       "!**/.next",
-      "!**/out"
+      "!**/out",
+      "!apps/claude-plugin/hooks/core"
     ]
   }
 }

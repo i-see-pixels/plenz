@@ -54,6 +54,7 @@
 - `apps/extension`: Browser extension (Vite + Preact).
 - `apps/web`: Landing page and web app (Next.js).
 - `apps/vscode`: VS Code extension.
+- `apps/claude-plugin`: Claude Code plugin (`/plugin install plenz --marketplace i-see-pixels/plenz`).
 - `packages/core`: Prompt analysis logic and system prompt template.
 - `packages/providers`: LLM provider adapters.
 - `packages/types`: Shared TypeScript contracts.
