@@ -1,0 +1,109 @@
+Rewrite weak AI prompts before you send them.
+
+plenz is a free, open-source AI prompt refiner for Chrome. It checks your prompt as you type in ChatGPT, Claude, Gemini, and Perplexity, rewrites it on demand, and shows you every change before you send. You get better answers on the first try, with less back-and-forth.
+
+Use Chrome's built-in Gemini Nano model with no API key, or bring your own key from OpenAI, Anthropic, Google Gemini, Mistral, Groq, OpenRouter, or a local model.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT PLENZ DOES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✦ Free prompt check while you type
+A score badge in the chat box flags vague or missing instructions as you write. It runs on your device and never needs a key.
+
+✦ Four refine modes
+Improve, Tighten, Structure, or Ask me (plenz asks a few questions first). The rewrite streams in as it's written, so you don't wait for the whole thing.
+
+✦ See every change
+A word-by-word diff shows exactly what changed. Accept or undo each edit, then replace your draft in one click.
+
+✦ Prompt Gallery
+Browse trending and new prompts in Chrome's side panel, no account needed. Sign in with Google to save your own prompts and insert them by typing / in the chat box.
+
+✦ Context cards
+Save details you repeat often, like your role, project, or writing style, and add them to any prompt.
+
+✦ Keyboard shortcuts
+Press Ctrl+Shift+Enter (Cmd+Shift+Enter on Mac) to refine. Accept or dismiss without touching the mouse.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WORKS WHERE YOU ALREADY WRITE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+plenz runs inside:
+• ChatGPT
+• Claude
+• Gemini
+• Perplexity
+• Any other site you turn it on for from the popup
+
+No separate prompt editor and no copying between tabs. It works in the chat box you're already typing in.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NO API KEY NEEDED, OR BRING YOUR OWN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+On-device: If your Chrome supports Gemini Nano, plenz refines prompts on your computer. No key, no cost, and the prompt never leaves your device.
+
+Bring Your Own Key (BYOK): Connect OpenAI, Anthropic, Google Gemini, Mistral, Groq, OpenRouter, or any custom, local, or self-hosted endpoint. Your provider bills you directly at their standard rates. plenz adds no markup.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOW TO START
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Add plenz to Chrome.
+2. The welcome page helps you pick a model: Chrome's on-device model, or your own API key.
+3. Open ChatGPT, Claude, Gemini, or Perplexity and start typing.
+4. Click the badge or press Ctrl+Shift+Enter to refine. Review the changes and accept.
+
+Setup takes about a minute.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIVACY-FIRST AND OPEN SOURCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Your prompt goes straight to the model you choose. plenz does not pass it through its own servers.
+• API keys stay in your browser storage.
+• What plenz learns about your preferences stays on your device.
+• Optional Cloud Sync encrypts your keys with a passphrase only you know before they leave the browser.
+• The full source code is on GitHub. Read it, fork it, or contribute.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHO IT'S FOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+plenz is for anyone who uses AI chat every day and wants better output without learning prompt engineering:
+
+• Developers using AI for coding, debugging, and documentation
+• Marketers and writers drafting content with ChatGPT or Claude
+• Founders and operators planning, researching, and writing internal docs
+• Researchers and analysts who need specific, structured answers
+• Students and anyone tired of rewriting the same prompt three times
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FAQ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: Is plenz free?
+A: Yes. plenz is free and open source. The prompt check and the on-device model cost nothing. If you use your own API key, you pay only your provider.
+
+Q: Do I need an API key?
+A: No, if your Chrome supports the built-in Gemini Nano model. Otherwise, add a key from any supported provider.
+
+Q: Does plenz send my prompts to its own server?
+A: No. Prompts go only to the model you choose, or stay on your device with Gemini Nano. Signing in is optional and only used for saving prompts in the Prompt Gallery and Cloud Sync.
+
+Q: Which AI chat sites does it work on?
+A: ChatGPT, Claude, Gemini, and Perplexity out of the box. You can turn it on for any other site from the popup.
+
+Q: Which model does it use to rewrite prompts?
+A: The one you pick: Gemini Nano on your device, a model from OpenAI, Anthropic, Google, Mistral, Groq, or OpenRouter, or your own local or self-hosted model.
+
+Q: Will it change my prompt without asking?
+A: No. plenz shows every change as a diff. Nothing is replaced until you accept it.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Better prompts. Better answers. No new workflow.
+
+Add plenz to Chrome and refine your next prompt in seconds.
