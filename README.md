@@ -29,11 +29,15 @@
 
 ## Features
 
-- Real-time prompt analysis while typing.
-- Ranked prompt improvement suggestions.
-- One-click suggestion apply into chat editors.
+- Free local prompt check while typing: a score and chips like "No output format", with no API call.
+- AI refine on demand, streamed as it's written: Improve, Tighten (shorter, same requirements), Structure (labeled sections), or Ask me (answer 2–3 questions, then get the prompt).
+- Click the badge to pick a mode, or press Ctrl/Cmd+Shift+Enter for Improve; opt in to refine automatically after a pause.
+- Context cards: save notes you keep retyping (about you, a project, a tone) in settings and add one above your draft from the refine panel in one click. Stored on this device only.
+- Type `/` at the start of a line in the chat box to search your context cards, saved prompts and the gallery's trending prompts, then press Enter to insert one.
+- Learns locally: the refine mode you keep accepting becomes the suggested one, and a prompt check you keep sending past stops being shown. See or reset it in settings; it never leaves your device.
+- See exactly what changed: a word-level diff where you can keep your own wording for any change, then replace in one click, with Undo.
 - Provider-agnostic architecture with BYOK.
-- Works across multiple AI chat platforms.
+- Works on ChatGPT, Claude, Gemini and Perplexity, and on any other site you turn it on for from the popup.
 
 ## Star History
 
@@ -80,25 +84,27 @@
 
 ## Supported Platforms
 
-| Platform   | Status    |
-| ---------- | --------- |
-| ChatGPT    | Supported |
-| Claude     | Supported |
-| Gemini     | Supported |
-| Perplexity | Supported |
-| Copilot    | Planned   |
+| Platform       | Status                                                                          |
+| -------------- | ------------------------------------------------------------------------------- |
+| ChatGPT        | Supported                                                                       |
+| Claude         | Supported                                                                       |
+| Gemini         | Supported                                                                       |
+| Perplexity     | Supported                                                                       |
+| Any other site | Supported when you turn it on from the popup (uses the text box you click into) |
+| Copilot        | Planned                                                                         |
 
 ## Supported Providers
 
-| Provider       | Status    |
-| -------------- | --------- |
-| OpenAI         | Supported |
-| Google         | Supported |
-| Anthropic      | Planned   |
-| Mistral        | Planned   |
-| Groq           | Planned   |
-| OpenRouter     | Planned   |
-| Custom Adapter | Planned   |
+| Provider                         | Status                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------ |
+| OpenAI                           | Supported                                                                                        |
+| Google                           | Supported                                                                                        |
+| Anthropic                        | Supported                                                                                        |
+| Mistral                          | Supported                                                                                        |
+| Groq                             | Supported                                                                                        |
+| OpenRouter                       | Supported                                                                                        |
+| Custom Adapter                   | Supported                                                                                        |
+| On-device (Chrome's Gemini Nano) | Supported, no API key; used automatically when no provider is set up and the model is downloaded |
 
 ## Privacy and Security
 

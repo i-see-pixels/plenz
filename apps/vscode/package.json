@@ -19,6 +19,14 @@
     "test": "node ./out/test/runTest.js"
   },
   "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "plenz.refine",
+        "title": "plenz: Refine Selected Prompt"
+      }
+    ]
+  },
   "main": "./dist/extension.js",
   "dependencies": {
     "@plenz/core": "workspace:*",

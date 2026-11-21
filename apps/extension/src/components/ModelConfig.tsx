@@ -1,11 +1,14 @@
-import { useEffect, useState } from "preact/hooks";
-import { providers } from "@plenz/providers";
+import {
+  ON_DEVICE_MODEL_ID,
+  ON_DEVICE_PROVIDER_ID,
+  providers,
+} from "@plenz/providers";
 import type {
   ConnectionTestResult,
+  ModelOption,
   ProviderConfig,
   StorageResult,
   SyncStatus,
-  ModelOption,
 } from "@plenz/types";
 import { Badge } from "@plenz/ui/components/badge";
 import { Button } from "@plenz/ui/components/button";
@@ -20,13 +23,30 @@ import {
 } from "@plenz/ui/components/select";
 import { cn } from "@plenz/ui/lib/utils";
 import { AlertTriangle, Cloud, HardDrive, LoaderCircle } from "lucide-react";
-
-type StorageBackendPreference = "chrome-sync" | "firebase";
-
-type SaveState = {
-  status: SyncStatus;
-  error?: string;
-};
+import { useCallback, useEffect, useState } from "preact/hooks";
+import type { VaultStatus } from "../background/sync-vault";
+import { isRpcFailure, sendRpc } from "../shared/rpc";
+import {
+  type BackendEvent,
+  type BackendState,
+  backendNotice,
+  backendTransition,
+  type MigrationResult,
+  type SaveEvent,
+  type SaveState,
+  type StorageBackendPreference,
+  saveBadgeStatus,
+  saveMessage,
+  saveTransition,
+  type TestEvent,
+  type TestState,
+  testInputsKey,
+  testTransition,
+  visibleTestResult,
+} from "./model-config-machine";
+import { OnDeviceModel } from "./OnDeviceModel";
+import { SyncPassphrase } from "./SyncPassphrase";
+import { useAuthSession } from "./useAuthSession";
 
 type StorageSettingsResponse = {
   storageBackend: StorageBackendPreference;
@@ -36,11 +56,6 @@ type StorageSettingsResponse = {
 type ActionResponse = {
   success: boolean;
   error?: string;
-};
-
-type MigrationResponse = {
-  migrated: number;
-  errors: string[];
 };
 
 const storageBackendOptions: Array<{
@@ -78,21 +93,17 @@ function isStorageSettingsResponse(
   );
 }
 
-function isMigrationResponse(value: unknown): value is MigrationResponse {
+function isMigrationResponse(value: unknown): value is MigrationResult {
   return (
     !!value &&
     typeof value === "object" &&
     "migrated" in value &&
-    Array.isArray((value as MigrationResponse).errors)
+    Array.isArray((value as MigrationResult).errors)
   );
 }
 
 function isActionResponse(value: unknown): value is ActionResponse {
   return !!value && typeof value === "object" && "success" in value;
-}
-
-function isUserInfoResponse(value: unknown) {
-  return !!value && typeof value === "object" && "email" in value;
 }
 
 function getResponseError(value: unknown) {
@@ -177,50 +188,55 @@ export function ModelConfig() {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [fetchingModels, setFetchingModels] = useState(false);
   const [baseUrl, setBaseUrl] = useState("");
-  const [testStatus, setTestStatus] = useState<{
-    loading: boolean;
-    result?: ConnectionTestResult;
-  }>({ loading: false });
+  const [testState, setTestState] = useState<TestState>({ kind: "idle" });
   const [saveState, setSaveState] = useState<SaveState>({
-    status: "local-only",
+    kind: "idle",
+    syncStatus: "local-only",
   });
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const { auth } = useAuthSession();
+  const isSignedIn = auth.status === "signedIn";
   const [storageBackend, setStorageBackend] =
     useState<StorageBackendPreference>("chrome-sync");
   const [firebaseConfigured, setFirebaseConfigured] = useState(false);
-  const [backendState, setBackendState] = useState<{
-    loading: boolean;
-    tone: "muted" | "error";
-    message?: string;
-  }>({
-    loading: false,
-    tone: "muted",
+  const [vaultStatus, setVaultStatus] = useState<VaultStatus | null>(null);
+  const [backendState, setBackendState] = useState<BackendState>({
+    kind: "idle",
   });
 
-  const provider =
-    providers.find((item) => item.id === selectedProvider) ?? providers[0];
+  const updateSave = useCallback(
+    (event: SaveEvent) =>
+      setSaveState((current) => saveTransition(current, event)),
+    [],
+  );
+  const updateBackend = useCallback(
+    (event: BackendEvent) =>
+      setBackendState((current) => backendTransition(current, event)),
+    [],
+  );
+  const updateTest = (event: TestEvent) =>
+    setTestState((current) => testTransition(current, event));
+
+  // Chrome's built-in model has no key or model to choose.
+  const isOnDevice = selectedProvider === ON_DEVICE_PROVIDER_ID;
+  const effectiveModel = isOnDevice ? ON_DEVICE_MODEL_ID : selectedModel;
   const usesCustomModelInput =
     selectedProvider === "custom" || selectedProvider === "openrouter";
+  const testInputs = testInputsKey({
+    providerId: selectedProvider,
+    apiKey,
+    model: effectiveModel,
+    baseUrl,
+  });
 
-  const loadAuthStatus = async () => {
-    const response = await chrome.runtime.sendMessage({
-      type: "GET_AUTH_STATUS",
-    });
-    setIsSignedIn(isUserInfoResponse(response));
-  };
-
-  const loadStorageSettings = async () => {
-    const rawResponse = await chrome.runtime.sendMessage({
-      type: "GET_STORAGE_SETTINGS",
-    });
+  const loadStorageSettings = useCallback(async () => {
+    const rawResponse = await sendRpc("GET_STORAGE_SETTINGS");
     const response = isStorageSettingsResponse(rawResponse)
       ? rawResponse
       : null;
 
     if (!response) {
-      setBackendState({
-        loading: false,
-        tone: "error",
+      updateBackend({
+        type: "SETTINGS_LOAD_FAILED",
         message:
           getResponseError(rawResponse) || "Failed to load sync settings.",
       });
@@ -229,197 +245,172 @@ export function ModelConfig() {
 
     setStorageBackend(response.storageBackend);
     setFirebaseConfigured(response.firebaseConfigured);
-  };
+  }, [updateBackend]);
 
-  const loadConfig = async () => {
-    const rawResponse = await chrome.runtime.sendMessage({
-      type: "GET_MODEL_CONFIG",
-      payload: { providerId: selectedProvider },
-    });
-    const response = isStorageResult<ProviderConfig>(rawResponse)
-      ? rawResponse
-      : null;
-
-    const config = response?.data;
-    if (config) {
-      setApiKey(config.apiKey || "");
-      setSelectedModel(config.model || "");
-      setBaseUrl(config.baseUrl || "");
-    } else {
-      setApiKey("");
-      setSelectedModel("");
-      setBaseUrl("");
-    }
-
-    setSaveState({
-      status: response?.syncStatus || (isSignedIn ? "synced" : "local-only"),
-      error: response?.error,
-    });
-  };
-
+  // Storage settings depend on who is signed in, so reload them on every change.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: isSignedIn is the trigger; the reply depends on the background's auth state
   useEffect(() => {
-    void loadAuthStatus();
     void loadStorageSettings();
-  }, []);
+  }, [loadStorageSettings, isSignedIn]);
+
+  // The passphrase that encrypts synced keys; only relevant when Cloud Sync is possible.
+  const loadVaultStatus = useCallback(async () => {
+    if (!isSignedIn || !firebaseConfigured) {
+      setVaultStatus(null);
+      return;
+    }
+    const reply = await sendRpc("GET_SYNC_VAULT_STATUS");
+    if (!isRpcFailure(reply)) setVaultStatus(reply.status);
+  }, [isSignedIn, firebaseConfigured]);
 
   useEffect(() => {
-    const handleAuthChange = (event: Event) => {
-      const customEvent = event as CustomEvent<{ user: unknown | null }>;
-      setIsSignedIn(!!customEvent.detail?.user);
-      void loadStorageSettings();
-    };
+    void loadVaultStatus();
+  }, [loadVaultStatus]);
 
-    window.addEventListener("plenz-auth-status-changed", handleAuthChange);
+  // Load the saved config for the selected provider. Switching again before
+  // the reply arrives makes it stale, so it is dropped. Unlocking Cloud Sync
+  // makes a synced key readable, so that reloads it too.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: storageBackend and vaultStatus are triggers; changing either changes what GET_MODEL_CONFIG returns
+  useEffect(() => {
+    let stale = false;
+
+    void (async () => {
+      const rawResponse = await sendRpc("GET_MODEL_CONFIG", {
+        providerId: selectedProvider,
+      });
+      if (stale) return;
+
+      const response = isStorageResult<ProviderConfig>(rawResponse)
+        ? rawResponse
+        : null;
+      const config = response?.data;
+      setApiKey(config?.apiKey || "");
+      setSelectedModel(config?.model || "");
+      setBaseUrl(config?.baseUrl || "");
+      updateSave({
+        type: "CONFIG_LOADED",
+        syncStatus:
+          response?.syncStatus || (isSignedIn ? "synced" : "local-only"),
+        warning: response?.error,
+      });
+    })();
+
     return () => {
-      window.removeEventListener("plenz-auth-status-changed", handleAuthChange);
+      stale = true;
     };
-  }, []);
+  }, [selectedProvider, isSignedIn, storageBackend, vaultStatus, updateSave]);
 
   useEffect(() => {
-    void loadConfig();
-  }, [selectedProvider, isSignedIn, storageBackend]);
+    // Set when the provider, key or URL changes again; late replies are dropped.
+    let stale = false;
+    const p =
+      providers.find((prov) => prov.id === selectedProvider) || providers[0];
+    const cacheKey = `models_${selectedProvider}`;
+    const showCachedModels = () => {
+      chrome.storage.local.get([cacheKey], (res) => {
+        if (!stale) setModels((res[cacheKey] as ModelOption[]) || []);
+      });
+    };
 
-  useEffect(() => {
     const fetchModelsWithCache = async () => {
-      const p =
-        providers.find((prov) => prov.id === selectedProvider) || providers[0];
-      const cacheKey = `models_${selectedProvider}`;
-
       if (
         !apiKey &&
         selectedProvider !== "openrouter" &&
         selectedProvider !== "custom"
       ) {
-        chrome.storage.local.get([cacheKey], (res) => {
-          setModels((res[cacheKey] as ModelOption[]) || []);
-        });
+        showCachedModels();
         return;
       }
 
       setFetchingModels(true);
       try {
         const fetched = await p.fetchModels({ apiKey, baseUrl, model: "" });
+        if (stale) return;
         if (fetched && fetched.length > 0) {
           setModels(fetched);
           chrome.storage.local.set({ [cacheKey]: fetched });
         } else {
-          chrome.storage.local.get([cacheKey], (res) => {
-            setModels((res[cacheKey] as ModelOption[]) || []);
-          });
+          showCachedModels();
         }
       } catch {
-        chrome.storage.local.get([cacheKey], (res) => {
-          setModels((res[cacheKey] as ModelOption[]) || []);
-        });
+        showCachedModels();
       } finally {
-        setFetchingModels(false);
+        if (!stale) setFetchingModels(false);
       }
     };
 
     const timer = setTimeout(fetchModelsWithCache, 600);
-    return () => clearTimeout(timer);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+      setFetchingModels(false);
+    };
   }, [selectedProvider, apiKey, baseUrl]);
 
   const handleTest = async () => {
-    setTestStatus({ loading: true });
+    const inputs = testInputs;
+    const finish = (result: ConnectionTestResult) =>
+      updateTest({ type: "TEST_FINISHED", inputs, result });
+    const fail = (error: string) =>
+      finish({ success: false, latencyMs: 0, error });
+
+    updateTest({ type: "TEST_STARTED", inputs });
     try {
       if (selectedProvider === "custom") {
         const originPattern = getCustomProviderOriginPattern(baseUrl);
 
         if (!originPattern) {
-          setTestStatus({
-            loading: false,
-            result: {
-              success: false,
-              latencyMs: 0,
-              error: "Enter a valid http(s) Custom Provider URL.",
-            },
-          });
+          fail("Enter a valid http(s) Custom Provider URL.");
           return;
         }
 
-        if (originPattern) {
-          const granted = await chrome.permissions.request({
-            origins: [originPattern],
-          });
+        const granted = await chrome.permissions.request({
+          origins: [originPattern],
+        });
 
-          if (!granted) {
-            setTestStatus({
-              loading: false,
-              result: {
-                success: false,
-                latencyMs: 0,
-                error:
-                  "Permission denied for that provider host. Approve access and try again.",
-              },
-            });
-            return;
-          }
+        if (!granted) {
+          fail(
+            "Permission denied for that provider host. Approve access and try again.",
+          );
+          return;
         }
       }
 
-      const response = await chrome.runtime.sendMessage({
-        type: "TEST_CONNECTION",
-        payload: {
-          providerId: selectedProvider,
-          config: { apiKey, model: selectedModel, baseUrl } as ProviderConfig,
-        },
+      const response = await sendRpc("TEST_CONNECTION", {
+        providerId: selectedProvider,
+        config: { apiKey, model: effectiveModel, baseUrl } as ProviderConfig,
       });
-      setTestStatus({ loading: false, result: response });
+      if ("success" in response) {
+        finish(response);
+      } else {
+        fail(response.error);
+      }
     } catch (error) {
-      setTestStatus({
-        loading: false,
-        result: {
-          success: false,
-          latencyMs: 0,
-          error: (error as Error).message,
-        },
-      });
+      fail((error as Error).message);
     }
   };
 
   const handleStorageBackendChange = async (
     nextBackend: StorageBackendPreference,
   ) => {
-    if (nextBackend === storageBackend || backendState.loading) {
-      return;
-    }
-
-    if (nextBackend === "firebase" && !isSignedIn) {
-      setBackendState({
-        loading: false,
-        tone: "error",
-        message: "Sign in with Google before enabling Cloud Sync.",
-      });
-      return;
-    }
-
-    if (nextBackend === "firebase" && !firebaseConfigured) {
-      setBackendState({
-        loading: false,
-        tone: "error",
-        message:
-          "Firebase is not configured in this build. Add the VITE_FIREBASE_* environment variables before enabling Cloud Sync.",
-      });
-      return;
-    }
-
-    setBackendState({
-      loading: true,
-      tone: "muted",
-      message:
-        nextBackend === "firebase"
-          ? "Migrating saved provider settings to Cloud Sync..."
-          : "Switching to Chrome Sync...",
+    const next = backendTransition(backendState, {
+      type: "SWITCH_REQUESTED",
+      target: nextBackend,
+      current: storageBackend,
+      isSignedIn,
+      firebaseConfigured,
+      vaultReady: vaultStatus === "unlocked",
     });
+    setBackendState(next);
+    if (next.kind !== "switching") {
+      return;
+    }
 
     try {
-      let migration: MigrationResponse | null = null;
+      let migration: MigrationResult | null = null;
 
       if (nextBackend === "firebase") {
-        const migrationResponse = await chrome.runtime.sendMessage({
-          type: "MIGRATE_SYNC_TO_FIREBASE",
-        });
+        const migrationResponse = await sendRpc("MIGRATE_SYNC_TO_FIREBASE");
         migration = isMigrationResponse(migrationResponse)
           ? migrationResponse
           : null;
@@ -432,9 +423,8 @@ export function ModelConfig() {
         }
       }
 
-      const actionResponse = await chrome.runtime.sendMessage({
-        type: "SET_STORAGE_BACKEND",
-        payload: { backend: nextBackend },
+      const actionResponse = await sendRpc("SET_STORAGE_BACKEND", {
+        backend: nextBackend,
       });
       const result = isActionResponse(actionResponse) ? actionResponse : null;
 
@@ -447,66 +437,54 @@ export function ModelConfig() {
       }
 
       setStorageBackend(nextBackend);
-      setBackendState({
-        loading: false,
-        tone: migration?.errors.length ? "error" : "muted",
-        message:
-          nextBackend === "firebase"
-            ? migration?.errors.length
-              ? `Cloud Sync enabled with warnings. ${migration.errors[0]}`
-              : migration && migration.migrated > 0
-                ? `Cloud Sync enabled. Migrated ${migration.migrated} provider configuration${migration.migrated === 1 ? "" : "s"} from Chrome Sync.`
-                : "Cloud Sync enabled."
-            : "Chrome Sync enabled. Existing Cloud Sync data remains available if you switch back.",
-      });
+      updateBackend({ type: "SWITCH_SUCCEEDED", migration });
     } catch (error) {
-      setBackendState({
-        loading: false,
-        tone: "error",
+      updateBackend({
+        type: "SWITCH_FAILED",
         message: (error as Error).message,
       });
     }
   };
 
   const handleSave = async () => {
-    setSaveState({ status: "syncing" });
+    if (saveState.kind === "saving") {
+      return;
+    }
 
+    const fail = (errorMessage: string) => {
+      updateSave({ type: "SAVE_FAILED", error: errorMessage });
+      alert(`Error saving settings: ${errorMessage}`);
+    };
+
+    updateSave({ type: "SAVE_STARTED" });
     try {
       if (selectedProvider === "custom") {
         const originPattern = getCustomProviderOriginPattern(baseUrl);
 
         if (!originPattern) {
-          const errorMessage = "Enter a valid http(s) Custom Provider URL.";
-          setSaveState({ status: "error", error: errorMessage });
-          alert(`Error saving settings: ${errorMessage}`);
+          fail("Enter a valid http(s) Custom Provider URL.");
           return;
         }
 
-        if (originPattern) {
-          const granted = await chrome.permissions.request({
-            origins: [originPattern],
-          });
+        const granted = await chrome.permissions.request({
+          origins: [originPattern],
+        });
 
-          if (!granted) {
-            const errorMessage =
-              "Permission denied for that provider host. Approve access before saving.";
-            setSaveState({ status: "error", error: errorMessage });
-            alert(`Error saving settings: ${errorMessage}`);
-            return;
-          }
+        if (!granted) {
+          fail(
+            "Permission denied for that provider host. Approve access before saving.",
+          );
+          return;
         }
       }
 
-      const rawResponse = await chrome.runtime.sendMessage({
-        type: "SAVE_MODEL_CONFIG",
-        payload: {
-          providerId: selectedProvider,
-          config: {
-            apiKey,
-            model: selectedModel,
-            baseUrl,
-          } as ProviderConfig,
-        },
+      const rawResponse = await sendRpc("SAVE_MODEL_CONFIG", {
+        providerId: selectedProvider,
+        config: {
+          apiKey,
+          model: effectiveModel,
+          baseUrl,
+        } as ProviderConfig,
       });
       const response = isStorageResult<void>(rawResponse) ? rawResponse : null;
       const responseError = getResponseError(rawResponse);
@@ -515,31 +493,32 @@ export function ModelConfig() {
         response?.syncStatus === "error" || (!response && !!nextError);
 
       if (isHardError) {
-        const errorMessage = nextError || "Unknown error";
-        setSaveState({ status: "error", error: errorMessage });
-        alert(`Error saving settings: ${errorMessage}`);
+        fail(nextError || "Unknown error");
         return;
       }
 
-      setSaveState({
-        status: response?.syncStatus || (isSignedIn ? "synced" : "local-only"),
-        error: nextError,
+      updateSave({
+        type: "SAVE_SUCCEEDED",
+        syncStatus:
+          response?.syncStatus || (isSignedIn ? "synced" : "local-only"),
+        warning: nextError,
       });
 
-      await chrome.runtime.sendMessage({
-        type: "SET_ACTIVE_MODEL",
-        payload: { modelId: selectedModel, providerId: selectedProvider },
+      await sendRpc("SET_ACTIVE_MODEL", {
+        modelId: effectiveModel,
+        providerId: selectedProvider,
       });
     } catch (error) {
-      setSaveState({
-        status: "error",
-        error: (error as Error).message,
-      });
-      alert(`Error saving settings: ${(error as Error).message}`);
+      fail((error as Error).message);
     }
   };
 
-  const syncMeta = getSyncStatusMeta(saveState.status, storageBackend);
+  const badgeStatus = saveBadgeStatus(saveState);
+  const syncMeta = getSyncStatusMeta(badgeStatus, storageBackend);
+  const saveDetail = saveMessage(saveState) || syncMeta.description;
+  const backendLine = backendNotice(backendState);
+  const isSwitchingBackend = backendState.kind === "switching";
+  const testResult = visibleTestResult(testState, testInputs);
   const defaultBackendMessage = !firebaseConfigured
     ? "Cloud Sync is unavailable in this build. Add the VITE_FIREBASE_* environment variables and rebuild the extension."
     : !isSignedIn
@@ -571,7 +550,7 @@ export function ModelConfig() {
           {storageBackendOptions.map(({ value, label, description, Icon }) => {
             const isSelected = storageBackend === value;
             const isDisabled =
-              backendState.loading ||
+              isSwitchingBackend ||
               (value === "firebase" && (!isSignedIn || !firebaseConfigured));
 
             return (
@@ -605,13 +584,20 @@ export function ModelConfig() {
         <p
           className={cn(
             "text-xs leading-relaxed",
-            backendState.tone === "error"
+            backendLine?.tone === "error"
               ? "text-accent-signal"
               : "text-muted-foreground",
           )}
         >
-          {backendState.message || defaultBackendMessage}
+          {backendLine?.message || defaultBackendMessage}
         </p>
+        {isSignedIn && firebaseConfigured ? (
+          <SyncPassphrase
+            status={vaultStatus}
+            cloudSyncActive={storageBackend === "firebase"}
+            onChanged={() => void loadVaultStatus()}
+          />
+        ) : null}
       </div>
 
       <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
@@ -641,126 +627,134 @@ export function ModelConfig() {
         </Select>
       </div>
 
-      <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
-        <Label
-          htmlFor="model"
-          className="font-mono text-[11px] tracking-[0.14em] uppercase"
-        >
-          Model
-        </Label>
-        {usesCustomModelInput ? (
-          <div className="flex flex-col gap-2">
-            <Input
-              id="model"
-              type="text"
-              value={selectedModel}
-              onInput={(e) =>
-                setSelectedModel((e.target as HTMLInputElement).value)
-              }
-              placeholder={
-                fetchingModels
-                  ? "Fetching models..."
-                  : selectedProvider === "openrouter"
-                    ? "e.g., anthropic/claude-3-opus"
-                    : "e.g., deepseek-chat or llama3.1"
-              }
-              list={`${selectedProvider}-models`}
-            />
-            {selectedProvider === "custom" ? (
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Enter the exact model ID from your provider. Examples include{" "}
-                <code>deepseek-chat</code>, <code>deepseek-reasoner</code>, or{" "}
-                <code>llama3.1</code>.
-              </p>
-            ) : null}
-            <datalist id={`${selectedProvider}-models`}>
-              {models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.name}
-                </option>
-              ))}
-            </datalist>
+      {isOnDevice ? (
+        <OnDeviceModel />
+      ) : (
+        <>
+          <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+            <Label
+              htmlFor="model"
+              className="font-mono text-[11px] tracking-[0.14em] uppercase"
+            >
+              Model
+            </Label>
+            {usesCustomModelInput ? (
+              <div className="flex flex-col gap-2">
+                <Input
+                  id="model"
+                  type="text"
+                  value={selectedModel}
+                  onInput={(e) =>
+                    setSelectedModel((e.target as HTMLInputElement).value)
+                  }
+                  placeholder={
+                    fetchingModels
+                      ? "Fetching models..."
+                      : selectedProvider === "openrouter"
+                        ? "e.g., anthropic/claude-3-opus"
+                        : "e.g., deepseek-chat or llama3.1"
+                  }
+                  list={`${selectedProvider}-models`}
+                />
+                {selectedProvider === "custom" ? (
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Enter the exact model ID from your provider. Examples
+                    include <code>deepseek-chat</code>,{" "}
+                    <code>deepseek-reasoner</code>, or <code>llama3.1</code>.
+                  </p>
+                ) : null}
+                <datalist id={`${selectedProvider}-models`}>
+                  {models.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name}
+                    </option>
+                  ))}
+                </datalist>
+              </div>
+            ) : (
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger id="model" className="w-full">
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {models.length === 0 && fetchingModels ? (
+                    <SelectItem value="..." disabled>
+                      Loading models...
+                    </SelectItem>
+                  ) : models.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      Enter API Key to load models
+                    </SelectItem>
+                  ) : (
+                    models.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-        ) : (
-          <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger id="model" className="w-full">
-              <SelectValue placeholder="Select model" />
-            </SelectTrigger>
-            <SelectContent>
-              {models.length === 0 && fetchingModels ? (
-                <SelectItem value="..." disabled>
-                  Loading models...
-                </SelectItem>
-              ) : models.length === 0 ? (
-                <SelectItem value="none" disabled>
-                  Enter API Key to load models
-                </SelectItem>
-              ) : (
-                models.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
 
-      {selectedProvider === "custom" ? (
-        <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
-          <Label
-            htmlFor="base-url"
-            className="font-mono text-[11px] tracking-[0.14em] uppercase"
-          >
-            Base URL
-          </Label>
-          <div className="flex flex-col gap-2">
+          {selectedProvider === "custom" ? (
+            <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+              <Label
+                htmlFor="base-url"
+                className="font-mono text-[11px] tracking-[0.14em] uppercase"
+              >
+                Base URL
+              </Label>
+              <div className="flex flex-col gap-2">
+                <Input
+                  id="base-url"
+                  type="text"
+                  value={baseUrl}
+                  onInput={(e) =>
+                    setBaseUrl((e.target as HTMLInputElement).value)
+                  }
+                  placeholder="https://your-provider.example/v1"
+                />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Enter the provider base URL or the full chat completions
+                  endpoint. plenz appends <code>/chat/completions</code>{" "}
+                  automatically for base URLs. DeepSeek works with{" "}
+                  <code>https://api.deepseek.com</code> or{" "}
+                  <code>https://api.deepseek.com/v1</code>.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
+            <Label
+              htmlFor="api-key"
+              className="font-mono text-[11px] tracking-[0.14em] uppercase"
+            >
+              API key
+            </Label>
             <Input
-              id="base-url"
-              type="text"
-              value={baseUrl}
-              onInput={(e) => setBaseUrl((e.target as HTMLInputElement).value)}
-              placeholder="https://your-provider.example/v1"
+              id="api-key"
+              type="password"
+              value={apiKey}
+              onInput={(e) => setApiKey((e.target as HTMLInputElement).value)}
+              placeholder="sk-..."
             />
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Enter the provider base URL or the full chat completions endpoint.
-              plenz appends <code>/chat/completions</code> automatically for
-              base URLs. DeepSeek works with{" "}
-              <code>https://api.deepseek.com</code> or{" "}
-              <code>https://api.deepseek.com/v1</code>.
-            </p>
           </div>
-        </div>
-      ) : null}
-
-      <div className="grid gap-3 rounded-sm px-3 py-3 sm:grid-cols-[170px_1fr] sm:items-center">
-        <Label
-          htmlFor="api-key"
-          className="font-mono text-[11px] tracking-[0.14em] uppercase"
-        >
-          API key
-        </Label>
-        <Input
-          id="api-key"
-          type="password"
-          value={apiKey}
-          onInput={(e) => setApiKey((e.target as HTMLInputElement).value)}
-          placeholder="sk-..."
-        />
-      </div>
+        </>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <Button
           onClick={handleTest}
-          disabled={testStatus.loading}
+          disabled={testState.kind === "testing"}
           variant="outline"
         >
-          {testStatus.loading ? "Testing..." : "Test connection"}
+          {testState.kind === "testing" ? "Testing..." : "Test connection"}
         </Button>
         <Button
           onClick={handleSave}
-          disabled={saveState.status === "syncing" || backendState.loading}
+          disabled={saveState.kind === "saving" || isSwitchingBackend}
         >
           Save configuration
         </Button>
@@ -770,9 +764,9 @@ export function ModelConfig() {
             "rounded-sm font-mono text-[10px] tracking-[0.12em] uppercase",
             syncMeta.className,
           )}
-          title={saveState.error || syncMeta.description}
+          title={saveDetail}
         >
-          {getSyncStatusIcon(saveState.status)}
+          {getSyncStatusIcon(badgeStatus)}
           {syncMeta.label}
         </Badge>
       </div>
@@ -780,38 +774,38 @@ export function ModelConfig() {
       <p
         className={cn(
           "px-0 text-xs leading-relaxed",
-          saveState.status === "error"
+          badgeStatus === "error"
             ? "text-accent-signal"
             : "text-muted-foreground",
         )}
       >
-        {saveState.error || syncMeta.description}
+        {saveDetail}
       </p>
 
-      {testStatus.result ? (
+      {testResult ? (
         <div
           className={cn(
             "flex items-center justify-between gap-3 rounded-sm border px-3 py-2",
-            testStatus.result.success
+            testResult.success
               ? "border-accent-secondary bg-muted"
               : "border-accent-signal bg-muted",
           )}
         >
           <p className="text-sm leading-relaxed text-foreground">
-            {testStatus.result.success
-              ? `Connection OK. Latency: ${testStatus.result.latencyMs}ms`
-              : `Connection failed: ${testStatus.result.error}`}
+            {testResult.success
+              ? `Connection OK. Latency: ${testResult.latencyMs}ms`
+              : `Connection failed: ${testResult.error}`}
           </p>
           <Badge
             variant="outline"
             className={cn(
               "rounded-sm font-mono text-[10px] tracking-[0.12em] uppercase",
-              testStatus.result.success
+              testResult.success
                 ? "border-accent-secondary text-accent-secondary"
                 : "border-accent-signal text-accent-signal",
             )}
           >
-            {testStatus.result.success ? "Healthy" : "Error"}
+            {testResult.success ? "Healthy" : "Error"}
           </Badge>
         </div>
       ) : null}

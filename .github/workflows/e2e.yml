@@ -1,6 +1,10 @@
 name: E2E
 
+# The built extension in real Chromium, on fixture pages served at the chat
+# hosts with a local mock provider. Deterministic; no network or accounts.
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -26,5 +30,18 @@ jobs:
       - name: Build Chrome extension
         run: pnpm build:chrome
 
-      - name: Placeholder E2E run
-        run: echo "Playwright E2E scaffolding pending."
+      - name: Install Playwright Chromium
+        run: pnpm -C apps/extension exec playwright install --with-deps chromium
+
+      - name: Run extension E2E tests
+        run: pnpm -C apps/extension e2e
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/extension/playwright-report
+            apps/extension/test-results
+          retention-days: 14

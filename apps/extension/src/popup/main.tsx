@@ -1,5 +1,7 @@
-import { render } from "preact"
-import { App } from "./App"
-import "../index.css"
+import { render } from "preact";
+import { App } from "./App";
+import "../index.css";
+import { followThemePreference } from "../shared/theme-preference";
 
-render(<App />, document.getElementById("app") as HTMLElement)
+followThemePreference();
+render(<App />, document.getElementById("app") as HTMLElement);

@@ -1,4 +1,5 @@
 ---
+
 name: Broken platform
 about: Report a provider/platform DOM change that breaks plenz injection.
 title: "[Platform Breakage] "
@@ -29,4 +30,3 @@ Explain what no longer works (input detection, overlay placement, suggestion app
 ## Evidence
 
 Include screenshots and relevant DOM snippets from DevTools.
-

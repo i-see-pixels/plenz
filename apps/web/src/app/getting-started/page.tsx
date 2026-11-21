@@ -1,14 +1,11 @@
-import Link from "next/link";
-import Image from "next/image";
-import { Footer } from "@/components/footer";
-import { Navbar } from "@/components/navbar";
-import {
-  createBreadcrumbSchema,
-  createPageMetadata,
-  serializeJsonLd,
-} from "@/lib/seo";
-import { siteConfig } from "@/lib/site";
 import { Key, Link as LinkIcon } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { Footer } from "@/components/footer";
+import { JsonLd } from "@/components/json-ld";
+import { Navbar } from "@/components/navbar";
+import { createBreadcrumbSchema, createPageMetadata } from "@/lib/seo";
+import { siteConfig } from "@/lib/site";
 import anthropic from "../../assets/anthropic.png";
 import chromePage from "../../assets/chrome-page.png";
 import configPage from "../../assets/config.png";
@@ -132,12 +129,7 @@ export default function GettingStarted() {
       <Navbar />
 
       <main className="relative z-10 px-4 py-24 sm:px-6 lg:px-8">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: serializeJsonLd(breadcrumbSchema),
-          }}
-        />
+        <JsonLd data={breadcrumbSchema} />
 
         <div className="mx-auto max-w-4xl space-y-16">
           <div className="space-y-4">
@@ -145,10 +137,10 @@ export default function GettingStarted() {
               Getting Started
             </h1>
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Welcome to plenz. We run completely entirely in your browser
-              environment, which means your prompt text never routes through a
-              unified backend server and stays private by default. Let&apos;s
-              get your workspace set up.
+              Welcome to plenz. It runs in your browser and sends your prompt
+              straight to the model you pick, never through a plenz server. When
+              you install it, a welcome page opens and walks you through these
+              steps.
             </p>
             <div className="flex flex-wrap gap-3 font-mono text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
               <Link
@@ -181,8 +173,9 @@ export default function GettingStarted() {
                 <p className="leading-relaxed text-muted-foreground">
                   First, download the plenz extension from the Chrome Web Store.
                   Once installed, be sure to pin it to your browser toolbar for
-                  quick access. This allows you to easily hop into settings or
-                  toggle extension status.
+                  quick access. From the popup you can switch models, turn plenz
+                  off or on for chat sites, open the Prompt Gallery, or turn
+                  plenz on for the site you&apos;re on.
                 </p>
                 <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border shadow-md flex flex-col items-center justify-center text-center">
                   <Image src={chromePage} alt="plenz Chrome Web Store page" />
@@ -208,6 +201,12 @@ export default function GettingStarted() {
                   markup. Click on the plenz icon, open Settings, and select a
                   provider from the dropdown.
                 </p>
+                <p className="leading-relaxed text-muted-foreground">
+                  No key yet? If your Chrome supports its built-in Gemini Nano
+                  model, plenz uses it automatically when no provider is set up.
+                  It refines on your device, with no key and no network call.
+                  The model downloads once the first time.
+                </p>
                 <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border bg-muted/50 flex flex-col items-center justify-center text-center p-6">
                   <Image src={configPage} alt="plenz provider configuration" />
                 </div>
@@ -228,10 +227,12 @@ export default function GettingStarted() {
                   </h2>
                   <p className="leading-relaxed text-muted-foreground">
                     Retrieve a valid API key from your preferred provider to
-                    proceed. The keys are instantly stored in
-                    `chrome.storage.local` within your browser and never leave
-                    your environment. Expand the sections below to find exact
-                    instructions for the provider you just chose.
+                    proceed. Keys are stored in `chrome.storage.local` in your
+                    browser. If you turn on Cloud Sync to use them on other
+                    devices, they are encrypted with a passphrase you set before
+                    they leave the browser, and plenz never sees it. Expand the
+                    sections below for exact instructions for the provider you
+                    chose.
                   </p>
                 </div>
 
@@ -260,8 +261,8 @@ export default function GettingStarted() {
                         )}
                       </div>
                       <ol className="list-decimal space-y-2 pl-5 text-muted-foreground">
-                        {provider.steps.map((step, index) => (
-                          <li key={index} className="text-sm">
+                        {provider.steps.map((step) => (
+                          <li key={step} className="text-sm">
                             {step}
                           </li>
                         ))}

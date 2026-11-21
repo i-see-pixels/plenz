@@ -1,4 +1,5 @@
 ---
+
 name: Feature request
 about: Propose an enhancement to plenz.
 title: "[Feature] "
@@ -21,4 +22,3 @@ What alternatives did you consider?
 ## User Persona / Use Case
 
 Who benefits from this and in what workflow?
-

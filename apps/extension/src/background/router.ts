@@ -1,139 +1,315 @@
-import { StorageManager } from "./storage";
-import { providers } from "@plenz/providers";
 import {
-  buildSystemPrompt,
-  IntentDetector,
-  EntityExtractor,
-} from "@plenz/core";
-import { AuthManager } from "./auth";
+  isProviderConfigured,
+  onDeviceAvailability,
+  onDeviceStatusMessage,
+  providers,
+} from "@plenz/providers";
+import { parseLearningEvent } from "../shared/learning";
+import {
+  CONTENT_SCRIPT_RPC,
+  type RpcFailure,
+  type RpcPayload,
+  type RpcReply,
+  type RpcType,
+} from "../shared/rpc";
+import { AuthSession } from "./auth-session";
+import { InsertablePrompts } from "./insertable-prompts";
+import { LearningStore } from "./learning-store";
+import { PromptGalleryManager } from "./prompt-gallery";
+import { Sites } from "./sites";
+import { StorageManager } from "./storage";
+import { SyncVault } from "./sync-vault";
 
-export async function handleMessage(
-  message: any,
-  sender: chrome.runtime.MessageSender,
-) {
-  switch (message.type) {
-    case "GET_ACTIVE_MODEL":
-      const configResult = await StorageManager.getActiveModelConfig();
-      const prefs = await StorageManager.getPreferences();
-      const response = {
-        config: configResult.data,
-        activeModelId: prefs.activeModelId,
-        isConfigured: !!configResult.data?.apiKey,
-        syncStatus: configResult.syncStatus,
-        error: configResult.error,
+function isExtensionPage(sender: chrome.runtime.MessageSender) {
+  return (
+    typeof sender.url === "string" &&
+    sender.url.startsWith(chrome.runtime.getURL(""))
+  );
+}
+
+type Handlers = {
+  [K in RpcType]: (
+    payload: RpcPayload<K>,
+    sender: chrome.runtime.MessageSender,
+  ) => Promise<RpcReply<K> | RpcFailure>;
+};
+
+// Payloads still cross a trust boundary, so handlers keep their runtime checks.
+const handlers: Handlers = {
+  async GET_ACTIVE_MODEL() {
+    const configResult = await StorageManager.getActiveModelConfig();
+    const prefs = await StorageManager.getPreferences();
+    return {
+      config: configResult.data,
+      activeModelId: prefs.activeModelId,
+      isConfigured: isProviderConfigured(
+        providers.find((p) => p.id === prefs.activeProviderId),
+        configResult.data,
+      ),
+      syncStatus: configResult.syncStatus,
+      error: configResult.error,
+    };
+  },
+
+  async SET_ACTIVE_MODEL(payload) {
+    await StorageManager.setPreferences({
+      activeModelId: payload.modelId,
+      activeProviderId: payload.providerId,
+    });
+    return { success: true };
+  },
+
+  async GET_STORAGE_SETTINGS() {
+    return StorageManager.getStorageSettings();
+  },
+
+  async GET_PREFERENCES() {
+    return StorageManager.getPreferences();
+  },
+
+  async SET_PREFERENCES(payload) {
+    await StorageManager.setPreferences(payload?.preferences ?? {});
+    return {
+      success: true,
+      preferences: await StorageManager.getPreferences(),
+    };
+  },
+
+  async SET_STORAGE_BACKEND(payload) {
+    const nextBackend = payload?.backend;
+
+    if (nextBackend !== "chrome-sync" && nextBackend !== "firebase") {
+      return {
+        success: false,
+        error: "Invalid storage backend.",
       };
-      return response;
-
-    case "SET_ACTIVE_MODEL":
-      await StorageManager.setPreferences({
-        activeModelId: message.payload.modelId,
-        activeProviderId: message.payload.providerId,
-      });
-      return { success: true };
-
-    case "GET_STORAGE_SETTINGS":
-      return await StorageManager.getStorageSettings();
-
-    case "SET_STORAGE_BACKEND": {
-      const nextBackend = message.payload?.backend;
-
-      if (nextBackend !== "chrome-sync" && nextBackend !== "firebase") {
-        return {
-          success: false,
-          error: "Invalid storage backend.",
-        };
-      }
-
-      await StorageManager.setStorageBackend(nextBackend);
-      return { success: true };
     }
 
-    case "GET_MODEL_CONFIG":
-      return await StorageManager.getModelConfig(message.payload.providerId);
+    await StorageManager.setStorageBackend(nextBackend);
+    return { success: true };
+  },
 
-    case "SAVE_MODEL_CONFIG":
-      return await StorageManager.setModelConfig(
-        message.payload.providerId,
-        message.payload.config,
-      );
+  async GET_MODEL_CONFIG(payload) {
+    return StorageManager.getModelConfig(payload.providerId);
+  },
 
-    case "GET_ALL_MODEL_CONFIGS":
-      return await StorageManager.getAllModelConfigs();
+  async SAVE_MODEL_CONFIG(payload) {
+    return StorageManager.setModelConfig(payload.providerId, payload.config);
+  },
 
-    case "MIGRATE_KEYS_TO_SYNC":
-      return await StorageManager.migrateLocalToPreferredBackend();
+  async GET_ALL_MODEL_CONFIGS() {
+    return StorageManager.getAllModelConfigs();
+  },
 
-    case "MIGRATE_SYNC_TO_FIREBASE":
-      return await StorageManager.migrateSyncToFirebase();
+  async MIGRATE_SYNC_TO_FIREBASE() {
+    return StorageManager.migrateSyncToFirebase();
+  },
 
-    case "CACHE_MODEL_CONFIGS_LOCALLY":
-      return await StorageManager.cacheSyncToLocal();
+  async TEST_CONNECTION(payload) {
+    const { providerId, config } = payload;
+    const provider = providers.find((p) => p.id === providerId);
+    if (!provider) throw new Error(`Provider ${providerId} not found`);
+    return provider.testConnection(config);
+  },
 
-    case "TEST_CONNECTION": {
-      const { providerId, config } = message.payload;
-      const provider = providers.find((p) => p.id === providerId);
-      if (!provider) throw new Error(`Provider ${providerId} not found`);
-      return await provider.testConnection(config);
+  async AUTH_SIGN_IN() {
+    InsertablePrompts.invalidate();
+    return AuthSession.signIn();
+  },
+
+  async AUTH_SIGN_OUT(payload) {
+    InsertablePrompts.invalidate();
+    return AuthSession.signOut(payload?.keepLocalCopies === true);
+  },
+
+  async GET_AUTH_STATE() {
+    return AuthSession.getSnapshot();
+  },
+
+  async OPEN_PROMPT_GALLERY_PANEL(payload) {
+    const windowId = payload?.windowId;
+
+    if (typeof windowId !== "number") {
+      return { success: false, error: "Current window is unavailable." };
     }
 
-    case "ANALYZE_PROMPT": {
-      const { prompt, context } = message.payload;
+    await chrome.sidePanel.open({ windowId });
+    return { success: true };
+  },
 
-      const intentDetector = new IntentDetector();
-      const entityExtractor = new EntityExtractor();
+  async LIST_PUBLIC_PROMPTS(payload) {
+    return {
+      prompts: await PromptGalleryManager.listPublicPrompts(
+        payload?.category === "newest" ? "newest" : "trending",
+      ),
+    };
+  },
 
-      const intentMatch = intentDetector.detect(prompt);
-      const entities = entityExtractor.extract(prompt, context);
-      const systemPrompt = buildSystemPrompt(intentMatch, entities);
+  async RECORD_LEARNING(payload) {
+    const event = parseLearningEvent(payload);
+    if (!event) return { error: "Invalid learning event." };
+    await LearningStore.record(event);
+    return { success: true };
+  },
 
-      try {
-        const configResult = await StorageManager.getActiveModelConfig();
-        const config = configResult.data;
-        const prefs = await StorageManager.getPreferences();
+  async OPEN_SETTINGS() {
+    await chrome.runtime.openOptionsPage();
+    return { success: true };
+  },
 
-        if (!config || !config.apiKey) {
-          return {
-            error:
-              "LLM Provider not configured. Please set an API key in the extension options.",
-          };
-        }
+  async RESET_LEARNING() {
+    await LearningStore.reset();
+    return { success: true };
+  },
 
-        const provider = providers.find((p) => p.id === prefs.activeProviderId);
-        if (!provider) {
-          return {
-            error:
-              "Active LLM Provider not found. Please review your settings.",
-          };
-        }
+  async LIST_INSERTABLE_PROMPTS() {
+    return { prompts: await InsertablePrompts.list() };
+  },
 
-        const remoteResult = await provider.analyze(
-          prompt,
-          systemPrompt,
-          config,
-          context,
-        );
-        return {
-          suggestions: remoteResult.suggestions.slice(0, 5),
-          latencyMs: remoteResult.latencyMs,
-        };
-      } catch (e: any) {
-        console.error("Remote analysis failed:", e);
-        return { error: e.message || "Failed to analyze prompt." };
-      }
-    }
+  async LIST_SAVED_PROMPTS() {
+    return {
+      prompts: await PromptGalleryManager.listSavedPrompts(),
+    };
+  },
 
-    case "AUTH_SIGN_IN":
-      return await AuthManager.signIn(true);
+  async CREATE_SAVED_PROMPT(payload) {
+    InsertablePrompts.invalidate();
+    return {
+      prompt: await PromptGalleryManager.createCustomPrompt({
+        title: payload?.title ?? "",
+        prompt: payload?.prompt ?? "",
+      }),
+    };
+  },
 
-    case "AUTH_SIGN_OUT":
-      return await AuthManager.signOut();
+  async UPDATE_SAVED_PROMPT(payload) {
+    InsertablePrompts.invalidate();
+    return {
+      prompt: await PromptGalleryManager.updateSavedPrompt({
+        id: payload?.id ?? "",
+        title: payload?.title ?? "",
+        prompt: payload?.prompt ?? "",
+      }),
+    };
+  },
 
-    case "GET_AUTH_STATUS":
-      return await AuthManager.getAuthStatus();
+  async SAVE_PUBLIC_PROMPT(payload) {
+    InsertablePrompts.invalidate();
+    return {
+      prompt: await PromptGalleryManager.savePublicPrompt(payload?.prompt),
+    };
+  },
 
-    default:
-      console.warn("Unknown message type:", message.type);
-      return null;
+  async DELETE_SAVED_PROMPT(payload) {
+    InsertablePrompts.invalidate();
+    await PromptGalleryManager.deleteSavedPrompt(payload?.id ?? "");
+    return { success: true };
+  },
+
+  async GET_SYNC_VAULT_STATUS() {
+    return { status: await SyncVault.status() };
+  },
+
+  async SET_UP_SYNC_VAULT(payload) {
+    return vaultAction(() =>
+      SyncVault.setUp(String(payload?.passphrase ?? "")),
+    );
+  },
+
+  async UNLOCK_SYNC_VAULT(payload) {
+    return vaultAction(() =>
+      SyncVault.unlock(String(payload?.passphrase ?? "")),
+    );
+  },
+
+  async CHANGE_SYNC_PASSPHRASE(payload) {
+    return vaultAction(() =>
+      SyncVault.changePassphrase(
+        String(payload?.current ?? ""),
+        String(payload?.next ?? ""),
+      ),
+    );
+  },
+
+  async LOCK_SYNC_VAULT() {
+    return vaultAction(() => SyncVault.lock());
+  },
+
+  async RESET_SYNC_VAULT() {
+    return vaultAction(() => SyncVault.reset());
+  },
+
+  async GET_ON_DEVICE_STATUS() {
+    // Checked here, where refines run, rather than in the asking page.
+    const availability = await onDeviceAvailability();
+    return { availability, message: onDeviceStatusMessage(availability) };
+  },
+
+  async GET_SITE_STATUS(payload) {
+    return Sites.status(String(payload?.url ?? ""));
+  },
+
+  async SITE_PERMISSION_REQUESTED(payload) {
+    const tabId =
+      typeof payload?.tabId === "number" ? payload.tabId : undefined;
+    return Sites.markPending(String(payload?.url ?? ""), tabId);
+  },
+
+  async ENABLE_SITE(payload) {
+    const tabId =
+      typeof payload?.tabId === "number" ? payload.tabId : undefined;
+    return Sites.enable(String(payload?.url ?? ""), tabId);
+  },
+
+  async DISABLE_SITE(payload) {
+    return Sites.disable(String(payload?.url ?? ""));
+  },
+};
+
+/** Vault failures (short passphrase, network) come back as a message, not a throw. */
+async function vaultAction(
+  action: () => Promise<{
+    success: boolean;
+    error?: string;
+    upgraded?: number;
+  }>,
+) {
+  try {
+    return await action();
+  } catch (error) {
+    return {
+      success: false,
+      error: (error as Error).message || "Cloud Sync passphrase action failed.",
+    };
   }
 }
 
+function isRpcType(type: unknown): type is RpcType {
+  return typeof type === "string" && Object.hasOwn(handlers, type);
+}
+
+export async function handleMessage(
+  message: unknown,
+  sender: chrome.runtime.MessageSender,
+): Promise<unknown> {
+  if (sender.id !== chrome.runtime.id) {
+    return { error: "Unauthorized sender." };
+  }
+
+  const type = (message as { type?: unknown } | null)?.type;
+  if (!isRpcType(type)) {
+    console.warn("Unknown message type:", type);
+    return null;
+  }
+
+  if (!isExtensionPage(sender) && !CONTENT_SCRIPT_RPC.has(type)) {
+    console.warn("plenz: blocked message from content script:", type);
+    return { error: "Not allowed from this context." };
+  }
+
+  const handler = handlers[type] as (
+    payload: unknown,
+    sender: chrome.runtime.MessageSender,
+  ) => Promise<unknown>;
+  return handler((message as { payload?: unknown }).payload, sender);
+}

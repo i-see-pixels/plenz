@@ -1,174 +1,168 @@
 import type { ProviderConfig } from "@plenz/types";
+import {
+  decryptSecret,
+  type EncryptedSecret,
+  encryptSecret,
+  fromBase64,
+  isEncryptedSecret,
+  secretContext,
+} from "./vault-crypto.ts";
 
-const ENCRYPTION_VERSION = 1;
-const ENCRYPTION_ALGORITHM = "AES-GCM";
-const KEY_DERIVATION_CONTEXT = "plenz/firebase-api-key/v1";
-const IV_LENGTH_BYTES = 12;
-
-export interface EncryptedApiKeyPayload {
+/**
+ * Before passphrase sync, keys were encrypted with SHA-256 of a fixed string
+ * plus the uid. The uid is the document path, so anyone who could read the
+ * document could decrypt it. Read-only now: such keys are re-encrypted with
+ * the vault's data key as soon as this device is unlocked.
+ */
+type LegacyEncryptedApiKey = {
   version: 1;
   alg: "AES-GCM";
   iv: string;
   ciphertext: string;
-}
+};
 
 export interface FirestoreProviderConfig
   extends Omit<ProviderConfig, "apiKey"> {
+  /** Plaintext, from the oldest versions. Read-only; replaced on upgrade. */
   apiKey?: string;
-  encryptedApiKey?: EncryptedApiKeyPayload;
+  encryptedApiKey?: EncryptedSecret | LegacyEncryptedApiKey;
 }
 
-function toBase64(bytes: Uint8Array) {
-  let binary = "";
-
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
+export class SyncLockedError extends Error {
+  constructor() {
+    super(
+      "Cloud Sync is locked on this device. Enter your sync passphrase in plenz settings.",
+    );
+    this.name = "SyncLockedError";
   }
-
-  return btoa(binary);
 }
 
-function fromBase64(value: string) {
-  const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index++) {
-    bytes[index] = binary.charCodeAt(index);
+export class SyncPassphraseRequiredError extends Error {
+  constructor() {
+    super(
+      "Set a sync passphrase in plenz settings before saving keys to Cloud Sync.",
+    );
+    this.name = "SyncPassphraseRequiredError";
   }
-
-  return bytes;
 }
 
-async function deriveUserKey(userId: string): Promise<CryptoKey> {
-  const encoder = new TextEncoder();
-  const material = encoder.encode(`${KEY_DERIVATION_CONTEXT}:${userId}`);
+/** Vault states are not outages: callers must not fall back or back off. */
+export function isVaultError(error: unknown) {
+  return (
+    error instanceof SyncLockedError ||
+    error instanceof SyncPassphraseRequiredError
+  );
+}
+
+function isLegacyPayload(value: unknown): value is LegacyEncryptedApiKey {
+  const v = value as LegacyEncryptedApiKey;
+  return (
+    !!v && v.version === 1 && v.alg === "AES-GCM" && typeof v.iv === "string"
+  );
+}
+
+async function decryptLegacyApiKey(
+  payload: LegacyEncryptedApiKey,
+  userId: string,
+) {
+  const material = new TextEncoder().encode(
+    `plenz/firebase-api-key/v1:${userId}`,
+  );
   const digest = await crypto.subtle.digest("SHA-256", material);
-
-  return crypto.subtle.importKey(
+  const key = await crypto.subtle.importKey(
     "raw",
     digest,
-    { name: ENCRYPTION_ALGORITHM },
+    { name: "AES-GCM" },
     false,
-    ["encrypt", "decrypt"],
+    ["decrypt"],
   );
-}
-
-export async function encryptApiKey(
-  apiKey: string,
-  userId: string,
-): Promise<EncryptedApiKeyPayload> {
-  const key = await deriveUserKey(userId);
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH_BYTES));
-  const plaintext = new TextEncoder().encode(apiKey);
-  const ciphertext = await crypto.subtle.encrypt(
-    { name: ENCRYPTION_ALGORITHM, iv },
-    key,
-    plaintext,
-  );
-
-  return {
-    version: ENCRYPTION_VERSION,
-    alg: ENCRYPTION_ALGORITHM,
-    iv: toBase64(iv),
-    ciphertext: toBase64(new Uint8Array(ciphertext)),
-  };
-}
-
-export async function decryptApiKey(
-  payload: EncryptedApiKeyPayload,
-  userId: string,
-): Promise<string> {
-  if (
-    payload.version !== ENCRYPTION_VERSION ||
-    payload.alg !== ENCRYPTION_ALGORITHM
-  ) {
-    throw new Error("Unsupported API key encryption payload.");
-  }
-
-  const key = await deriveUserKey(userId);
   const plaintext = await crypto.subtle.decrypt(
-    { name: ENCRYPTION_ALGORITHM, iv: fromBase64(payload.iv) },
+    { name: "AES-GCM", iv: fromBase64(payload.iv) },
     key,
     fromBase64(payload.ciphertext),
   );
-
   return new TextDecoder().decode(plaintext);
 }
 
-export function isEncryptedApiKeyPayload(
-  value: unknown,
-): value is EncryptedApiKeyPayload {
-  return (
-    !!value &&
-    typeof value === "object" &&
-    (value as EncryptedApiKeyPayload).version === ENCRYPTION_VERSION &&
-    (value as EncryptedApiKeyPayload).alg === ENCRYPTION_ALGORITHM &&
-    typeof (value as EncryptedApiKeyPayload).iv === "string" &&
-    typeof (value as EncryptedApiKeyPayload).ciphertext === "string"
-  );
-}
-
+/** Needs the unlocked data key: nothing weaker is written any more. */
 export async function toFirestoreProviderConfig(
   config: ProviderConfig,
   userId: string,
+  providerId: string,
+  dataKey: CryptoKey | null,
 ): Promise<FirestoreProviderConfig> {
+  if (!dataKey) throw new SyncPassphraseRequiredError();
   const { apiKey, ...rest } = config;
-
   return {
     ...rest,
-    encryptedApiKey: await encryptApiKey(apiKey, userId),
+    encryptedApiKey: await encryptSecret(
+      dataKey,
+      apiKey,
+      secretContext(userId, providerId),
+    ),
   };
 }
 
+/**
+ * Reads any stored format. Legacy formats come back with `migratedConfig` (the
+ * same config, end-to-end encrypted) when the device is unlocked, so the
+ * caller can rewrite the document.
+ */
 export async function fromFirestoreProviderConfig(
   value: unknown,
   userId: string,
+  providerId: string,
+  dataKey: CryptoKey | null,
 ): Promise<{
   config: ProviderConfig | null;
   migratedConfig: FirestoreProviderConfig | null;
 }> {
-  if (!value || typeof value !== "object") {
+  if (!value || typeof value !== "object")
     return { config: null, migratedConfig: null };
-  }
 
   const record = value as FirestoreProviderConfig;
-  const model = typeof record.model === "string" ? record.model : "";
+  const withKey = (apiKey: string): ProviderConfig => ({
+    apiKey,
+    model: typeof record.model === "string" ? record.model : "",
+    baseUrl: record.baseUrl,
+    maxTokens: record.maxTokens,
+    temperature: record.temperature,
+  });
 
-  if (isEncryptedApiKeyPayload(record.encryptedApiKey)) {
-    return {
-      config: {
-        apiKey: await decryptApiKey(record.encryptedApiKey, userId),
-        model,
-        baseUrl: record.baseUrl,
-        maxTokens: record.maxTokens,
-        temperature: record.temperature,
-      },
-      migratedConfig: null,
-    };
+  if (isEncryptedSecret(record.encryptedApiKey)) {
+    if (!dataKey) throw new SyncLockedError();
+    const apiKey = await decryptSecret(
+      dataKey,
+      record.encryptedApiKey,
+      secretContext(userId, providerId),
+    );
+    return { config: withKey(apiKey), migratedConfig: null };
   }
 
-  if (typeof record.apiKey === "string") {
-    return {
-      config: {
-        apiKey: record.apiKey,
-        model,
-        baseUrl: record.baseUrl,
-        maxTokens: record.maxTokens,
-        temperature: record.temperature,
-      },
-      migratedConfig: await toFirestoreProviderConfig(
-        {
-          apiKey: record.apiKey,
-          model,
-          baseUrl: record.baseUrl,
-          maxTokens: record.maxTokens,
-          temperature: record.temperature,
-        },
-        userId,
-      ),
-    };
+  let legacyKey: string | null = null;
+  if (isLegacyPayload(record.encryptedApiKey)) {
+    legacyKey = await decryptLegacyApiKey(record.encryptedApiKey, userId);
+  } else if (typeof record.apiKey === "string") {
+    legacyKey = record.apiKey;
   }
+  if (legacyKey === null) return { config: null, migratedConfig: null };
 
-  return { config: null, migratedConfig: null };
+  const config = withKey(legacyKey);
+  return {
+    config,
+    migratedConfig: dataKey
+      ? await toFirestoreProviderConfig(config, userId, providerId, dataKey)
+      : null,
+  };
 }
 
+/** True when the record still uses a pre-passphrase format. */
+export function isLegacyRecord(value: unknown) {
+  const record = value as FirestoreProviderConfig;
+  return (
+    !!record &&
+    !isEncryptedSecret(record.encryptedApiKey) &&
+    (isLegacyPayload(record.encryptedApiKey) ||
+      typeof record.apiKey === "string")
+  );
+}

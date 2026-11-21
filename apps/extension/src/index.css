@@ -83,6 +83,40 @@
   --accent-secondary: oklch(0.57 0.09 196);
 }
 
+/* Dark set for plenz's own pages, chosen by followThemePreference. Same warm
+   neutrals as the in-page overlays' dark set. After :root so it wins. */
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.18 0.004 56);
+  --foreground: oklch(0.94 0.003 95);
+  --card: oklch(0.215 0.004 56);
+  --card-foreground: oklch(0.94 0.003 95);
+  --popover: oklch(0.215 0.004 56);
+  --popover-foreground: oklch(0.94 0.003 95);
+  --primary: oklch(0.94 0.003 95);
+  --primary-foreground: oklch(0.19 0.004 56);
+  --secondary: oklch(0.3 0.03 196);
+  --secondary-foreground: oklch(0.92 0.02 196);
+  --muted: oklch(0.25 0.004 56);
+  --muted-foreground: oklch(0.72 0.005 95);
+  --accent: oklch(0.27 0.004 56);
+  --accent-foreground: oklch(0.94 0.003 95);
+  --destructive: oklch(0.7 0.19 25);
+  --border: oklch(0.33 0.004 56);
+  --input: oklch(0.36 0.004 56);
+  --ring: oklch(0.74 0.17 55);
+  --sidebar: oklch(0.2 0.004 56);
+  --sidebar-foreground: oklch(0.94 0.003 95);
+  --sidebar-primary: oklch(0.94 0.003 95);
+  --sidebar-primary-foreground: oklch(0.19 0.004 56);
+  --sidebar-accent: oklch(0.27 0.004 56);
+  --sidebar-accent-foreground: oklch(0.94 0.003 95);
+  --sidebar-border: oklch(0.33 0.004 56);
+  --sidebar-ring: oklch(0.74 0.17 55);
+  --accent-signal: oklch(0.74 0.17 55);
+  --accent-secondary: oklch(0.68 0.09 196);
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground antialiased;
@@ -95,3 +129,41 @@
   color: var(--background);
 }
 
+.plenz-popup-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 38%, transparent)
+    transparent;
+}
+
+.plenz-popup-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.plenz-popup-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.plenz-popup-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--muted-foreground) 32%, transparent);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.plenz-popup-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--muted-foreground) 54%, transparent);
+  background-clip: content-box;
+}
+
+/* Respect "reduce motion" on plenz's own pages too. */
+/* biome-ignore-start lint/complexity/noImportantStyles: reduced-motion overrides must beat every other rule */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+/* biome-ignore-end lint/complexity/noImportantStyles: reduced-motion overrides must beat every other rule */

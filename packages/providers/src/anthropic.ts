@@ -1,11 +1,25 @@
-import {
+import type {
+  CompletionRequest,
+  CompletionResult,
+  ConnectionTestResult,
+  ModelOption,
   ProviderAdapter,
   ProviderConfig,
-  ConnectionTestResult,
-  AnalysisResult,
-  Suggestion,
-  ModelOption,
+  StreamOptions,
 } from "@plenz/types";
+import { createProviderHttpError, parseJson, readErrorMessage } from "./http";
+import { readSSE } from "./sse";
+
+const API_URL = "https://api.anthropic.com/v1";
+
+function headers(apiKey: string): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "x-api-key": apiKey,
+    "anthropic-version": "2023-06-01",
+    "anthropic-dangerous-direct-browser-access": "true",
+  };
+}
 
 export class AnthropicAdapter implements ProviderAdapter {
   id = "anthropic";
@@ -14,16 +28,12 @@ export class AnthropicAdapter implements ProviderAdapter {
   async fetchModels(config: ProviderConfig): Promise<ModelOption[]> {
     if (!config.apiKey) return [];
     try {
-      const res = await fetch("https://api.anthropic.com/v1/models", {
-        headers: {
-          "x-api-key": config.apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
+      const res = await fetch(`${API_URL}/models`, {
+        headers: headers(config.apiKey),
       });
       if (!res.ok) return [];
       const data = await res.json();
-      return data.data.map((m: any) => ({
+      return data.data.map((m: { id: string; display_name?: string }) => ({
         id: m.id,
         name: m.display_name || m.id,
         tier:
@@ -36,177 +46,87 @@ export class AnthropicAdapter implements ProviderAdapter {
     }
   }
 
-  private normalizeSuggestions(raw: unknown): Suggestion[] {
-    const validTypes: Suggestion["type"][] = [
-      "rewrite",
-      "add_context",
-      "add_constraints",
-      "add_role",
-      "add_format",
-      "clarify",
-    ];
-
-    if (!Array.isArray(raw)) return [];
-
-    return raw
-      .map((item, idx) => {
-        const value = item as Record<string, unknown>;
-
-        const suggested =
-          (typeof value.suggested === "string" && value.suggested) ||
-          (typeof value.suggested_text === "string" && value.suggested_text) ||
-          "";
-        if (!suggested) return null;
-
-        const original =
-          (typeof value.original === "string" && value.original) ||
-          (typeof value.original_text === "string" && value.original_text) ||
-          "";
-
-        const type = validTypes.includes(value.type as Suggestion["type"])
-          ? (value.type as Suggestion["type"])
-          : "clarify";
-
-        const confidenceValue =
-          typeof value.confidence === "number" ? value.confidence : 0.7;
-        const confidence = Math.max(0, Math.min(1, confidenceValue));
-
-        return {
-          id:
-            (typeof value.id === "string" && value.id) ||
-            `suggestion-${idx + 1}`,
-          type,
-          original,
-          suggested,
-          rationale:
-            (typeof value.rationale === "string" && value.rationale) ||
-            "Improves prompt clarity.",
-          confidence,
-        };
-      })
-      .filter((item): item is Suggestion => item !== null);
-  }
-
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
     if (!config.model)
       return { success: false, latencyMs: 0, error: "No model selected" };
     const start = performance.now();
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch(`${API_URL}/messages`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": config.apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
+        headers: headers(config.apiKey),
         body: JSON.stringify({
           model: config.model,
           messages: [{ role: "user", content: "ping" }],
           max_tokens: 5,
         }),
       });
-      const latency = Math.round(performance.now() - start);
+      const latencyMs = Math.round(performance.now() - start);
       if (!res.ok) {
         const err = await res
           .json()
           .catch(() => ({ error: { message: `HTTP ${res.status}` } }));
-        return {
-          success: false,
-          latencyMs: latency,
-          error: err.error?.message,
-        };
+        return { success: false, latencyMs, error: err.error?.message };
       }
-      return { success: true, latencyMs: latency };
+      return { success: true, latencyMs };
     } catch (e) {
       return { success: false, latencyMs: 0, error: (e as Error).message };
     }
   }
 
-  private extractJson(text: string): Record<string, unknown> {
-    const trimmed = text.trim();
-    const candidates = [trimmed];
-
-    const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-    if (fencedMatch?.[1]) {
-      candidates.push(fencedMatch[1].trim());
-    }
-
-    const firstBrace = trimmed.indexOf("{");
-    const lastBrace = trimmed.lastIndexOf("}");
-    if (firstBrace !== -1 && lastBrace > firstBrace) {
-      candidates.push(trimmed.slice(firstBrace, lastBrace + 1));
-    }
-
-    for (const candidate of candidates) {
-      try {
-        return JSON.parse(candidate) as Record<string, unknown>;
-      } catch {
-        // Try next candidate.
-      }
-    }
-
-    throw new Error("Invalid JSON response from Anthropic");
-  }
-
-  async analyze(
-    prompt: string,
-    systemPrompt: string,
+  async streamCompletion(
+    request: CompletionRequest,
     config: ProviderConfig,
-    context?: { active_website?: string },
-  ): Promise<AnalysisResult> {
+    options: StreamOptions = {},
+  ): Promise<CompletionResult> {
     const start = performance.now();
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch(`${API_URL}/messages`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": config.apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
+      headers: headers(config.apiKey),
       body: JSON.stringify({
         model: config.model,
-        system: systemPrompt,
-        messages: [
-          {
-            role: "user",
-            content: context?.active_website
-              ? `[Context: ${context.active_website}]\n\n${prompt}`
-              : prompt,
-          },
-        ],
-        max_tokens: config.maxTokens ?? 1024,
-        temperature: config.temperature ?? 0.3,
+        system: request.system,
+        messages: [{ role: "user", content: request.user }],
+        max_tokens: config.maxTokens ?? request.maxTokens,
+        temperature: config.temperature ?? request.temperature,
+        stream: true,
       }),
+      signal: options.signal,
     });
-    const data = await res.json();
-    const latency = Math.round(performance.now() - start);
 
-    if (!res.ok) {
-      throw new Error(data.error?.message || "Anthropic API error");
+    if (!res.ok || !res.body) {
+      throw createProviderHttpError(
+        await readErrorMessage(res, "Anthropic API error"),
+        res.status,
+      );
     }
 
-    const content = data.content?.[0]?.text;
-    let parsed: Record<string, unknown> = {};
-    if (typeof content === "string" && content.trim()) {
-      try {
-        parsed = this.extractJson(content);
-      } catch {
-        throw new Error("Invalid JSON response from Anthropic");
+    let text = "";
+    const tokensUsed = { prompt: 0, completion: 0 };
+    await readSSE(res.body, ({ data }) => {
+      const event = parseJson(data);
+      switch (event?.type) {
+        case "message_start":
+          tokensUsed.prompt = event.message?.usage?.input_tokens ?? 0;
+          break;
+        case "content_block_delta":
+          if (event.delta?.type === "text_delta" && event.delta.text) {
+            text += event.delta.text;
+            options.onDelta?.(event.delta.text);
+          }
+          break;
+        case "message_delta":
+          tokensUsed.completion =
+            event.usage?.output_tokens ?? tokensUsed.completion;
+          break;
+        case "error":
+          throw new Error(event.error?.message || "Anthropic stream error");
       }
-    }
-
-    const suggestions = this.normalizeSuggestions(parsed.suggestions);
+    });
 
     return {
-      suggestions,
-      rawResponse: JSON.stringify(data),
-      tokensUsed: {
-        prompt: data.usage?.input_tokens ?? 0,
-        completion: data.usage?.output_tokens ?? 0,
-      },
-      latencyMs: latency,
+      text,
+      tokensUsed,
+      latencyMs: Math.round(performance.now() - start),
     };
   }
 }
-

@@ -26,25 +26,22 @@
   },
   "content_scripts": [
     {
-      "js": [
-        "src/content/index.ts"
-      ],
+      "js": ["src/content/index.ts"],
       "matches": [
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
         "https://claude.ai/*",
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/*",
+        "https://www.perplexity.ai/*",
+        "https://perplexity.ai/*"
       ]
     }
   ],
-  "permissions": [
-    "storage",
-    "identity"
-  ],
-  "optional_host_permissions": [
-    "https://*/*",
-    "http://*/*"
-  ],
+  "permissions": ["storage", "identity", "sidePanel", "scripting", "activeTab"],
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
   "host_permissions": [
     "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*",
@@ -64,11 +61,7 @@
   ],
   "oauth2": {
     "client_id": "984390443499-mc4mr2kfjhlde2dfb5qbr3ut4rnamgvg.apps.googleusercontent.com",
-    "scopes": [
-      "openid",
-      "email",
-      "profile"
-    ]
+    "scopes": ["openid", "email", "profile"]
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"

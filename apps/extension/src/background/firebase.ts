@@ -1,12 +1,12 @@
 import {
+  type FirebaseOptions,
   getApp,
   getApps,
   initializeApp,
-  type FirebaseOptions,
 } from "firebase/app";
 import {
-  getAuth,
   GoogleAuthProvider,
+  getAuth,
   signInWithCredential,
   signOut,
 } from "firebase/auth/web-extension";

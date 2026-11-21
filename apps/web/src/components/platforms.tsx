@@ -1,10 +1,11 @@
 "use client";
 
-import React, { forwardRef, useRef } from "react";
-import { BrainCogIcon } from "lucide-react";
-import Image from "next/image";
-import { cn } from "@plenz/ui/lib/utils";
 import { AnimatedBeam } from "@plenz/ui/components/animated-beam";
+import { cn } from "@plenz/ui/lib/utils";
+import { Globe } from "lucide-react";
+import Image from "next/image";
+import type React from "react";
+import { forwardRef, useRef } from "react";
 
 const platforms = [
   {
@@ -26,16 +27,10 @@ const platforms = [
     link: "https://upload.wikimedia.org/wikipedia/commons/d/d9/Google_Gemini_logo_2025.svg",
   },
   {
-    name: "Mistral",
+    name: "Perplexity",
     width: 120,
     height: 120,
-    link: "http://docs.mistral.ai/img/logo.svg",
-  },
-  {
-    name: "OpenRouter",
-    width: 120,
-    height: 120,
-    link: "https://files.buildwithfern.com/openrouter.docs.buildwithfern.com/docs/5a7e2b0bd58241d151e9e352d7a4f898df12c062576c0ce0184da76c3635c5d3/content/assets/logo.svg",
+    link: "https://upload.wikimedia.org/wikipedia/commons/1/1d/Perplexity_AI_logo.svg",
   },
 ];
 
@@ -65,7 +60,6 @@ export function Platforms() {
   const div4Ref = useRef<HTMLDivElement>(null); // plenz center
   const div5Ref = useRef<HTMLDivElement>(null);
   const div6Ref = useRef<HTMLDivElement>(null);
-  const div7Ref = useRef<HTMLDivElement>(null);
 
   return (
     <section
@@ -81,8 +75,9 @@ export function Platforms() {
             Works in your existing AI tabs.
           </h2>
           <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            plenz detects target input areas and injects suggestions
-            without changing your host platform workflow.
+            plenz runs on ChatGPT, Claude, Gemini, and Perplexity, and writes
+            through each site&apos;s own editor. Turn it on for any other site
+            from the popup.
           </p>
         </div>
 
@@ -136,7 +131,7 @@ export function Platforms() {
               </Circle>
             </div>
 
-            <div className="flex flex-col justify-between">
+            <div className="flex flex-col justify-around">
               <Circle ref={div5Ref}>
                 <Image
                   src={platforms[3].link}
@@ -146,26 +141,17 @@ export function Platforms() {
                   className="w-16 h-6 sm:w-full sm:h-full object-contain"
                 />
               </Circle>
-              <Circle ref={div6Ref}>
-                <Image
-                  src={platforms[4].link}
-                  alt={platforms[4].name}
-                  width={40}
-                  height={40}
-                  className="w-16 h-6 sm:w-full sm:h-full object-contain"
-                />
-              </Circle>
               <Circle
-                ref={div7Ref}
+                ref={div6Ref}
                 className="w-24 px-2 sm:px-2 gap-1 sm:gap-2"
               >
-                <BrainCogIcon className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" />
+                <Globe className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" />
                 <div className="flex flex-col">
                   <p className="font-medium sm:leading-4 text-xs sm:text-sm">
-                    Custom
+                    Any site
                   </p>
                   <p className="text-[6px] sm:text-[10px] text-muted-foreground">
-                    Use your own
+                    Turn on in popup
                   </p>
                 </div>
               </Circle>
@@ -204,12 +190,6 @@ export function Platforms() {
             containerRef={containerRef}
             fromRef={div6Ref}
             toRef={div4Ref}
-            reverse
-          />
-          <AnimatedBeam
-            containerRef={containerRef}
-            fromRef={div7Ref}
-            toRef={div4Ref}
             curvature={75}
             endYOffset={10}
             reverse
@@ -219,4 +199,3 @@ export function Platforms() {
     </section>
   );
 }
-

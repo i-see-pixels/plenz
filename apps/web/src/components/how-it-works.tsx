@@ -8,21 +8,21 @@ const steps = [
     icon: Download,
     title: "Install extension",
     description:
-      "Add plenz to Chrome and pin it. The popup and options surfaces are ready immediately.",
+      "Add plenz to Chrome and pin it. A welcome page opens on first run and walks you through setup.",
   },
   {
     number: "02",
     icon: Settings,
-    title: "Connect model provider",
+    title: "Pick a model",
     description:
-      "Choose provider, add key, test connection, and set an active model in one bordered config flow.",
+      "Use Chrome's on-device Gemini Nano with no key, or add a key for your provider and test the connection.",
   },
   {
     number: "03",
     icon: Zap,
     title: "Draft with guidance",
     description:
-      "plenz annotates weak prompts in-context and lets you accept rewrites from the keyboard.",
+      "The prompt check scores your draft as you type. Click the badge or press Ctrl/Cmd+Shift+Enter to refine.",
   },
 ];
 
@@ -41,8 +41,8 @@ export function HowItWorks() {
             Operational in under one minute.
           </h2>
           <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            The onboarding path prioritizes fast activation: install, configure,
-            then draft with immediate inline feedback.
+            Install, pick a model, then draft with feedback right in the chat
+            box.
           </p>
         </div>
 
@@ -73,4 +73,3 @@ export function HowItWorks() {
     </section>
   );
 }
-

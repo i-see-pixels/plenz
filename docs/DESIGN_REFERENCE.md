@@ -18,14 +18,14 @@ If those documents disagree with the code, treat this file and the source files 
 
 ## Product Surfaces
 
-| Surface | Main entry points | Role |
-| --- | --- | --- |
-| Marketing site | `apps/web/src/app/page.tsx`, `apps/web/src/components/*` | Public-facing landing page and product positioning |
-| Extension popup | `apps/extension/src/popup/App.tsx` | Compact control panel for auth, active model, and quick links |
-| Extension options | `apps/extension/src/options/App.tsx`, `apps/extension/src/components/*` | Full settings surface for model config and preferences |
+| Surface              | Main entry points                                                        | Role                                                                             |
+| -------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| Marketing site       | `apps/web/src/app/page.tsx`, `apps/web/src/components/*`                 | Public-facing landing page and product positioning                               |
+| Extension popup      | `apps/extension/src/popup/App.tsx`                                       | Compact control panel for auth, active model, and quick links                    |
+| Extension options    | `apps/extension/src/options/App.tsx`, `apps/extension/src/components/*`  | Full settings surface for model config and preferences                           |
 | Inline suggestion UI | `apps/extension/src/content/index.ts`, `apps/extension/src/content/ui/*` | In-page badge, popover, and ghost text experience inside supported chat products |
-| Shared UI primitives | `packages/ui/src/components/*`, `packages/ui/src/styles.css` | Reusable buttons, cards, inputs, selects, badges, separators, and base tokens |
-| VS Code extension | `apps/vscode/src/extension.ts` | Command-only integration today; no meaningful visual system yet |
+| Shared UI primitives | `packages/ui/src/components/*`, `packages/ui/src/styles.css`             | Reusable buttons, cards, inputs, selects, badges, separators, and base tokens    |
+| VS Code extension    | `apps/vscode/src/extension.ts`                                           | Command-only integration today; no meaningful visual system yet                  |
 
 ## Design Principles In The Current Build
 
@@ -96,50 +96,50 @@ There are three token layers in the repo:
 
 These are the main product tokens used by the landing page and extension settings surfaces.
 
-| Token | Current role | Value |
-| --- | --- | --- |
-| `--background` | App canvas | `oklch(0.995 0.001 95)` |
-| `--foreground` | Primary text | `oklch(0.19 0.004 56)` |
-| `--card` | Panel background | `oklch(1 0.001 95)` |
-| `--primary` | Primary action fill | `oklch(0.19 0.004 56)` |
-| `--primary-foreground` | Text on primary actions | `oklch(0.995 0.001 95)` |
-| `--accent-signal` | Attention/status accent | `oklch(0.69 0.19 55)` |
-| `--accent-secondary` | Secondary positive/support accent | `oklch(0.57 0.09 196)` |
-| `--muted` | Soft panel fill | `oklch(0.968 0.002 95)` |
-| `--muted-foreground` | Secondary copy | `oklch(0.5 0.005 95)` |
-| `--border` | Structural lines | `oklch(0.87 0.004 95)` |
-| `--input` | Input border/fill reference | `oklch(0.89 0.004 95)` |
-| `--ring` | Focus ring | `oklch(0.69 0.19 55)` |
-| `--radius` | Base rounding | `0.375rem` |
+| Token                  | Current role                      | Value                   |
+| ---------------------- | --------------------------------- | ----------------------- |
+| `--background`         | App canvas                        | `oklch(0.995 0.001 95)` |
+| `--foreground`         | Primary text                      | `oklch(0.19 0.004 56)`  |
+| `--card`               | Panel background                  | `oklch(1 0.001 95)`     |
+| `--primary`            | Primary action fill               | `oklch(0.19 0.004 56)`  |
+| `--primary-foreground` | Text on primary actions           | `oklch(0.995 0.001 95)` |
+| `--accent-signal`      | Attention/status accent           | `oklch(0.69 0.19 55)`   |
+| `--accent-secondary`   | Secondary positive/support accent | `oklch(0.57 0.09 196)`  |
+| `--muted`              | Soft panel fill                   | `oklch(0.968 0.002 95)` |
+| `--muted-foreground`   | Secondary copy                    | `oklch(0.5 0.005 95)`   |
+| `--border`             | Structural lines                  | `oklch(0.87 0.004 95)`  |
+| `--input`              | Input border/fill reference       | `oklch(0.89 0.004 95)`  |
+| `--ring`               | Focus ring                        | `oklch(0.69 0.19 55)`   |
+| `--radius`             | Base rounding                     | `0.375rem`              |
 
 ### Content overlay tokens
 
 The inline overlay uses its own CSS token set because it renders inside host sites through shadow DOM.
 
-| Token | Current role | Value |
-| --- | --- | --- |
-| `--pl-bg-primary` | Popover background | `#ffffff` |
-| `--pl-bg-secondary` | Suggestion card fill | `#f7f7f3` |
-| `--pl-bg-hover` | Hover state | `#efefe9` |
-| `--pl-text-primary` | Main overlay text | `#171717` |
-| `--pl-text-secondary` | Secondary overlay text | `#606059` |
-| `--pl-accent` | Orange action accent | `#f97316` |
-| `--pl-accent-secondary` | Teal support accent | `#0f766e` |
-| `--pl-border` | Overlay border | `#d6d6ce` |
-| `--pl-radius-sm` | Small rounding | `4px` |
-| `--pl-radius-md` | Default overlay rounding | `6px` |
-| `--pl-radius-lg` | Large rounding | `8px` |
+| Token                   | Current role             | Value     |
+| ----------------------- | ------------------------ | --------- |
+| `--pl-bg-primary`       | Popover background       | `#ffffff` |
+| `--pl-bg-secondary`     | Suggestion card fill     | `#f7f7f3` |
+| `--pl-bg-hover`         | Hover state              | `#efefe9` |
+| `--pl-text-primary`     | Main overlay text        | `#171717` |
+| `--pl-text-secondary`   | Secondary overlay text   | `#606059` |
+| `--pl-accent`           | Orange action accent     | `#f97316` |
+| `--pl-accent-secondary` | Teal support accent      | `#0f766e` |
+| `--pl-border`           | Overlay border           | `#d6d6ce` |
+| `--pl-radius-sm`        | Small rounding           | `4px`     |
+| `--pl-radius-md`        | Default overlay rounding | `6px`     |
+| `--pl-radius-lg`        | Large rounding           | `8px`     |
 
 ### Typography roles
 
-| Role | Implementation |
-| --- | --- |
-| Headline/body font | `Space Grotesk` in web layout, plus extension fallback stack via CSS variables |
-| Mono/metadata font | `IBM Plex Mono` in web layout, plus extension fallback stack via CSS variables |
-| Section labels | Mono, uppercase, tracked, usually `10px` to `11px` |
-| Status badges | Mono, uppercase, compact, often outline style |
-| Hero and section headlines | Sans, bold, tight tracking |
-| Supporting copy | Sans, muted, relaxed leading |
+| Role                       | Implementation                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| Headline/body font         | `Space Grotesk` in web layout, plus extension fallback stack via CSS variables |
+| Mono/metadata font         | `IBM Plex Mono` in web layout, plus extension fallback stack via CSS variables |
+| Section labels             | Mono, uppercase, tracked, usually `10px` to `11px`                             |
+| Status badges              | Mono, uppercase, compact, often outline style                                  |
+| Hero and section headlines | Sans, bold, tight tracking                                                     |
+| Supporting copy            | Sans, muted, relaxed leading                                                   |
 
 ### Shape, borders, and depth
 
@@ -466,16 +466,9 @@ The content script uses:
 
 This is intentional because the overlay must survive unknown host page styles.
 
-### Perplexity support is partially wired
+### Perplexity support
 
-`apps/extension/src/content/platforms/registry.ts` includes a Perplexity config, but `apps/extension/public/manifest.json` currently injects the content script only on:
-
-- `chatgpt.com`
-- `chat.openai.com`
-- `claude.ai`
-- `gemini.google.com`
-
-Treat Perplexity as in-progress in the live extension footprint unless the manifest is updated.
+Perplexity has an editor adapter in `apps/extension/src/content/editors/platforms.ts`, and `apps/extension/public/manifest.json` injects the content script on `perplexity.ai` and `www.perplexity.ai` alongside ChatGPT, Claude and Gemini.
 
 ### There is an unused starter app in the extension workspace
 
@@ -500,18 +493,18 @@ When changing or adding UI, use this checklist:
 
 ## Source Of Truth File Map
 
-| Area | Primary files |
-| --- | --- |
-| Product-level tokens | `apps/web/src/app/globals.css`, `apps/extension/src/index.css` |
-| Shared primitive defaults | `packages/ui/src/styles.css` |
-| Shared components | `packages/ui/src/components/*` |
-| Landing page structure | `apps/web/src/app/page.tsx`, `apps/web/src/components/*` |
-| Popup layout | `apps/extension/src/popup/App.tsx` |
-| Options layout | `apps/extension/src/options/App.tsx` |
-| Auth UI | `apps/extension/src/components/AuthStatus.tsx` |
-| Model config UI | `apps/extension/src/components/ModelConfig.tsx` |
-| Inline overlay visuals | `apps/extension/src/content/ui/*` |
-| Inline interaction orchestration | `apps/extension/src/content/index.ts` |
+| Area                             | Primary files                                                  |
+| -------------------------------- | -------------------------------------------------------------- |
+| Product-level tokens             | `apps/web/src/app/globals.css`, `apps/extension/src/index.css` |
+| Shared primitive defaults        | `packages/ui/src/styles.css`                                   |
+| Shared components                | `packages/ui/src/components/*`                                 |
+| Landing page structure           | `apps/web/src/app/page.tsx`, `apps/web/src/components/*`       |
+| Popup layout                     | `apps/extension/src/popup/App.tsx`                             |
+| Options layout                   | `apps/extension/src/options/App.tsx`                           |
+| Auth UI                          | `apps/extension/src/components/AuthStatus.tsx`                 |
+| Model config UI                  | `apps/extension/src/components/ModelConfig.tsx`                |
+| Inline overlay visuals           | `apps/extension/src/content/ui/*`                              |
+| Inline interaction orchestration | `apps/extension/src/content/index.ts`                          |
 
 ## Summary
 
@@ -524,4 +517,3 @@ plenz currently presents itself as a calm technical tool:
 - built from shared primitives with app-level token overrides
 
 Future design work should preserve that operational clarity even when new features add more complexity.
-

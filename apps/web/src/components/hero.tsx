@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@plenz/ui/components/button";
 import { Badge } from "@plenz/ui/components/badge";
+import { Button } from "@plenz/ui/components/button";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { FaChrome, FaGithub } from "react-icons/fa";
 import { siteConfig } from "@/lib/site";
 import PromoVideo from "./promo-video";
@@ -20,6 +20,7 @@ export function Hero() {
         rel="noopener noreferrer"
         className="flex justify-center mb-10"
       >
+        {/* biome-ignore lint/performance/noImgElement: Product Hunt's embed badge must load from their URL as-is, not through next/image */}
         <img
           alt="plenz - ai prompt refiner | Product Hunt"
           width="250"
@@ -44,9 +45,10 @@ export function Hero() {
               Rewrite weak prompts before you send them.
             </h1>
             <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              plenz scans your input inline, proposes higher-precision
-              alternatives, and keeps your keys and prompt data local to your
-              browser.
+              plenz checks your draft as you type, rewrites it on demand, and
+              shows every change before you replace it. Use Chrome&apos;s
+              on-device model with no key, or bring your own. Your keys stay in
+              your browser.
             </p>
           </div>
 

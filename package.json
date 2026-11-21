@@ -9,12 +9,11 @@
     "build:chrome": "pnpm -C apps/extension build",
     "build:firefox": "pnpm -C apps/extension build",
     "dev": "turbo dev",
-    "lint": "turbo lint",
+    "lint-format": "biome check --write .",
     "lint:ui-primitives": "node scripts/check-no-app-local-ui.mjs",
-    "format": "turbo format",
     "test": "turbo test",
-    "test:unit": "echo \"No unit tests are configured yet.\"",
-    "type-check": "turbo type-check"
+    "test:unit": "pnpm -C packages/core test && pnpm -C packages/providers test && pnpm -C apps/extension test",
+    "type-check": "pnpm -r type-check"
   },
   "repository": {
     "type": "git",
@@ -25,6 +24,7 @@
   },
   "homepage": "https://github.com/i-see-pixels/plenz",
   "devDependencies": {
+    "@biomejs/biome": "2.6.8",
     "turbo": "latest"
   },
   "engines": {

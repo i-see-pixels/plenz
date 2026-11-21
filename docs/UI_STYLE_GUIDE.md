@@ -43,4 +43,3 @@ Use shared semantic tokens across both frontends:
 - glow gradients and pulse glows
 - soft glass cards
 - heavy motion patterns for core navigation and call-to-actions
-

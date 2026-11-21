@@ -1,12 +1,12 @@
 # Tech Planning Document — plenz
 
-| Field | Details |
-| --- | --- |
+| Field                | Details                                                        |
+| -------------------- | -------------------------------------------------------------- |
 | **Title/Initiative** | **plenz** — Open-Source AI Prompt Refinement Browser Extension |
-| **Date & Version** | February 7, 2026 · v1.0 |
-| **Parent Document** | plenz PRD v1.0 (Feb 7, 2026) |
-| **Tech POC** | *(To be assigned)* |
-| **Status** | Draft — Pending Technical Review |
+| **Date & Version**   | February 7, 2026 · v1.0                                        |
+| **Parent Document**  | plenz PRD v1.0 (Feb 7, 2026)                                   |
+| **Tech POC**         | _(To be assigned)_                                             |
+| **Status**           | Draft — Pending Technical Review                               |
 
 ---
 
@@ -21,14 +21,14 @@ plenz is a **client-side-only** browser extension that provides real-time AI pro
 
 ### Technical Success Criteria
 
-| Metric | Target | Measurement |
-| --- | --- | --- |
-| Page load overhead | < 100 ms | Lighthouse CI on supported platforms |
-| Suggestion latency (end-to-end) | < 1,000 ms (after debounce) | Performance.now() instrumentation |
-| Extension bundle size | < 500 KB (gzipped) | Build pipeline check |
-| Memory footprint | < 30 MB per tab | Chrome Task Manager profiling |
-| Crash-free sessions | > 99.5% | Error tracking (Sentry self-hosted) |
-| Cross-browser parity | Chrome + Firefox feature parity | E2E test suite |
+| Metric                          | Target                          | Measurement                          |
+| ------------------------------- | ------------------------------- | ------------------------------------ |
+| Page load overhead              | < 100 ms                        | Lighthouse CI on supported platforms |
+| Suggestion latency (end-to-end) | < 1,000 ms (after debounce)     | Performance.now() instrumentation    |
+| Extension bundle size           | < 500 KB (gzipped)              | Build pipeline check                 |
+| Memory footprint                | < 30 MB per tab                 | Chrome Task Manager profiling        |
+| Crash-free sessions             | > 99.5%                         | Error tracking (Sentry self-hosted)  |
+| Cross-browser parity            | Chrome + Firefox feature parity | E2E test suite                       |
 
 ---
 
@@ -77,14 +77,14 @@ plenz is a **client-side-only** browser extension that provides real-time AI pro
 
 ### Component Responsibilities
 
-| Component | Responsibility | Runs In |
-| --- | --- | --- |
-| **Background Service Worker** | Message routing, auth orchestration, storage management, provider dispatch | Extension background (MV3 service worker) |
-| **Content Script** | DOM detection, input field hooking, suggestion UI rendering (Shadow DOM), keyboard event handling | Injected into AI platform pages |
-| **Popup UI** | Sign-in status, active model quick-toggle, suggestion stats, quick settings | Extension popup (click on toolbar icon) |
-| **Options Page** | Full model configuration, API key management, preference settings, analytics opt-in | Dedicated extension page |
-| **Provider Adapters** | Normalize API calls to each LLM provider; implement the standard `ProviderAdapter` interface | Called by service worker |
-| **Core Engine** | Prompt quality rubric, system prompt construction, suggestion parsing and ranking | Shared module used by service worker |
+| Component                     | Responsibility                                                                                    | Runs In                                   |
+| ----------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| **Background Service Worker** | Message routing, auth orchestration, storage management, provider dispatch                        | Extension background (MV3 service worker) |
+| **Content Script**            | DOM detection, input field hooking, suggestion UI rendering (Shadow DOM), keyboard event handling | Injected into AI platform pages           |
+| **Popup UI**                  | Sign-in status, active model quick-toggle, suggestion stats, quick settings                       | Extension popup (click on toolbar icon)   |
+| **Options Page**              | Full model configuration, API key management, preference settings, analytics opt-in               | Dedicated extension page                  |
+| **Provider Adapters**         | Normalize API calls to each LLM provider; implement the standard `ProviderAdapter` interface      | Called by service worker                  |
+| **Core Engine**               | Prompt quality rubric, system prompt construction, suggestion parsing and ranking                 | Shared module used by service worker      |
 
 ---
 
@@ -92,30 +92,30 @@ plenz is a **client-side-only** browser extension that provides real-time AI pro
 
 ### Core Stack
 
-| Layer | Technology | Rationale |
-| --- | --- | --- |
-| Language | **TypeScript 5.x** | Type safety, superior DX, auto-complete for contributors |
-| Build Tool | **Vite + CRXJS** | Fast HMR during dev, native MV3 support, tree-shaking |
-| UI Framework | **Preact** (popup + options) | 3 KB gzipped — React-compatible API without the bundle weight |
-| Content Script UI | **Vanilla TS + Shadow DOM** | Zero framework overhead in content scripts; Shadow DOM isolates styles |
-| Styling | **Tailwind CSS** (popup/options) + **CSS Modules** (content script) | Utility-first for rapid UI; CSS Modules prevent host page conflicts |
-| State Management | **Zustand** | Minimal, TypeScript-native, no boilerplate |
-| Testing | **Vitest** (unit) + **Playwright** (E2E) | Fast unit tests; Playwright supports extension testing in Chromium/Firefox |
-| Linting/Formatting | **Biome** | Single tool replacing ESLint + Prettier; fast, zero-config |
-| CI/CD | **GitHub Actions** | Community standard for OSS; free for public repos |
-| Analytics (opt-in) | **Umami** (self-hosted) | Privacy-respecting, lightweight, GDPR-compliant, self-hostable |
-| Error Tracking | **Sentry** (self-hosted or free tier) | Stack traces + breadcrumbs for crash diagnostics |
+| Layer              | Technology                                                          | Rationale                                                                  |
+| ------------------ | ------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Language           | **TypeScript 5.x**                                                  | Type safety, superior DX, auto-complete for contributors                   |
+| Build Tool         | **Vite + CRXJS**                                                    | Fast HMR during dev, native MV3 support, tree-shaking                      |
+| UI Framework       | **Preact** (popup + options)                                        | 3 KB gzipped — React-compatible API without the bundle weight              |
+| Content Script UI  | **Vanilla TS + Shadow DOM**                                         | Zero framework overhead in content scripts; Shadow DOM isolates styles     |
+| Styling            | **Tailwind CSS** (popup/options) + **CSS Modules** (content script) | Utility-first for rapid UI; CSS Modules prevent host page conflicts        |
+| State Management   | **Zustand**                                                         | Minimal, TypeScript-native, no boilerplate                                 |
+| Testing            | **Vitest** (unit) + **Playwright** (E2E)                            | Fast unit tests; Playwright supports extension testing in Chromium/Firefox |
+| Linting/Formatting | **Biome**                                                           | Single tool replacing ESLint + Prettier; fast, zero-config                 |
+| CI/CD              | **GitHub Actions**                                                  | Community standard for OSS; free for public repos                          |
+| Analytics (opt-in) | **Umami** (self-hosted)                                             | Privacy-respecting, lightweight, GDPR-compliant, self-hostable             |
+| Error Tracking     | **Sentry** (self-hosted or free tier)                               | Stack traces + breadcrumbs for crash diagnostics                           |
 
 ### Browser APIs Used
 
-| API | Purpose | Chrome | Firefox |
-| --- | --- | --- | --- |
-| `chrome.identity` | Google OAuth 2.0 sign-in | ✅ Native | `browser.identity.launchWebAuthFlow()` |
-| `chrome.storage.local` | API keys, preferences, suggestion history | ✅ | ✅ (via `browser.storage.local`) |
-| `chrome.storage.sync` | Non-sensitive preferences cross-device sync | ✅ | ✅ |
-| `chrome.scripting` | Dynamic content script injection | ✅ MV3 | MV2 `content_scripts` in manifest |
-| `chrome.contextMenus` | Right-click "Enhance with plenz" fallback | ✅ | ✅ |
-| `chrome.alarms` | Periodic cleanup of stale suggestion cache | ✅ | ✅ |
+| API                    | Purpose                                     | Chrome    | Firefox                                |
+| ---------------------- | ------------------------------------------- | --------- | -------------------------------------- |
+| `chrome.identity`      | Google OAuth 2.0 sign-in                    | ✅ Native | `browser.identity.launchWebAuthFlow()` |
+| `chrome.storage.local` | API keys, preferences, suggestion history   | ✅        | ✅ (via `browser.storage.local`)       |
+| `chrome.storage.sync`  | Non-sensitive preferences cross-device sync | ✅        | ✅                                     |
+| `chrome.scripting`     | Dynamic content script injection            | ✅ MV3    | MV2 `content_scripts` in manifest      |
+| `chrome.contextMenus`  | Right-click "Enhance with plenz" fallback   | ✅        | ✅                                     |
+| `chrome.alarms`        | Periodic cleanup of stale suggestion cache  | ✅        | ✅                                     |
 
 ---
 
@@ -132,48 +132,54 @@ The content script is the heart of plenz. It must reliably detect and hook into 
 
 interface PlatformConfig {
   name: string;
-  hostPatterns: string[];           // URL match patterns
-  inputSelectors: string[];         // CSS selectors for chat input (ordered by priority)
-  submitButtonSelectors: string[];  // For intercepting submission
-  containerSelector: string;        // Parent container for positioning overlay
-  inputType: 'contenteditable' | 'textarea' | 'prosemirror';
-  mutationTarget?: string;          // Selector to observe for SPA navigation
+  hostPatterns: string[]; // URL match patterns
+  inputSelectors: string[]; // CSS selectors for chat input (ordered by priority)
+  submitButtonSelectors: string[]; // For intercepting submission
+  containerSelector: string; // Parent container for positioning overlay
+  inputType: "contenteditable" | "textarea" | "prosemirror";
+  mutationTarget?: string; // Selector to observe for SPA navigation
 }
 
 const PLATFORM_REGISTRY: PlatformConfig[] = [
   {
-    name: 'chatgpt',
-    hostPatterns: ['*://chatgpt.com/*', '*://chat.openai.com/*'],
-    inputSelectors: ['#prompt-textarea', '[data-id="root"] textarea'],
+    name: "chatgpt",
+    hostPatterns: ["*://chatgpt.com/*", "*://chat.openai.com/*"],
+    inputSelectors: ["#prompt-textarea", '[data-id="root"] textarea'],
     submitButtonSelectors: ['[data-testid="send-button"]'],
-    containerSelector: 'form',
-    inputType: 'contenteditable',
-    mutationTarget: '#__next',
+    containerSelector: "form",
+    inputType: "contenteditable",
+    mutationTarget: "#__next",
   },
   {
-    name: 'claude',
-    hostPatterns: ['*://claude.ai/*'],
-    inputSelectors: ['[contenteditable="true"].ProseMirror', 'fieldset .ProseMirror'],
+    name: "claude",
+    hostPatterns: ["*://claude.ai/*"],
+    inputSelectors: [
+      '[contenteditable="true"].ProseMirror',
+      "fieldset .ProseMirror",
+    ],
     submitButtonSelectors: ['button[aria-label="Send Message"]'],
-    containerSelector: 'fieldset',
-    inputType: 'prosemirror',
-    mutationTarget: '#__next',
+    containerSelector: "fieldset",
+    inputType: "prosemirror",
+    mutationTarget: "#__next",
   },
   {
-    name: 'gemini',
-    hostPatterns: ['*://gemini.google.com/*'],
-    inputSelectors: ['rich-textarea .ql-editor', '.text-input-field textarea'],
-    submitButtonSelectors: ['button.send-button', '[aria-label="Send message"]'],
-    containerSelector: '.input-area',
-    inputType: 'contenteditable',
+    name: "gemini",
+    hostPatterns: ["*://gemini.google.com/*"],
+    inputSelectors: ["rich-textarea .ql-editor", ".text-input-field textarea"],
+    submitButtonSelectors: [
+      "button.send-button",
+      '[aria-label="Send message"]',
+    ],
+    containerSelector: ".input-area",
+    inputType: "contenteditable",
   },
   {
-    name: 'perplexity',
-    hostPatterns: ['*://www.perplexity.ai/*'],
-    inputSelectors: ['textarea[placeholder*="Ask"]', 'textarea.overflow-auto'],
+    name: "perplexity",
+    hostPatterns: ["*://www.perplexity.ai/*"],
+    inputSelectors: ['textarea[placeholder*="Ask"]', "textarea.overflow-auto"],
     submitButtonSelectors: ['button[aria-label="Submit"]'],
-    containerSelector: 'form',
-    inputType: 'textarea',
+    containerSelector: "form",
+    inputType: "textarea",
   },
   // Additional platforms: Copilot, DeepSeek, Grok, etc.
 ];
@@ -200,28 +206,38 @@ class SuggestionOverlay {
   private container: HTMLDivElement;
 
   constructor(anchorElement: HTMLElement) {
-    this.shadowHost = document.createElement('div');
-    this.shadowHost.id = 'plenz-overlay';
-    this.shadowRoot = this.shadowHost.attachShadow({ mode: 'closed' });
+    this.shadowHost = document.createElement("div");
+    this.shadowHost.id = "plenz-overlay";
+    this.shadowRoot = this.shadowHost.attachShadow({ mode: "closed" });
 
     // Inject isolated styles
-    const styles = document.createElement('style');
+    const styles = document.createElement("style");
     styles.textContent = OVERLAY_STYLES; // Compiled CSS module
     this.shadowRoot.appendChild(styles);
 
-    this.container = document.createElement('div');
-    this.container.className = 'pl-suggestion-container';
+    this.container = document.createElement("div");
+    this.container.className = "pl-suggestion-container";
     this.shadowRoot.appendChild(this.container);
 
     // Position relative to the input field
     anchorElement.parentElement?.appendChild(this.shadowHost);
   }
 
-  show(suggestions: Suggestion[]): void { /* render suggestion cards */ }
-  hide(): void { /* animate out and remove */ }
-  acceptTop(): void { /* apply first suggestion to input */ }
-  navigateSuggestions(direction: 'up' | 'down'): void { /* keyboard nav */ }
-  destroy(): void { this.shadowHost.remove(); }
+  show(suggestions: Suggestion[]): void {
+    /* render suggestion cards */
+  }
+  hide(): void {
+    /* animate out and remove */
+  }
+  acceptTop(): void {
+    /* apply first suggestion to input */
+  }
+  navigateSuggestions(direction: "up" | "down"): void {
+    /* keyboard nav */
+  }
+  destroy(): void {
+    this.shadowHost.remove();
+  }
 }
 ```
 
@@ -234,20 +250,19 @@ class SuggestionOverlay {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
-    case 'ANALYZE_PROMPT':
-      handleAnalyzePrompt(message.payload, sender.tab?.id)
-        .then(sendResponse);
+    case "ANALYZE_PROMPT":
+      handleAnalyzePrompt(message.payload, sender.tab?.id).then(sendResponse);
       return true; // async response
 
-    case 'GET_ACTIVE_MODEL':
+    case "GET_ACTIVE_MODEL":
       getActiveModelConfig().then(sendResponse);
       return true;
 
-    case 'TEST_CONNECTION':
+    case "TEST_CONNECTION":
       testProviderConnection(message.payload).then(sendResponse);
       return true;
 
-    case 'AUTH_SIGN_IN':
+    case "AUTH_SIGN_IN":
       handleGoogleSignIn().then(sendResponse);
       return true;
   }
@@ -256,14 +271,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 #### Message Protocol
 
-| Message Type | Direction | Payload | Response |
-| --- | --- | --- | --- |
-| `ANALYZE_PROMPT` | Content → BG | `{ prompt: string, platform: string }` | `{ suggestions: Suggestion[], latency_ms: number }` |
-| `GET_ACTIVE_MODEL` | Popup/Content → BG | `{}` | `{ provider: string, model: string, isConfigured: boolean }` |
-| `SWITCH_MODEL` | Popup → BG | `{ configId: string }` | `{ success: boolean }` |
-| `TEST_CONNECTION` | Options → BG | `{ provider: string, apiKey: string, model: string }` | `{ success: boolean, latency_ms: number, error?: string }` |
-| `AUTH_SIGN_IN` | Popup → BG | `{}` | `{ user: { name, email, avatar } }` |
-| `LOG_EVENT` | Content/Popup → BG | `{ event: string, properties: Record }` | `{ ack: boolean }` |
+| Message Type       | Direction          | Payload                                               | Response                                                     |
+| ------------------ | ------------------ | ----------------------------------------------------- | ------------------------------------------------------------ |
+| `ANALYZE_PROMPT`   | Content → BG       | `{ prompt: string, platform: string }`                | `{ suggestions: Suggestion[], latency_ms: number }`          |
+| `GET_ACTIVE_MODEL` | Popup/Content → BG | `{}`                                                  | `{ provider: string, model: string, isConfigured: boolean }` |
+| `SWITCH_MODEL`     | Popup → BG         | `{ configId: string }`                                | `{ success: boolean }`                                       |
+| `TEST_CONNECTION`  | Options → BG       | `{ provider: string, apiKey: string, model: string }` | `{ success: boolean, latency_ms: number, error?: string }`   |
+| `AUTH_SIGN_IN`     | Popup → BG         | `{}`                                                  | `{ user: { name, email, avatar } }`                          |
+| `LOG_EVENT`        | Content/Popup → BG | `{ event: string, properties: Record }`               | `{ ack: boolean }`                                           |
 
 ### 4.4 Provider Adapter System
 
@@ -286,15 +301,19 @@ interface ProviderAdapter {
   testConnection(config: ProviderConfig): Promise<ConnectionTestResult>;
 
   /** Send the prompt + system prompt to the LLM and return suggestions */
-  analyze(prompt: string, systemPrompt: string, config: ProviderConfig): Promise<AnalysisResult>;
+  analyze(
+    prompt: string,
+    systemPrompt: string,
+    config: ProviderConfig,
+  ): Promise<AnalysisResult>;
 }
 
 interface ProviderConfig {
   apiKey: string;
   model: string;
-  baseUrl?: string;        // For custom/self-hosted providers
-  maxTokens?: number;      // Default: 1024
-  temperature?: number;    // Default: 0.3 (low creativity for analysis)
+  baseUrl?: string; // For custom/self-hosted providers
+  maxTokens?: number; // Default: 1024
+  temperature?: number; // Default: 0.3 (low creativity for analysis)
 }
 
 interface AnalysisResult {
@@ -306,11 +325,17 @@ interface AnalysisResult {
 
 interface Suggestion {
   id: string;
-  type: 'rewrite' | 'add_context' | 'add_constraints' | 'add_role' | 'add_format' | 'clarify';
+  type:
+    | "rewrite"
+    | "add_context"
+    | "add_constraints"
+    | "add_role"
+    | "add_format"
+    | "clarify";
   original: string;
   suggested: string;
-  rationale: string;       // One-line explanation (shown to user)
-  confidence: number;      // 0-1 score
+  rationale: string; // One-line explanation (shown to user)
+  confidence: number; // 0-1 score
   position?: { start: number; end: number }; // Character range in original prompt
 }
 ```
@@ -321,33 +346,37 @@ interface Suggestion {
 // src/providers/openai.ts
 
 export class OpenAIAdapter implements ProviderAdapter {
-  id = 'openai';
-  name = 'OpenAI';
+  id = "openai";
+  name = "OpenAI";
   models = [
-    { id: 'gpt-4o', name: 'GPT-4o', tier: 'premium' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', tier: 'standard' },
-    { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', tier: 'budget' },
+    { id: "gpt-4o", name: "GPT-4o", tier: "premium" },
+    { id: "gpt-4o-mini", name: "GPT-4o Mini", tier: "standard" },
+    { id: "gpt-4.1-nano", name: "GPT-4.1 Nano", tier: "budget" },
   ];
 
   async testConnection(config: ProviderConfig): Promise<ConnectionTestResult> {
     const start = performance.now();
     try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.apiKey}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
         },
         body: JSON.stringify({
           model: config.model,
-          messages: [{ role: 'user', content: 'ping' }],
+          messages: [{ role: "user", content: "ping" }],
           max_tokens: 5,
         }),
       });
       const latency = Math.round(performance.now() - start);
       if (!res.ok) {
         const err = await res.json();
-        return { success: false, latencyMs: latency, error: err.error?.message };
+        return {
+          success: false,
+          latencyMs: latency,
+          error: err.error?.message,
+        };
       }
       return { success: true, latencyMs: latency };
     } catch (e) {
@@ -355,23 +384,27 @@ export class OpenAIAdapter implements ProviderAdapter {
     }
   }
 
-  async analyze(prompt: string, systemPrompt: string, config: ProviderConfig): Promise<AnalysisResult> {
+  async analyze(
+    prompt: string,
+    systemPrompt: string,
+    config: ProviderConfig,
+  ): Promise<AnalysisResult> {
     const start = performance.now();
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify({
         model: config.model,
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt },
         ],
         max_tokens: config.maxTokens ?? 1024,
         temperature: config.temperature ?? 0.3,
-        response_format: { type: 'json_object' },
+        response_format: { type: "json_object" },
       }),
     });
     const data = await res.json();
@@ -397,14 +430,14 @@ The analysis engine constructs a system prompt that instructs the user's chosen 
 
 #### Prompt Quality Rubric
 
-| Dimension | Weight | Check |
-| --- | --- | --- |
-| **Specificity** | 25% | Does the prompt specify the subject, scope, and detail level? |
-| **Role / Persona** | 15% | Does it assign a role to the AI (e.g., "Act as a senior developer")? |
-| **Constraints** | 20% | Are there word limits, tone, audience, or content restrictions? |
-| **Output Format** | 15% | Does it specify the desired format (list, table, code, email, etc.)? |
-| **Context** | 15% | Does it provide necessary background information? |
-| **Tone & Style** | 10% | Does it indicate the desired communication style? |
+| Dimension          | Weight | Check                                                                |
+| ------------------ | ------ | -------------------------------------------------------------------- |
+| **Specificity**    | 25%    | Does the prompt specify the subject, scope, and detail level?        |
+| **Role / Persona** | 15%    | Does it assign a role to the AI (e.g., "Act as a senior developer")? |
+| **Constraints**    | 20%    | Are there word limits, tone, audience, or content restrictions?      |
+| **Output Format**  | 15%    | Does it specify the desired format (list, table, code, email, etc.)? |
+| **Context**        | 15%    | Does it provide necessary background information?                    |
+| **Tone & Style**   | 10%    | Does it indicate the desired communication style?                    |
 
 #### System Prompt Template
 
@@ -465,14 +498,14 @@ User types → [500ms debounce] → Extract prompt text
 
 ### 5.1 Data Classification
 
-| Data Type | Storage Location | Synced? | Encrypted? | Leaves Browser? |
-| --- | --- | --- | --- | --- |
-| API keys | `chrome.storage.local` | ❌ Never | ✅ At rest (browser-managed) | ❌ Only to user's chosen LLM endpoint |
-| User preferences (theme, debounce, etc.) | `chrome.storage.sync` | ✅ Via Google account | ✅ In transit (Chrome Sync) | ✅ To Chrome Sync only |
-| Suggestion history | `chrome.storage.local` | Optional (opt-in sync) | ✅ At rest | ❌ (or to Sync if opted in) |
-| Prompt text | In-memory only | ❌ Never | N/A | ❌ Only to user's chosen LLM endpoint |
-| Auth tokens (Google OAuth) | `chrome.storage.local` | ❌ | ✅ At rest | ❌ Only to Google OAuth endpoints |
-| Analytics events | Local → Umami (opt-in) | N/A | ✅ In transit | ✅ Only if user opts in |
+| Data Type                                | Storage Location       | Synced?                | Encrypted?                   | Leaves Browser?                       |
+| ---------------------------------------- | ---------------------- | ---------------------- | ---------------------------- | ------------------------------------- |
+| API keys                                 | `chrome.storage.local` | ❌ Never               | ✅ At rest (browser-managed) | ❌ Only to user's chosen LLM endpoint |
+| User preferences (theme, debounce, etc.) | `chrome.storage.sync`  | ✅ Via Google account  | ✅ In transit (Chrome Sync)  | ✅ To Chrome Sync only                |
+| Suggestion history                       | `chrome.storage.local` | Optional (opt-in sync) | ✅ At rest                   | ❌ (or to Sync if opted in)           |
+| Prompt text                              | In-memory only         | ❌ Never               | N/A                          | ❌ Only to user's chosen LLM endpoint |
+| Auth tokens (Google OAuth)               | `chrome.storage.local` | ❌                     | ✅ At rest                   | ❌ Only to Google OAuth endpoints     |
+| Analytics events                         | Local → Umami (opt-in) | N/A                    | ✅ In transit                | ✅ Only if user opts in               |
 
 ### 5.2 API Key Security
 
@@ -623,18 +656,18 @@ PR Opened / Updated
 
 ```typescript
 // vite.config.ts (simplified)
-import { defineConfig } from 'vite';
-import { crx } from '@crxjs/vite-plugin';
-import preact from '@preact/preset-vite';
-import manifest from './manifest.json';
+import { defineConfig } from "vite";
+import { crx } from "@crxjs/vite-plugin";
+import preact from "@preact/preset-vite";
+import manifest from "./manifest.json";
 
 export default defineConfig({
   plugins: [preact(), crx({ manifest })],
   build: {
-    target: 'esnext',
-    minify: 'terser',
+    target: "esnext",
+    minify: "terser",
     rollupOptions: {
-      output: { manualChunks: { providers: ['./src/providers/index.ts'] } },
+      output: { manualChunks: { providers: ["./src/providers/index.ts"] } },
     },
   },
 });
@@ -646,13 +679,13 @@ export default defineConfig({
 
 ### 7.1 Test Pyramid
 
-| Level | Tool | Coverage Target | What's Tested |
-| --- | --- | --- | --- |
-| **Unit** | Vitest | > 80% line coverage | Provider adapters (mocked HTTP), suggestion parser, rubric scoring, cache logic, crypto utils |
-| **Integration** | Vitest + jsdom | Key flows | Message passing (BG ↔ Content), storage read/write, auth token lifecycle |
-| **E2E** | Playwright | Core user journeys | Onboarding flow, model config, suggestion display/accept/dismiss on fixture pages |
-| **Visual Regression** | Playwright screenshots | Overlay UI | Suggestion overlay positioning and styling across platforms |
-| **Performance** | Lighthouse CI + custom | Budget compliance | Page load overhead < 100 ms, bundle size < 500 KB |
+| Level                 | Tool                   | Coverage Target     | What's Tested                                                                                 |
+| --------------------- | ---------------------- | ------------------- | --------------------------------------------------------------------------------------------- |
+| **Unit**              | Vitest                 | > 80% line coverage | Provider adapters (mocked HTTP), suggestion parser, rubric scoring, cache logic, crypto utils |
+| **Integration**       | Vitest + jsdom         | Key flows           | Message passing (BG ↔ Content), storage read/write, auth token lifecycle                      |
+| **E2E**               | Playwright             | Core user journeys  | Onboarding flow, model config, suggestion display/accept/dismiss on fixture pages             |
+| **Visual Regression** | Playwright screenshots | Overlay UI          | Suggestion overlay positioning and styling across platforms                                   |
+| **Performance**       | Lighthouse CI + custom | Budget compliance   | Page load overhead < 100 ms, bundle size < 500 KB                                             |
 
 ### 7.2 Platform DOM Fixtures
 
@@ -668,9 +701,9 @@ Since E2E testing against live AI platforms (ChatGPT, Claude, etc.) is fragile a
 ```typescript
 // tests/mocks/mockProvider.ts
 export class MockProviderAdapter implements ProviderAdapter {
-  id = 'mock';
-  name = 'Mock Provider';
-  models = [{ id: 'mock-1', name: 'Mock Model', tier: 'standard' }];
+  id = "mock";
+  name = "Mock Provider";
+  models = [{ id: "mock-1", name: "Mock Model", tier: "standard" }];
 
   async testConnection(): Promise<ConnectionTestResult> {
     return { success: true, latencyMs: 50 };
@@ -680,15 +713,15 @@ export class MockProviderAdapter implements ProviderAdapter {
     return {
       suggestions: [
         {
-          id: 'mock-1',
-          type: 'add_role',
+          id: "mock-1",
+          type: "add_role",
           original: prompt,
           suggested: `As an expert, ${prompt}`,
-          rationale: 'Adding a role improves output relevance.',
+          rationale: "Adding a role improves output relevance.",
           confidence: 0.85,
         },
       ],
-      rawResponse: '{}',
+      rawResponse: "{}",
       tokensUsed: { prompt: 50, completion: 100 },
       latencyMs: 100,
     };
@@ -702,14 +735,14 @@ export class MockProviderAdapter implements ProviderAdapter {
 
 ### 8.1 Performance Budgets
 
-| Metric | Budget | Enforcement |
-| --- | --- | --- |
-| Content script bundle | < 50 KB gzipped | CI size check |
-| Total extension bundle | < 500 KB gzipped | CI size check |
-| Page load impact | < 100 ms | Lighthouse CI |
-| Content script init time | < 50 ms | `performance.mark()` in code |
-| Suggestion render time | < 16 ms (one frame) | `requestAnimationFrame` measurement |
-| Memory per tab | < 30 MB | Chrome Task Manager manual check (beta) |
+| Metric                   | Budget              | Enforcement                             |
+| ------------------------ | ------------------- | --------------------------------------- |
+| Content script bundle    | < 50 KB gzipped     | CI size check                           |
+| Total extension bundle   | < 500 KB gzipped    | CI size check                           |
+| Page load impact         | < 100 ms            | Lighthouse CI                           |
+| Content script init time | < 50 ms             | `performance.mark()` in code            |
+| Suggestion render time   | < 16 ms (one frame) | `requestAnimationFrame` measurement     |
+| Memory per tab           | < 30 MB             | Chrome Task Manager manual check (beta) |
 
 ### 8.2 Optimization Techniques
 
@@ -726,15 +759,15 @@ export class MockProviderAdapter implements ProviderAdapter {
 
 Insights from competitive analysis inform several technical decisions:
 
-| Competitor Weakness | plenz Technical Response |
-| --- | --- |
-| **Prompt Perfect / Promptimize** proxy prompts through their own servers | All API calls go directly from browser → user's LLM; CSP enforces this |
-| **AIPRM** is template-only; no real-time analysis | Real-time analysis engine with debounced LLM calls evaluates each prompt dynamically |
-| **Better Prompt** supports BYOK but is closed-source | Open-source MIT license; plugin adapter pattern invites community extensions |
-| **Superpower ChatGPT** is ChatGPT-only | Platform registry pattern supports any AI site; community can add new platforms via simple config |
-| **Multiple competitors** have CSS/z-index conflicts with Grammarly | Shadow DOM encapsulation completely isolates plenz UI |
-| **TypingMind** requires a separate app (not inline) | Content script injects directly into the user's existing AI platform workflow |
-| **Most competitors** offer no rationale for suggestions | Every suggestion includes a `rationale` field explaining *why* the improvement matters |
+| Competitor Weakness                                                      | plenz Technical Response                                                                          |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| **Prompt Perfect / Promptimize** proxy prompts through their own servers | All API calls go directly from browser → user's LLM; CSP enforces this                            |
+| **AIPRM** is template-only; no real-time analysis                        | Real-time analysis engine with debounced LLM calls evaluates each prompt dynamically              |
+| **Better Prompt** supports BYOK but is closed-source                     | Open-source MIT license; plugin adapter pattern invites community extensions                      |
+| **Superpower ChatGPT** is ChatGPT-only                                   | Platform registry pattern supports any AI site; community can add new platforms via simple config |
+| **Multiple competitors** have CSS/z-index conflicts with Grammarly       | Shadow DOM encapsulation completely isolates plenz UI                                             |
+| **TypingMind** requires a separate app (not inline)                      | Content script injects directly into the user's existing AI platform workflow                     |
+| **Most competitors** offer no rationale for suggestions                  | Every suggestion includes a `rationale` field explaining _why_ the improvement matters            |
 
 ---
 
@@ -742,51 +775,51 @@ Insights from competitive analysis inform several technical decisions:
 
 ### Phase 1: Foundation (Apr 6 – Apr 24, 2026) — 3 Sprints
 
-| Sprint | Focus | Deliverables |
-| --- | --- | --- |
-| S1 (Apr 6-11) | Project scaffolding | Repo setup, Vite + CRXJS config, manifest files, Biome config, CI pipeline (lint + type-check) |
-| S2 (Apr 13-18) | Auth + Storage | Google OAuth flow (Chrome + Firefox), `chrome.storage.local` abstraction, encrypted key storage, options page skeleton |
-| S3 (Apr 20-24) | Provider system | `ProviderAdapter` interface, OpenAI adapter (reference), mock provider, connection test flow, unit tests |
+| Sprint         | Focus               | Deliverables                                                                                                           |
+| -------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| S1 (Apr 6-11)  | Project scaffolding | Repo setup, Vite + CRXJS config, manifest files, Biome config, CI pipeline (lint + type-check)                         |
+| S2 (Apr 13-18) | Auth + Storage      | Google OAuth flow (Chrome + Firefox), `chrome.storage.local` abstraction, encrypted key storage, options page skeleton |
+| S3 (Apr 20-24) | Provider system     | `ProviderAdapter` interface, OpenAI adapter (reference), mock provider, connection test flow, unit tests               |
 
 ### Phase 2: Core Engine (Apr 27 – May 15, 2026) — 3 Sprints
 
-| Sprint | Focus | Deliverables |
-| --- | --- | --- |
-| S4 (Apr 27-May 1) | Platform detection | Content script, platform registry (ChatGPT + Claude), MutationObserver, input field hooking |
-| S5 (May 4-8) | Analysis engine | System prompt template, debounce/throttle logic, suggestion parser, LRU cache, background message handling |
-| S6 (May 11-15) | Suggestion UI | Shadow DOM overlay, ghost text rendering, keyboard shortcuts (Tab/Esc/↑↓), badge indicator, animations |
+| Sprint            | Focus              | Deliverables                                                                                               |
+| ----------------- | ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| S4 (Apr 27-May 1) | Platform detection | Content script, platform registry (ChatGPT + Claude), MutationObserver, input field hooking                |
+| S5 (May 4-8)      | Analysis engine    | System prompt template, debounce/throttle logic, suggestion parser, LRU cache, background message handling |
+| S6 (May 11-15)    | Suggestion UI      | Shadow DOM overlay, ghost text rendering, keyboard shortcuts (Tab/Esc/↑↓), badge indicator, animations     |
 
 ### Phase 3: Alpha (May 18 – Jun 12, 2026) — 4 Sprints
 
-| Sprint | Focus | Deliverables |
-| --- | --- | --- |
-| S7 (May 18-22) | Remaining providers | Anthropic, Google, Mistral, Groq, OpenRouter adapters + tests |
-| S8 (May 25-29) | Remaining platforms | Gemini, Perplexity, Copilot platform configs + detection + E2E fixtures |
-| S9 (Jun 1-5) | Edge cases | Error handling (invalid keys, rate limits, offline), context menu fallback, non-English detection, conflicting extensions |
-| S10 (Jun 8-12) | Polish + Alpha testing | Performance optimization, bundle size audit, Lighthouse CI, internal dogfooding, bug fixes |
+| Sprint         | Focus                  | Deliverables                                                                                                              |
+| -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| S7 (May 18-22) | Remaining providers    | Anthropic, Google, Mistral, Groq, OpenRouter adapters + tests                                                             |
+| S8 (May 25-29) | Remaining platforms    | Gemini, Perplexity, Copilot platform configs + detection + E2E fixtures                                                   |
+| S9 (Jun 1-5)   | Edge cases             | Error handling (invalid keys, rate limits, offline), context menu fallback, non-English detection, conflicting extensions |
+| S10 (Jun 8-12) | Polish + Alpha testing | Performance optimization, bundle size audit, Lighthouse CI, internal dogfooding, bug fixes                                |
 
 ### Phase 4: Beta & Launch (Jun 15 – Jul 20, 2026)
 
-| Milestone | Date | Deliverables |
-| --- | --- | --- |
-| Beta launch | Jun 15 | Chrome Web Store listing, public GitHub repo, README, CONTRIBUTING.md, community Discord |
-| Firefox release | Jul 6 | Firefox Add-ons listing, MV2 compat layer tested |
-| v1.0 launch | Jul 20 | Bug fixes from beta, performance tuning, landing page, launch announcement |
+| Milestone       | Date   | Deliverables                                                                             |
+| --------------- | ------ | ---------------------------------------------------------------------------------------- |
+| Beta launch     | Jun 15 | Chrome Web Store listing, public GitHub repo, README, CONTRIBUTING.md, community Discord |
+| Firefox release | Jul 6  | Firefox Add-ons listing, MV2 compat layer tested                                         |
+| v1.0 launch     | Jul 20 | Bug fixes from beta, performance tuning, landing page, launch announcement               |
 
 ---
 
 ## 11. Risk Register
 
-| Risk | Likelihood | Impact | Mitigation |
-| --- | --- | --- | --- |
-| AI platforms change DOM structure frequently | High | High | Multi-selector fallback, MutationObserver, community-reported breakage pipeline, monthly fixture updates |
-| Chrome Web Store rejects extension (permissions) | Medium | High | Pre-review with Chrome team; minimize permissions; justify `activeTab` and `identity` in listing |
-| LLM response latency exceeds 1s budget | Medium | Medium | Recommend fast models (GPT-4o-mini, Haiku); show "thinking" indicator; cache repeated prompts |
-| API key leakage via extension vulnerability | Low | Critical | CSP restrictions, no remote code execution, Sentry key-stripping, security audit before beta |
-| Low contributor adoption | Medium | Medium | Clear CONTRIBUTING.md, "good first issue" labels, modular architecture, fast CI feedback |
-| Grammarly or similar extension conflicts | Medium | Low | Shadow DOM isolation (fully mitigates CSS conflicts); documented co-existence |
-| Users confused by BYOK requirement | Medium | Medium | Onboarding wizard with step-by-step API key tutorial; link to free-tier provider sign-up pages |
-| Firefox MV2/MV3 compat issues | Medium | Medium | Separate Firefox manifest with overrides; dedicated E2E test suite for Firefox |
+| Risk                                             | Likelihood | Impact   | Mitigation                                                                                               |
+| ------------------------------------------------ | ---------- | -------- | -------------------------------------------------------------------------------------------------------- |
+| AI platforms change DOM structure frequently     | High       | High     | Multi-selector fallback, MutationObserver, community-reported breakage pipeline, monthly fixture updates |
+| Chrome Web Store rejects extension (permissions) | Medium     | High     | Pre-review with Chrome team; minimize permissions; justify `activeTab` and `identity` in listing         |
+| LLM response latency exceeds 1s budget           | Medium     | Medium   | Recommend fast models (GPT-4o-mini, Haiku); show "thinking" indicator; cache repeated prompts            |
+| API key leakage via extension vulnerability      | Low        | Critical | CSP restrictions, no remote code execution, Sentry key-stripping, security audit before beta             |
+| Low contributor adoption                         | Medium     | Medium   | Clear CONTRIBUTING.md, "good first issue" labels, modular architecture, fast CI feedback                 |
+| Grammarly or similar extension conflicts         | Medium     | Low      | Shadow DOM isolation (fully mitigates CSS conflicts); documented co-existence                            |
+| Users confused by BYOK requirement               | Medium     | Medium   | Onboarding wizard with step-by-step API key tutorial; link to free-tier provider sign-up pages           |
+| Firefox MV2/MV3 compat issues                    | Medium     | Medium   | Separate Firefox manifest with overrides; dedicated E2E test suite for Firefox                           |
 
 ---
 
@@ -794,15 +827,15 @@ Insights from competitive analysis inform several technical decisions:
 
 ### 12.1 Required Infrastructure
 
-| Service | Purpose | Cost |
-| --- | --- | --- |
-| **GitHub** (public repo) | Source control, CI/CD, Issues, PRs | Free (public OSS) |
-| **Chrome Web Store** developer account | Extension distribution | $5 one-time |
-| **Firefox Add-ons** developer account | Extension distribution | Free |
-| **Umami Cloud** (or self-hosted) | Privacy-respecting analytics (opt-in) | Free tier / $9/mo |
-| **Sentry** (free tier or self-hosted) | Error tracking | Free tier (5K events/mo) |
-| **Firebase / Supabase** (free tier) | Optional: cross-device preference sync | Free tier |
-| **Cloudflare Pages** | Landing page hosting | Free |
+| Service                                | Purpose                                | Cost                     |
+| -------------------------------------- | -------------------------------------- | ------------------------ |
+| **GitHub** (public repo)               | Source control, CI/CD, Issues, PRs     | Free (public OSS)        |
+| **Chrome Web Store** developer account | Extension distribution                 | $5 one-time              |
+| **Firefox Add-ons** developer account  | Extension distribution                 | Free                     |
+| **Umami Cloud** (or self-hosted)       | Privacy-respecting analytics (opt-in)  | Free tier / $9/mo        |
+| **Sentry** (free tier or self-hosted)  | Error tracking                         | Free tier (5K events/mo) |
+| **Firebase / Supabase** (free tier)    | Optional: cross-device preference sync | Free tier                |
+| **Cloudflare Pages**                   | Landing page hosting                   | Free                     |
 
 ### 12.2 Secrets Management
 
@@ -815,41 +848,40 @@ Insights from competitive analysis inform several technical decisions:
 
 ## 13. Open Technical Questions
 
-| # | Question | Options | Decision Deadline |
-| --- | --- | --- | --- |
-| 1 | Analytics tool: Umami vs Plausible vs PostHog self-hosted? | Umami (lighter, self-hostable); Plausible (hosted, GDPR); PostHog (feature-rich but heavy) | Before Alpha (May 18) |
-| 2 | Should the analysis system prompt be user-customizable? | Yes (advanced mode) vs. No (keep it simple for v1) | Before Beta (Jun 15) |
-| 3 | Support local/on-device models (WebLLM, Ollama)? | Add as a provider adapter; requires localhost `connect-src` permission | Post-v1.0 (backlog) |
-| 4 | Sync server: Firebase vs Supabase vs none? | Firebase (familiar, free tier); Supabase (OSS-aligned); None (defer to post-launch) | Before Beta (Jun 15) |
-| 5 | Should we support Safari via WebExtension API? | Safari support is limited but growing; requires Apple Developer account ($99/yr) | Post-v1.0 (backlog) |
-| 6 | How to handle ProseMirror editors (Claude, Notion)? | Custom input adapter per editor type; ProseMirror transaction API for text injection | During Phase 2 (S4) |
+| #   | Question                                                   | Options                                                                                    | Decision Deadline     |
+| --- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------- |
+| 1   | Analytics tool: Umami vs Plausible vs PostHog self-hosted? | Umami (lighter, self-hostable); Plausible (hosted, GDPR); PostHog (feature-rich but heavy) | Before Alpha (May 18) |
+| 2   | Should the analysis system prompt be user-customizable?    | Yes (advanced mode) vs. No (keep it simple for v1)                                         | Before Beta (Jun 15)  |
+| 3   | Support local/on-device models (WebLLM, Ollama)?           | Add as a provider adapter; requires localhost `connect-src` permission                     | Post-v1.0 (backlog)   |
+| 4   | Sync server: Firebase vs Supabase vs none?                 | Firebase (familiar, free tier); Supabase (OSS-aligned); None (defer to post-launch)        | Before Beta (Jun 15)  |
+| 5   | Should we support Safari via WebExtension API?             | Safari support is limited but growing; requires Apple Developer account ($99/yr)           | Post-v1.0 (backlog)   |
+| 6   | How to handle ProseMirror editors (Claude, Notion)?        | Custom input adapter per editor type; ProseMirror transaction API for text injection       | During Phase 2 (S4)   |
 
 ---
 
 ## 14. Glossary
 
-| Term | Definition |
-| --- | --- |
-| **BYOK** | Bring Your Own Key — users supply their own LLM API key |
-| **MV3** | Manifest V3 — Chrome's current extension platform standard |
-| **Shadow DOM** | Browser API for encapsulating DOM + styles in an isolated subtree |
-| **Content Script** | JavaScript injected into web pages by a browser extension |
-| **Service Worker** | Background script in MV3 that handles events without a persistent page |
-| **CSP** | Content Security Policy — HTTP header / manifest directive controlling allowed resource origins |
-| **Context Rot** | Degradation of LLM output quality as conversation context grows with noise |
-| **Provider Adapter** | A plugin module that normalizes API calls to a specific LLM provider |
+| Term                 | Definition                                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| **BYOK**             | Bring Your Own Key — users supply their own LLM API key                                         |
+| **MV3**              | Manifest V3 — Chrome's current extension platform standard                                      |
+| **Shadow DOM**       | Browser API for encapsulating DOM + styles in an isolated subtree                               |
+| **Content Script**   | JavaScript injected into web pages by a browser extension                                       |
+| **Service Worker**   | Background script in MV3 that handles events without a persistent page                          |
+| **CSP**              | Content Security Policy — HTTP header / manifest directive controlling allowed resource origins |
+| **Context Rot**      | Degradation of LLM output quality as conversation context grows with noise                      |
+| **Provider Adapter** | A plugin module that normalizes API calls to a specific LLM provider                            |
 
 ---
 
 ## Related Documents
 
 1. **plenz PRD v1.0** — Product requirements and user stories
-2. Design Planning Document *(to be created)*
-3. Go-to-Market / Community Launch Plan *(to be created)*
-4. Security Audit Checklist *(to be created before beta)*
-5. CONTRIBUTING.md *(to be created during Phase 1)*
+2. Design Planning Document _(to be created)_
+3. Go-to-Market / Community Launch Plan _(to be created)_
+4. Security Audit Checklist _(to be created before beta)_
+5. CONTRIBUTING.md _(to be created during Phase 1)_
 
 ---
 
-*Document Version: 1.0 · Date: February 7, 2026 · Status: Draft*
-
+_Document Version: 1.0 · Date: February 7, 2026 · Status: Draft_

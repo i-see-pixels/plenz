@@ -1,13 +1,19 @@
 import { resolve } from "node:path";
-import { defineConfig } from "vite";
-import preact from "@preact/preset-vite";
 import { crx } from "@crxjs/vite-plugin";
+import preact from "@preact/preset-vite";
 import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vite";
 import manifest from "./public/manifest.json";
 
 export default defineConfig(() => {
   return {
     plugins: [tailwindcss(), preact(), crx({ manifest })],
+    // Pages the manifest doesn't name still need building.
+    build: {
+      rollupOptions: {
+        input: { welcome: resolve(__dirname, "src/welcome/index.html") },
+      },
+    },
     server: {
       port: 5173,
       strictPort: true,

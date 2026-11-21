@@ -5,8 +5,15 @@
   --pl-text-primary: #171717;
   --pl-text-secondary: #606059;
   --pl-accent: #f97316;
+  /* Accent for small text: plain orange is under 3:1 on white. */
+  --pl-accent-text: #9a3412;
   --pl-accent-secondary: #0f766e;
   --pl-border: #d6d6ce;
+  /* What tints are mixed into: the panel background. */
+  --pl-mix: #ffffff;
+  --pl-danger: #dc2626;
+  --pl-danger-text: #991b1b;
+  --pl-success-text: #14532d;
   --pl-radius-sm: 4px;
   --pl-radius-md: 6px;
   --pl-radius-lg: 8px;
@@ -26,12 +33,9 @@
 }
 
 .pl-badge {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: color-mix(in srgb, var(--pl-accent) 12%, white);
-  color: var(--pl-accent);
+  position: static;
+  background: color-mix(in srgb, var(--pl-accent) 12%, var(--pl-mix));
+  color: var(--pl-accent-text);
   padding: 3px 8px;
   border-radius: 999px;
   font-family: var(--pl-font-mono);
@@ -43,22 +47,145 @@
   align-items: center;
   gap: 4px;
   cursor: pointer;
+  pointer-events: auto;
+  white-space: nowrap;
   transition: background-color 0.15s ease;
-  border: 1px solid color-mix(in srgb, var(--pl-accent) 45%, white);
+  border: 1px solid color-mix(in srgb, var(--pl-accent) 45%, var(--pl-mix));
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
 }
 
 .pl-badge:hover {
-  background: color-mix(in srgb, var(--pl-accent) 18%, white);
+  background: color-mix(in srgb, var(--pl-accent) 18%, var(--pl-mix));
+}
+
+/* Short draft: a quiet mark that brightens on hover. */
+.pl-badge.idle {
+  padding: 4px;
+  opacity: 0.75;
+  transition: opacity 0.15s ease;
+}
+
+.pl-badge.idle:hover,
+.pl-badge.idle:focus-within {
+  opacity: 1;
+}
+
+/* The badge's clickable part (icon and label) as a plain-looking button. */
+.pl-badge-main {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.pl-badge-main:focus-visible,
+.pl-undo:focus-visible {
+  outline: 2px solid var(--pl-accent);
+  outline-offset: 3px;
+}
+
+/* Local prompt check: score pill, colored by band, with a hover panel. */
+.pl-badge.lint {
+  position: relative;
+}
+
+.pl-badge.lint-good {
+  color: var(--pl-accent-secondary);
+  background: color-mix(in srgb, var(--pl-accent-secondary) 10%, var(--pl-mix));
+  border-color: color-mix(
+    in srgb,
+    var(--pl-accent-secondary) 40%,
+    var(--pl-mix)
+  );
+}
+
+.pl-badge.lint-weak {
+  color: var(--pl-danger-text);
+  background: color-mix(in srgb, var(--pl-danger) 10%, var(--pl-mix));
+  border-color: color-mix(in srgb, var(--pl-danger) 40%, var(--pl-mix));
+}
+
+.pl-lint-score {
+  margin-left: 4px;
+}
+
+.pl-lint-panel {
+  display: none;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  width: 260px;
+  padding: 10px 12px;
+  background: var(--pl-bg-primary);
+  color: var(--pl-text-primary);
+  border: 1px solid var(--pl-border);
+  border-radius: var(--pl-radius-md);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.14);
+  font-family: var(--pl-font-family);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: normal;
+  cursor: default;
+}
+
+.pl-badge.lint:hover .pl-lint-panel,
+.pl-badge.lint:focus-within .pl-lint-panel {
+  display: block;
+}
+
+.pl-lint-head {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.pl-lint-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.pl-lint-item {
+  display: grid;
+  gap: 2px;
+}
+
+.pl-lint-label {
+  font-weight: 600;
+}
+
+.pl-lint-hint,
+.pl-lint-foot {
+  color: var(--pl-text-secondary);
+  line-height: 1.4;
+}
+
+.pl-lint-foot {
+  border-top: 1px solid var(--pl-border);
+  padding-top: 6px;
+  font-size: 11px;
 }
 
 .pl-badge.error {
-  background: color-mix(in srgb, #ef4444 12%, white);
-  color: #ef4444;
-  border-color: color-mix(in srgb, #ef4444 45%, white);
+  background: color-mix(in srgb, var(--pl-danger) 12%, var(--pl-mix));
+  color: var(--pl-danger-text);
+  border-color: color-mix(in srgb, var(--pl-danger) 45%, var(--pl-mix));
 }
 
 .pl-badge.error:hover {
-  background: color-mix(in srgb, #ef4444 18%, white);
+  background: color-mix(in srgb, var(--pl-danger) 18%, var(--pl-mix));
 }
 
 .pl-overlay {
@@ -96,13 +223,17 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--pl-accent);
+  color: var(--pl-accent-text);
   margin-bottom: 8px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--pl-border);
 }
 
 .pl-close-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
   cursor: pointer;
   color: var(--pl-text-secondary);
   font-size: 14px;
@@ -111,69 +242,14 @@
   border-radius: 4px;
 }
 
+.pl-close-btn:focus-visible {
+  outline: 2px solid var(--pl-accent);
+  outline-offset: 1px;
+}
+
 .pl-close-btn:hover {
   background: var(--pl-bg-hover);
   color: var(--pl-text-primary);
-}
-
-.pl-suggestion-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 480px;
-  overflow-y: auto;
-  padding-right: 4px; /* Space for scrollbar */
-}
-
-.pl-suggestion-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.pl-suggestion-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.pl-suggestion-list::-webkit-scrollbar-thumb {
-  background: var(--pl-border);
-  border-radius: 10px;
-}
-
-.pl-suggestion-list::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--pl-border) 80%, black);
-}
-
-.pl-suggestion-item {
-  background: var(--pl-bg-secondary);
-  border: 1px solid var(--pl-border);
-  border-radius: var(--pl-radius-sm);
-  padding: 10px;
-  cursor: pointer;
-  transition: background-color 0.12s ease;
-}
-
-.pl-suggestion-item:hover {
-  background: var(--pl-bg-hover);
-}
-
-.pl-suggestion-item.active {
-  background: color-mix(in srgb, var(--pl-accent) 8%, white);
-  border-color: color-mix(in srgb, var(--pl-accent) 50%, white);
-}
-
-.pl-suggestion-text {
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--pl-text-primary);
-  margin-bottom: 4px;
-}
-
-.pl-rationale,
-.pl-suggestion-rationale {
-  font-size: 11px;
-  color: var(--pl-text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .pl-footer {
@@ -189,6 +265,234 @@
   color: var(--pl-text-secondary);
 }
 
+/* Refine panel */
+.pl-refine {
+  overflow-y: auto;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.pl-muted {
+  color: var(--pl-text-secondary);
+  font-size: 12px;
+}
+
+.pl-note {
+  font-size: 11px;
+}
+
+.pl-mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pl-mode-card {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: 10px;
+  background: var(--pl-bg-secondary);
+  border: 1px solid var(--pl-border);
+  border-radius: var(--pl-radius-sm);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.pl-mode-card:hover {
+  background: var(--pl-bg-hover);
+}
+
+.pl-mode-card.recommended {
+  border-color: color-mix(in srgb, var(--pl-accent) 55%, var(--pl-mix));
+}
+
+.pl-mode-name {
+  font-weight: 600;
+}
+
+.pl-mode-blurb {
+  font-size: 11px;
+  color: var(--pl-text-secondary);
+}
+
+.pl-mode-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-family: var(--pl-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pl-accent-text);
+}
+
+.pl-output {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.5;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 10px;
+  background: var(--pl-bg-secondary);
+  border: 1px solid var(--pl-border);
+  border-radius: var(--pl-radius-sm);
+}
+
+.pl-output.pl-streaming::after {
+  content: "\258d";
+  color: var(--pl-accent);
+  animation: pl-blink 1s steps(1) infinite;
+}
+
+@keyframes pl-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.pl-actions,
+.pl-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pl-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--pl-radius-sm);
+  border: 1px solid var(--pl-border);
+  background: var(--pl-bg-primary);
+  color: var(--pl-text-primary);
+  cursor: pointer;
+}
+
+.pl-btn:hover {
+  background: var(--pl-bg-hover);
+}
+
+.pl-btn-primary {
+  background: var(--pl-accent);
+  border-color: var(--pl-accent);
+  color: white;
+}
+
+.pl-btn-primary:hover {
+  background: color-mix(in srgb, var(--pl-accent) 88%, black);
+}
+
+.pl-btn-small {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+}
+
+.pl-questions {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.pl-question {
+  display: grid;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.pl-input {
+  font: inherit;
+  font-weight: 400;
+  padding: 6px 8px;
+  border: 1px solid var(--pl-border);
+  border-radius: var(--pl-radius-sm);
+  background: var(--pl-bg-primary);
+  color: var(--pl-text-primary);
+}
+
+.pl-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--pl-accent) 60%, var(--pl-mix));
+  outline-offset: 0;
+}
+
+.pl-view-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.pl-view-toggle .pl-btn[aria-pressed="true"] {
+  background: var(--pl-bg-hover);
+  border-color: color-mix(in srgb, var(--pl-text-secondary) 50%, var(--pl-mix));
+}
+
+/* Diff: one change = what was removed, then what was added. Click to keep the original. */
+.pl-change {
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.pl-change:hover,
+.pl-change:focus-visible {
+  outline: 1px dashed var(--pl-text-secondary);
+  outline-offset: 1px;
+}
+
+.pl-del {
+  background: color-mix(in srgb, var(--pl-danger) 12%, var(--pl-mix));
+  color: var(--pl-danger-text);
+  text-decoration: line-through;
+}
+
+.pl-ins {
+  background: color-mix(in srgb, #16a34a 14%, var(--pl-mix));
+  color: var(--pl-success-text);
+  text-decoration: none;
+}
+
+/* Kept original: the draft's words read normally, the suggestion is struck. */
+.pl-change.kept-original .pl-del {
+  background: none;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pl-change.kept-original .pl-ins {
+  background: none;
+  color: var(--pl-text-secondary);
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.pl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pl-undo {
+  margin-left: 6px;
+  padding: 0 6px;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-left: 1px solid currentColor;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.pl-error {
+  color: var(--pl-danger);
+  line-height: 1.45;
+}
+
 .pl-key-hint {
   background: var(--pl-bg-secondary);
   padding: 2px 4px;
@@ -197,15 +501,109 @@
   font-weight: 500;
 }
 
-.pl-ghost-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  background: transparent;
-  color: var(--pl-text-secondary);
-  opacity: 0.65;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  z-index: 9999;
+/* `/` command menu */
+.pl-slash {
+  overflow-y: auto;
+  gap: 2px;
+  padding: 6px;
+  font-size: 13px;
 }
+
+.pl-slash-item {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--pl-radius-sm);
+  cursor: pointer;
+}
+
+.pl-slash-item:hover,
+.pl-slash-item.selected {
+  background: var(--pl-bg-hover);
+}
+
+.pl-slash-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pl-slash-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-slash-source {
+  flex-shrink: 0;
+  font-family: var(--pl-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pl-text-secondary);
+}
+
+.pl-slash-preview {
+  font-size: 12px;
+  color: var(--pl-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-slash-empty {
+  padding: 6px 8px;
+}
+
+.pl-slash-foot {
+  margin-top: 4px;
+  padding: 0 8px 2px;
+}
+
+/* Dark pages (see ui/theme.ts): same roles, darker surfaces. */
+:host(.pl-dark) {
+  --pl-bg-primary: #1c1c1a;
+  --pl-bg-secondary: #262624;
+  --pl-bg-hover: #31312e;
+  --pl-text-primary: #ececea;
+  --pl-text-secondary: #a8a8a0;
+  --pl-accent: #fb923c;
+  --pl-accent-text: #fb923c;
+  --pl-accent-secondary: #2dd4bf;
+  --pl-border: #3f3f3b;
+  --pl-mix: #1c1c1a;
+  --pl-danger: #f87171;
+  --pl-danger-text: #fecaca;
+  --pl-success-text: #bbf7d0;
+  color-scheme: dark;
+}
+
+.pl-error-detail {
+  overflow-wrap: anywhere;
+}
+
+/* Read by screen readers, not shown. */
+.pl-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Respect "reduce motion": no fades or blinking cursor. */
+/* biome-ignore-start lint/complexity/noImportantStyles: reduced-motion overrides must beat every other rule */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+/* biome-ignore-end lint/complexity/noImportantStyles: reduced-motion overrides must beat every other rule */

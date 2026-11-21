@@ -1,7 +1,16 @@
+import { providers } from "@plenz/providers";
 import type { ProviderConfig, StorageResult } from "@plenz/types";
 import { doc, setDoc } from "firebase/firestore/lite";
-import { providers } from "@plenz/providers";
 import { AuthManager } from "./auth";
+import {
+  SyncPassphraseRequiredError,
+  toFirestoreProviderConfig,
+} from "./encryption";
+import {
+  getFirestoreDb,
+  isFirebaseConfigured,
+  signInToFirebase,
+} from "./firebase";
 import {
   ChromeLocalBackend,
   ChromeSyncBackend,
@@ -10,12 +19,7 @@ import {
   getModelConfigKey,
   type StorageBackendPreference,
 } from "./storage-backend";
-import {
-  getFirestoreDb,
-  isFirebaseConfigured,
-  signInToFirebase,
-} from "./firebase";
-import { toFirestoreProviderConfig } from "./encryption";
+import { SyncVault } from "./sync-vault";
 
 export interface UserPreferences {
   debounceTime: number;
@@ -23,6 +27,11 @@ export interface UserPreferences {
   activeProviderId: string | null;
   theme: "light" | "dark" | "system";
   storageBackend: StorageBackendPreference;
+  suggestionsEnabled: boolean;
+  chatContextEnabled: boolean;
+  providerFallbackEnabled: boolean;
+  /** Refine with the LLM after a typing pause. Off: refine only on request. */
+  autoRefineEnabled: boolean;
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -31,6 +40,10 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   activeProviderId: null,
   theme: "system",
   storageBackend: "chrome-sync",
+  suggestionsEnabled: true,
+  chatContextEnabled: false,
+  providerFallbackEnabled: false,
+  autoRefineEnabled: false,
 };
 
 function getErrorMessage(error: unknown) {
@@ -47,7 +60,9 @@ function normalizePreferences(value: unknown): UserPreferences {
       ? (value as Partial<UserPreferences> & { debounceMs?: unknown })
       : {};
   const theme =
-    prefs.theme === "light" || prefs.theme === "dark" || prefs.theme === "system"
+    prefs.theme === "light" ||
+    prefs.theme === "dark" ||
+    prefs.theme === "system"
       ? prefs.theme
       : DEFAULT_PREFERENCES.theme;
   const activeModelId =
@@ -55,13 +70,31 @@ function normalizePreferences(value: unknown): UserPreferences {
   const activeProviderId =
     typeof prefs.activeProviderId === "string" ? prefs.activeProviderId : null;
   const debounceTime =
-    typeof prefs.debounceTime === "number" && Number.isFinite(prefs.debounceTime)
+    typeof prefs.debounceTime === "number" &&
+    Number.isFinite(prefs.debounceTime)
       ? prefs.debounceTime
-      : typeof prefs.debounceMs === "number" && Number.isFinite(prefs.debounceMs)
+      : typeof prefs.debounceMs === "number" &&
+          Number.isFinite(prefs.debounceMs)
         ? prefs.debounceMs
         : DEFAULT_PREFERENCES.debounceTime;
   const storageBackend =
     prefs.storageBackend === "firebase" ? "firebase" : "chrome-sync";
+  const suggestionsEnabled =
+    typeof prefs.suggestionsEnabled === "boolean"
+      ? prefs.suggestionsEnabled
+      : DEFAULT_PREFERENCES.suggestionsEnabled;
+  const chatContextEnabled =
+    typeof prefs.chatContextEnabled === "boolean"
+      ? prefs.chatContextEnabled
+      : DEFAULT_PREFERENCES.chatContextEnabled;
+  const providerFallbackEnabled =
+    typeof prefs.providerFallbackEnabled === "boolean"
+      ? prefs.providerFallbackEnabled
+      : DEFAULT_PREFERENCES.providerFallbackEnabled;
+  const autoRefineEnabled =
+    typeof prefs.autoRefineEnabled === "boolean"
+      ? prefs.autoRefineEnabled
+      : DEFAULT_PREFERENCES.autoRefineEnabled;
 
   return {
     debounceTime,
@@ -69,6 +102,10 @@ function normalizePreferences(value: unknown): UserPreferences {
     activeProviderId,
     theme,
     storageBackend,
+    suggestionsEnabled,
+    chatContextEnabled,
+    providerFallbackEnabled,
+    autoRefineEnabled,
   };
 }
 
@@ -99,16 +136,23 @@ async function writeConfigsToFirebase(configs: Record<string, ProviderConfig>) {
     const credential = await signInToFirebase(token);
     const userId = credential.user.uid;
     const db = getFirestoreDb();
+    const dataKey = await SyncVault.dataKey(userId);
+    if (!dataKey) {
+      errors.push(new SyncPassphraseRequiredError().message);
+      return { migrated: 0, errors, migratedProviderIds };
+    }
 
     for (const [providerId, config] of Object.entries(configs)) {
       try {
         await setDoc(
           doc(db, "users", userId, "model_configs", providerId),
-          await toFirestoreProviderConfig(config, userId),
+          await toFirestoreProviderConfig(config, userId, providerId, dataKey),
         );
         migratedProviderIds.push(providerId);
       } catch (error) {
-        errors.push(`Failed to migrate ${providerId}: ${getErrorMessage(error)}`);
+        errors.push(
+          `Failed to migrate ${providerId}: ${getErrorMessage(error)}`,
+        );
       }
     }
   } catch (error) {
@@ -121,6 +165,8 @@ async function writeConfigsToFirebase(configs: Record<string, ProviderConfig>) {
     migratedProviderIds,
   };
 }
+
+let preferencesWriteQueue: Promise<void> = Promise.resolve();
 
 export const StorageManager = {
   async isUserSignedIn(): Promise<boolean> {
@@ -146,11 +192,16 @@ export const StorageManager = {
   },
 
   async setPreferences(prefs: Partial<UserPreferences>): Promise<void> {
-    const current = await this.getPreferences();
-    const updated = normalizePreferences({ ...current, ...prefs });
-    await chrome.storage.sync.set({
-      preferences: updated,
+    // Read-merge-write: queue writes so two quick changes cannot drop one.
+    const write = preferencesWriteQueue.then(async () => {
+      const current = await this.getPreferences();
+      const updated = normalizePreferences({ ...current, ...prefs });
+      await chrome.storage.sync.set({
+        preferences: updated,
+      });
     });
+    preferencesWriteQueue = write.catch(() => {});
+    return write;
   },
 
   async getStorageSettings(): Promise<{
@@ -164,7 +215,9 @@ export const StorageManager = {
     };
   },
 
-  async setStorageBackend(storageBackend: StorageBackendPreference): Promise<void> {
+  async setStorageBackend(
+    storageBackend: StorageBackendPreference,
+  ): Promise<void> {
     await this.setPreferences({ storageBackend });
   },
 
@@ -228,14 +281,19 @@ export const StorageManager = {
         await chrome.storage.local.remove(getModelConfigKey(providerId));
         migrated++;
       } catch (error) {
-        errors.push(`Failed to migrate ${providerId}: ${getErrorMessage(error)}`);
+        errors.push(
+          `Failed to migrate ${providerId}: ${getErrorMessage(error)}`,
+        );
       }
     }
 
     return { migrated, errors };
   },
 
-  async migrateLocalToFirebase(): Promise<{ migrated: number; errors: string[] }> {
+  async migrateLocalToFirebase(): Promise<{
+    migrated: number;
+    errors: string[];
+  }> {
     if (!(await this.isUserSignedIn())) {
       return {
         migrated: 0,
@@ -275,7 +333,10 @@ export const StorageManager = {
       : this.migrateLocalToSync();
   },
 
-  async migrateSyncToFirebase(): Promise<{ migrated: number; errors: string[] }> {
+  async migrateSyncToFirebase(): Promise<{
+    migrated: number;
+    errors: string[];
+  }> {
     if (!(await this.isUserSignedIn())) {
       return {
         migrated: 0,
@@ -344,4 +405,3 @@ export const StorageManager = {
     };
   },
 };
-
